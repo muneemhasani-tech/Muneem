@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Verifier</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#16202c;--mute:#5d6b7b;--line:#dfe4ea;--brand:#0b6b57;--brand-ink:#fff;
+--A:#0f8a5f;--B:#2a7de1;--C:#c98a06;--REJECT:#c8372d;--okbg:#e6f6ee;--warnbg:#fff4dc;--badbg:#fdeceb;--infobg:#e9f1fd}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1419;--card:#182029;--ink:#e8edf2;--mute:#98a6b5;--line:#2a3542;--brand:#2fb392;--brand-ink:#06251d;
+--A:#3ccf95;--B:#6aa8f5;--C:#e9b23a;--REJECT:#f0746b;--okbg:#12362b;--warnbg:#3a2f12;--badbg:#3d1c1a;--infobg:#172a44}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.5rem;margin:.2em 0}.sub{color:var(--mute);margin:0 0 16px}
+.tabs{display:flex;gap:8px;margin:16px 0}
+.tab{flex:1;padding:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.tab[aria-selected=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+label{display:block;font-weight:600;margin:14px 0 4px}
+input[type=text],input[type=email]{width:100%;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+input:focus-visible,button:focus-visible{outline:3px solid var(--B);outline-offset:2px}
+.hint{color:var(--mute);font-size:.85rem;margin-top:2px}
+.btn{padding:13px 22px;border:0;border-radius:10px;background:var(--brand);color:var(--brand-ink);font:inherit;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600;padding:9px 14px}
+.btn[disabled]{opacity:.6;cursor:progress}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}
+.chk{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:.92rem}
+.hidden{display:none!important}
+.verdict{display:flex;gap:16px;align-items:center;margin-bottom:8px}
+.badge{min-width:76px;height:76px;border-radius:16px;display:grid;place-items:center;font-size:2rem;font-weight:800;color:#fff;padding:0 8px}
+.badge.A{background:var(--A)}.badge.B{background:var(--B)}.badge.C{background:var(--C)}.badge.REJECT{background:var(--REJECT);font-size:1rem}
+.verdict h2{margin:0;font-size:1.25rem}.verdict p{margin:2px 0 0;color:var(--mute)}
+.item{display:flex;gap:12px;padding:12px 14px;border-radius:10px;margin-top:10px}
+.item .ic{font-size:1.2rem;line-height:1.4}.item b{display:block}.item span{color:var(--mute);font-size:.93rem}
+.item.ok{background:var(--okbg)}.item.warn{background:var(--warnbg)}.item.bad{background:var(--badbg)}.item.info{background:var(--infobg)}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:38px 16px;text-align:center;cursor:pointer;color:var(--mute)}
+.drop.over,.drop:hover{border-color:var(--brand);background:var(--okbg)}
+.drop b{color:var(--ink);display:block;font-size:1.1rem}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer}
+.chip[aria-pressed=true]{outline:2px solid var(--brand)}
+.chip i{font-style:normal;font-weight:800;margin-left:6px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg);position:sticky;top:0}
+td .g{display:inline-block;min-width:26px;text-align:center;border-radius:6px;color:#fff;font-weight:700;padding:1px 6px;font-size:.8rem}
+.g.A{background:var(--A)}.g.B{background:var(--B)}.g.C{background:var(--C)}.g.REJECT{background:var(--REJECT)}
+.status{display:flex;gap:8px;flex-wrap:wrap;margin-top:24px;font-size:.85rem;color:var(--mute)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--line)}.dot.on{background:var(--A)}
+.err{background:var(--badbg);border-radius:10px;padding:12px 14px;margin-top:14px}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s .8s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+@media (max-width:560px){.verdict{flex-direction:column;align-items:flex-start}.tab{padding:10px 6px;font-size:.92rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lead Verifier</h1>
+  <p class="sub">Check if a lead can actually be reached, before it goes into the CRM. Everything runs on this computer.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t1" aria-selected="true" aria-controls="p1">Check one lead</button>
+    <button class="tab" role="tab" id="t2" aria-selected="false" aria-controls="p2">Check a spreadsheet</button>
+  </div>
+
+  <section id="p1" class="card" role="tabpanel">
+    <form id="f1" autocomplete="off">
+      <label for="phone">Phone number</label>
+      <input type="text" id="phone" inputmode="tel" placeholder="01712-345678">
+      <div class="hint">Any format works: 01712345678, +880 1712 345678, 8801712345678</div>
+      <label for="email">Email address</label>
+      <input type="email" id="email" placeholder="name@example.com">
+      <label for="website">Website</label>
+      <input type="text" id="website" placeholder="www.example.com">
+      <div class="row">
+        <button class="btn" id="go1" type="submit">Check this lead</button>
+        <label class="chk" style="margin:0"><input type="checkbox" id="off1"> Free checks only (no paid lookups)</label>
+      </div>
+    </form>
+    <div id="out1" aria-live="polite"></div>
+  </section>
+
+  <section id="p2" class="card hidden" role="tabpanel">
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a CSV file">
+      <b>Drop your leads file here</b>or click to choose a .csv file
+      <input type="file" id="file" accept=".csv,text/csv" class="hidden">
+    </div>
+    <div class="row"><label class="chk" style="margin:0"><input type="checkbox" id="off2"> Free checks only (no paid lookups)</label></div>
+    <div id="out2" aria-live="polite"></div>
+  </section>
+
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const HEAD={
+  A:["Call this lead now","Working mobile number and no red flags."],
+  B:["Good lead, worth a call","Reachable, but one thing isn't fully confirmed."],
+  C:["Weak contact, low priority","Only a weak way to reach this person."],
+  REJECT:["Do not add to the CRM","No reliable way to reach this lead, or it looks unsafe."]};
+
+function phoneItem(p){
+  if(!p.input) return null;
+  if(!p.valid) return ["bad","✕","Phone number not valid",p.reason==="unparseable"?"This doesn't look like a phone number.":"The number has the wrong length or prefix. Check for a typo."];
+  const kind={mobile:"mobile",fixed_line:"landline",voip:"internet (VoIP)",unknown:"unknown type"}[p.type]||p.type;
+  const sub=p.type==="mobile"?"Can receive calls and WhatsApp.":p.type==="fixed_line"?"A landline can't receive WhatsApp or SMS.":"May not be reachable by SMS or WhatsApp.";
+  return [p.type==="mobile"?"ok":"warn",p.type==="mobile"?"✓":"!",`Valid ${p.carrier?esc(p.carrier)+" ":""}${kind} number`,`${esc(p.e164)}. ${sub}`];
+}
+const EMAIL_TXT={
+  invalid_syntax:["bad","Not a valid email format","There is a typo, such as a missing @ or domain."],
+  no_mx:["bad","This email domain can't receive mail","The domain has no mail server, so messages would bounce."],
+  mailbox_not_found:["bad","This mailbox doesn't exist","The domain is real, but this address isn't."],
+  disposable:["bad","Throwaway email address","Disposable inboxes are not real contacts."],
+  accept_all:["warn","Can't confirm this mailbox","This domain accepts mail for any address, so it may not be a real inbox."],
+  role_address:["warn","Shared inbox (like info@ or sales@)","Reaches a team, not necessarily this person."],
+  not_api_checked:["info","Looks fine, mailbox not confirmed","Format and mail server are OK. A paid lookup would confirm the inbox exists."],
+  mx_check_failed:["info","Couldn't check the mail server","Your internet may be down. Try again."],
+  quota_exhausted:["info","Today's free email checks are used up","Run it again tomorrow. Nothing is lost."],
+  provider_error:["info","Email checker is unavailable","Try again later."],
+  no_api_key:["info","Looks fine, mailbox not confirmed","Add a QuickEmailVerification key to confirm the inbox exists."]};
+function emailItem(e){
+  if(!e.input) return null;
+  if(e.status==="valid") return ["ok","✓","Email is real",`The mailbox exists${e.provider?" (confirmed by "+esc(e.provider)+")":""}.`];
+  const t=EMAIL_TXT[e.reason];
+  if(t) return [t[0],{bad:"✕",warn:"!",info:"ⓘ"}[t[0]],t[1],t[2]];
+  return ["info","ⓘ","Email status: "+esc(e.status),esc(e.reason)];
+}
+function domainItem(d){
+  if(!d.name) return null;
+  if(d.flagged) return ["bad","✕",`${esc(d.name)} is on a safety blocklist`,`Listed by ${esc(d.sources.join(" and "))} for malware or phishing. Don't click its links.`];
+  const age=d.age_days;
+  const ageTxt=age==null?"":age<90?` Registered only ${age} days ago, which is very new.`:` Registered ${age>=730?Math.floor(age/365)+" years":age+" days"} ago.`;
+  if(d.flagged===false) return [age!=null&&age<90?"warn":"ok",age!=null&&age<90?"!":"✓",`${esc(d.name)} looks safe`,"Not on the Google Web Risk or URLhaus blocklists."+ageTxt];
+  return ["info","ⓘ",`${esc(d.name)}: safety not checked`,(d.checked?"The safety services couldn't be reached, or no keys are set.":"Skipped in free mode.")+ageTxt];
+}
+function renderLead(l){
+  const [h,s]=HEAD[l.grade];
+  const items=[phoneItem(l.phone),emailItem(l.email),domainItem(l.domain)].filter(Boolean);
+  const dup=l.duplicate_of?`<div class="item bad"><div class="ic">✕</div><div><b>Duplicate</b><span>Same as row ${l.duplicate_of}.</span></div></div>`:"";
+  return `<div class="verdict" style="margin-top:22px"><div class="badge ${l.grade}">${l.grade}</div><div><h2>${h}</h2><p>${s}</p></div></div>`+dup+
+    items.map(([k,i,t,d])=>`<div class="item ${k}"><div class="ic" aria-hidden="true">${i}</div><div><b>${t}</b><span>${d}</span></div></div>`).join("")+
+    (items.length?"":`<div class="item bad"><div class="ic">✕</div><div><b>Nothing to check</b><span>Enter a phone number, email or website.</span></div></div>`);
+}
+
+// tabs
+function tab(n){for(const i of [1,2]){$("p"+i).classList.toggle("hidden",i!==n);$("t"+i).setAttribute("aria-selected",i===n)}}
+$("t1").onclick=()=>tab(1);$("t2").onclick=()=>tab(2);
+
+async function post(url,body,raw){
+  const r=await fetch(url,{method:"POST",body:raw?body:JSON.stringify(body)});
+  const j=await r.json();
+  if(!r.ok) throw new Error(j.error||"Something went wrong.");
+  return j;
+}
+const busy=t=>`<p style="margin-top:20px"><span class="spin"></span>${t}</p>`;
+
+$("f1").onsubmit=async e=>{
+  e.preventDefault();
+  if(![phone,email,website].some(x=>x.value.trim())){ $("out1").innerHTML='<div class="err">Type at least one thing to check.</div>'; return; }
+  $("go1").disabled=true;$("out1").innerHTML=busy("Checking…");
+  try{const l=await post("/api/check?offline="+($("off1").checked?1:0),{phone:phone.value,email:email.value,website:website.value});
+    $("out1").innerHTML=renderLead(l);}
+  catch(x){$("out1").innerHTML=`<div class="err">${esc(x.message)}</div>`}
+  $("go1").disabled=false;
+};
+
+// spreadsheet
+let DATA=null,FILTER="ALL";
+$("drop").onclick=()=>$("file").click();
+$("drop").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("file").click()}};
+["dragover","dragenter"].forEach(v=>$("drop").addEventListener(v,e=>{e.preventDefault();$("drop").classList.add("over")}));
+["dragleave","drop"].forEach(v=>$("drop").addEventListener(v,e=>{e.preventDefault();$("drop").classList.remove("over")}));
+$("drop").addEventListener("drop",e=>{if(e.dataTransfer.files[0])upload(e.dataTransfer.files[0])});
+$("file").onchange=e=>{if(e.target.files[0])upload(e.target.files[0])};
+async function upload(f){
+  $("out2").innerHTML=busy(`Checking ${esc(f.name)}… big files can take a few minutes.`);
+  try{DATA=await post("/api/upload?offline="+($("off2").checked?1:0),await f.arrayBuffer(),true);DATA.name=f.name.replace(/\.csv$/i,"");FILTER="ALL";renderSheet()}
+  catch(x){$("out2").innerHTML=`<div class="err">${esc(x.message)}</div>`}
+}
+function dl(kind){
+  const rows=csvRows(DATA.csv), head=rows[0], gi=head.length-3; /* grade, grade_reasons, checked_at are the last three columns */
+  const want={all:null,ab:["A","B"],c:["C"],reject:["REJECT"]}[kind];
+  const keep=[head,...rows.slice(1).filter(r=>!want||want.includes(r[gi]))];
+  const text="﻿"+keep.map(r=>r.map(c=>/[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c).join(",")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/csv"}));
+  a.download=`${DATA.name}_${kind==="all"?"graded":kind==="ab"?"A_B":kind==="c"?"C":"REJECT"}.csv`;a.click();
+}
+function csvRows(t){const out=[];let r=[],c="",q=false;
+  for(let i=0;i<t.length;i++){const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){c+='"';i++}else q=false}else c+=ch}
+    else if(ch==='"')q=true;else if(ch===","){r.push(c);c=""}else if(ch==="\n"){r.push(c);out.push(r);r=[];c=""}else c+=ch}
+  if(c||r.length){r.push(c);out.push(r)}return out}
+function why(l){
+  const m={valid_mobile:"valid mobile",no_email:"no email given",email_valid:"email verified",no_valid_contact:"no usable phone or email",no_valid_phone:"no valid phone"};
+  return l.reasons.map(x=>m[x]||x.replace(/_/g," ")).join(", ");
+}
+function renderSheet(){
+  const s=DATA.summary,g=s.grades;
+  const chip=(k,label,n)=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${label}<i>${n}</i></button>`;
+  const shown=DATA.leads.filter(l=>FILTER==="ALL"||l.grade===FILTER);
+  const used=Object.entries(s.credits).filter(([,v])=>v).map(([k,v])=>`${esc(k)} ${v}`).join(", ")||"none";
+  $("out2").innerHTML=`<h2 style="margin:22px 0 0">${s.rows} leads checked</h2>
+   <p class="hint">Paid lookups used: ${used}.${s.deferred?` <b>${s.deferred} could not be fully checked today</b>; run again later, cached results cost nothing.`:""}${s.truncated?" Only the first 2000 rows were checked here; use the command line for bigger files.":""}</p>
+   <div class="chips">${chip("ALL","All",s.rows)}${chip("A","A · Call now",g.A||0)}${chip("B","B · Good",g.B||0)}${chip("C","C · Weak",g.C||0)}${chip("REJECT","Reject",g.REJECT||0)}</div>
+   <div class="row" style="margin:0 0 14px"><button class="btn" onclick="dl('ab')">Download good leads (A+B)</button>
+     <button class="btn ghost" onclick="dl('all')">Everything</button><button class="btn ghost" onclick="dl('c')">C only</button><button class="btn ghost" onclick="dl('reject')">Rejects</button></div>
+   <div class="tw"><table><thead><tr><th>Grade</th><th>Name</th><th>Phone</th><th>Email</th><th>Why</th></tr></thead><tbody>${
+    shown.map(l=>`<tr><td><span class="g ${l.grade}">${l.grade}</span></td><td>${esc(l.name)||"—"}</td><td>${esc(l.phone.e164||l.phone.input)||"—"}</td><td>${esc(l.email.input)||"—"}</td><td>${esc(why(l))}</td></tr>`).join("")||'<tr><td colspan="5">No leads in this group.</td></tr>'}</tbody></table></div>`;
+  document.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{FILTER=b.dataset.f;renderSheet()});
+}
+
+// status strip
+fetch("/api/status").then(r=>r.json()).then(s=>{
+  const k=s.keys,d=(on,t)=>`<span><span class="dot ${on?"on":""}"></span>${t}</span>`;
+  $("status").innerHTML=d(true,"Phone &amp; email format (free)")+d(true,"Mail server (free)")+d(k.email_check||k.email_fallback,"Mailbox check")+d(k.webrisk||k.urlhaus,"Website safety");
+});
+</script>
+</body>
+</html>

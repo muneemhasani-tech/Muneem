@@ -31,6 +31,19 @@ Rows deferred: 0
 
 `--offline-only` = phone + email syntax + disposable list + MX lookup. Zero credits.
 
+## Point-and-click version
+
+```bash
+lead-verifier ui          # opens http://127.0.0.1:8765 in your browser
+```
+Two tabs: **Check one lead** (type a phone, email and/or website, get a plain-English verdict) and
+**Check a spreadsheet** (drop a CSV, filter by grade, download the good leads). It listens on your
+computer only. There is also a one-lead command-line version:
+
+```bash
+lead-verifier check -p 01676728214 -e name@example.com -w www.example.com
+```
+
 ## Real run
 
 Drop your CSV in `data/input/`, add keys to `.env`, then:

@@ -30,5 +30,8 @@ lead-verifier = "lead_verifier.cli:app"
 [tool.setuptools.packages.find]
 include = ["lead_verifier*"]
 
+[tool.setuptools.package-data]
+lead_verifier = ["static/*.html"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

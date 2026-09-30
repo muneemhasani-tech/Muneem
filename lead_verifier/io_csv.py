@@ -24,7 +24,10 @@ OUT_COLS = [
 
 def read_csv(path: str | Path) -> tuple[list[str], list[list[str]]]:
     """Returns (headers, rows). Rows are padded to header width; fully blank lines dropped."""
-    raw = Path(path).read_bytes()
+    return read_csv_text(Path(path).read_bytes())
+
+
+def read_csv_text(raw: bytes) -> tuple[list[str], list[list[str]]]:
     try:
         text = raw.decode("utf-8-sig")
     except UnicodeDecodeError:
