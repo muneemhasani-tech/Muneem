@@ -1,0 +1,13 @@
+Name,Phone,Email,Website,Source,Notes
+Rahim Uddin,01711-223344,rahim@example.com,www.rahimproperties.com.bd,Facebook,hot buyer
+Karim Hossain,8801811223344,karim@gmail.com,,Website,
+Salma Akter,+880 1911 223344,,https://salmarealty.com/contact,Referral,
+Duplicate Phone,1711223344,other@example.com,,Facebook,same phone as row 1
+Nusrat Jahan,02-9123456,nusrat@example.org,,Walk-in,landline + email
+Tanvir Ahmed,017112233,tanvir@mailinator.com,,Facebook,bad phone + disposable
+Fahim,,fahim@,,Website,broken email
+Nobody,,,,Website,nothing usable
+Ayesha Siddika,01611-334455,ayesha@gmail.com,,Instagram,
+Bilal (NRI),+44 7911 123456,bilal@example.net,https://facebook.com/bilal.prop,Referral,social link only
+Karim Again,01511223399,KARIM@gmail.com,,Website,same email as row 2
+"Rafi, Jr.",01311-998877,,,Facebook,"comma, and ""quotes"""

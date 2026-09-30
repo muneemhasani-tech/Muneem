@@ -1,0 +1,48 @@
+# Lead Verifier configuration. Every key is optional; missing keys fall back to built-in defaults.
+
+region: BD                      # default region for phone parsing
+timezone: Asia/Dhaka            # used for checked_at and default quota day
+
+providers:
+  # reset_tz = the timezone in which the PROVIDER resets its daily allowance.
+  quickemailverification: { daily_limit: 100,  concurrency: 2, reset_tz: Asia/Dhaka }
+  verifalia:              { daily_limit: 25,   concurrency: 1, reset_tz: UTC }   # resets midnight GMT
+  webrisk:                { daily_limit: 3000, concurrency: 4, reset_tz: Asia/Dhaka }
+  urlhaus:                { daily_limit: 5000, concurrency: 4, reset_tz: Asia/Dhaka }
+  rdap:                   { daily_limit: 5000, concurrency: 2, reset_tz: Asia/Dhaka }
+
+whatsapp:
+  enabled: false                # interface only; no checker ships
+
+retry:
+  attempts: 3
+  backoff_seconds: [2, 8, 30]
+
+cache:
+  path: cache.db
+  ttl_days: { email: 30, reputation: 7, age: 180, mx: 7, whatsapp: 30 }
+
+scoring:
+  min_domain_age_days: 90       # younger domains are capped at grade C
+
+domain:
+  urlhaus_require_online: true  # flag only hosts with currently-online malware URLs
+  skip_domains:                 # never reputation/age-checked, never shown in `domain`
+    - gmail.com
+    - yahoo.com
+    - outlook.com
+    - hotmail.com
+    - icloud.com
+    - facebook.com
+    - fb.com
+    - fb.me
+    - instagram.com
+    - linkedin.com
+    - youtube.com
+    - youtu.be
+    - wa.me
+    - whatsapp.com
+    - t.me
+    - tiktok.com
+    - x.com
+    - twitter.com

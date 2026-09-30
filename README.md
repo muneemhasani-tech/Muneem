@@ -1,0 +1,120 @@
+# Lead Verifier
+
+Filters raw leads for **MRA Real Estate** before they reach the CRM. One CSV in, one graded CSV out.
+Cheapest checks first: a row that already failed never costs an API credit.
+
+It grades **contactability** (can we reach this person?), not buyer intent. It sits next to
+HOT/WARM/COLD, it doesn't replace it. It never contacts a lead.
+
+## Setup (under 5 minutes)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate     # Python 3.11+
+pip install -e .
+cp .env.example .env                                   # keys are optional, see below
+```
+
+## Try it now (no API keys needed)
+
+```bash
+lead-verifier run tests/fixtures/sample_leads.csv --offline-only
+```
+
+```
+Rows in: 12
+A: 2   B: 4   C: 1   REJECT: 5
+Credits used this run: none  (offline-only)
+Rows deferred: 0
+  wrote data/output/sample_leads_graded.csv
+  wrote data/output/sample_leads_A_B.csv  (+ _C.csv, _REJECT.csv)
+```
+
+`--offline-only` = phone + email syntax + disposable list + MX lookup. Zero credits.
+
+## Real run
+
+Drop your CSV in `data/input/`, add keys to `.env`, then:
+
+```bash
+lead-verifier run data/input/leads.csv --limit 5      # smoke-test your keys first
+lead-verifier run data/input/leads.csv                # full run
+```
+
+| Command | What it does |
+|---|---|
+| `run <csv> [--offline-only] [--limit N] [--out-dir D] [--config F]` | Grade a file |
+| `resume <graded.csv>` | Re-check rows deferred by quota (`quota_exhausted` / `provider_error`) |
+| `quota` | Today's usage per provider |
+| `cache clear [--kind email\|reputation\|age\|mx\|whatsapp]` | Wipe cached lookups |
+
+Every run ends with rows in, A/B/C/REJECT counts, credits used per provider, and rows deferred.
+**Re-running a file costs zero new credits**: every answer is cached (email 30d, reputation 7d,
+age 180d). If a provider runs out of quota mid-run, the run continues with everything else;
+run `resume` after the quota resets (or next day).
+
+## Keys (`.env`)
+
+| Variable | Provider | Free tier | Needed for |
+|---|---|---|---|
+| `QEV_API_KEY` | QuickEmailVerification | 100/day | mailbox check (primary) |
+| `VERIFALIA_USERNAME` / `_PASSWORD` | Verifalia | 25/day (resets midnight **GMT**) | fallback when QEV is exhausted |
+| `GOOGLE_WEBRISK_API_KEY` | Google Web Risk | 100k/month | phishing/malware listing |
+| `URLHAUS_AUTH_KEY` | abuse.ch | free | malware host listing (**key now mandatory**, get it at https://auth.abuse.ch/) |
+
+Missing key = that provider is skipped, nothing crashes. Domain age uses free RDAP/WHOIS (no key).
+**Note:** `.bd` domains have no RDAP server, so their age is often blank. That is expected.
+
+## Output
+
+Your original columns are kept untouched, followed by:
+`phone_e164, phone_valid, phone_type, phone_carrier, phone_duplicate_of, email_status,
+email_reason, domain, domain_flagged, domain_flag_source, domain_age_days, grade, grade_reasons,
+checked_at`. Plus `*_A_B.csv`, `*_C.csv`, `*_REJECT.csv`.
+If your file already has a column with one of those names, ours is prefixed `lv_`.
+
+Input columns are matched by alias (case-insensitive): name/full_name/client, phone/mobile/number/
+contact/whatsapp, email/e-mail/mail, website/url/site/domain, source/platform/origin. Any of them
+may be missing.
+
+**Google Sheets:** File → Import → upload → *untick* "Convert text to numbers, dates and
+formulas", otherwise `+8801711223344` is turned into a plain number. Files are UTF-8 with BOM so
+Bangla names display correctly.
+
+## Grades
+
+| Grade | Meaning |
+|---|---|
+| **A** | Valid mobile, and email valid or not given |
+| **B** | Valid mobile with risky/unknown/invalid email; or valid email with no phone / a landline |
+| **C** | One weak signal only (landline only, or risky email and no phone); or domain younger than 90 days |
+| **REJECT** | No usable phone or email; duplicate; domain flagged by Web Risk/URLhaus; disposable email with no valid phone |
+
+`grade_reasons` lists every rule that fired. Thresholds and quotas live in `config.yaml`.
+Row numbers in `phone_duplicate_of` are 1-based data rows (header excluded). It is filled for
+phone *and* email duplicates; the reason says which.
+
+Judgement calls worth knowing (details in `docs/PLAN.md`):
+- Valid mobiles from any country count (NRI buyers), not only Bangladesh.
+- A DNS timeout is `unknown/mx_check_failed`, never `no_mx`, so a bad connection can't mass-reject leads.
+- URLhaus only flags hosts with malware URLs *currently online* (`domain.urlhaus_require_online`).
+- Facebook/Instagram/WhatsApp links etc. are not treated as the lead's domain (`domain.skip_domains`).
+
+## Privacy
+
+`.env`, `cache.db` and `data/` are gitignored. Lead data only goes to the four named verification
+APIs. Logs never contain full phones/emails (masked like `+88017****344`); HTTP-client request
+logging is silenced because it would print emails and API keys.
+
+## WhatsApp (disabled)
+
+`lead_verifier/checks/whatsapp.py` defines the `WhatsAppChecker` interface and a no-op
+`DisabledChecker`. No scraper is bundled: every available checker automates WhatsApp Web, which
+breaks often and risks the account used. Setting `whatsapp.enabled: true` without writing your own
+checker raises a clear error.
+
+## Development
+
+```bash
+pip install -e '.[dev]' && pytest
+```
+HTTP is mocked with `respx`; no test touches the network.
