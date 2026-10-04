@@ -12,7 +12,7 @@ Catch weak writing and compliance/accuracy risks before they cost views or trust
 `script` record (or pasted text), caption/hashtags if available, `content_score` if present, active config compliance + banned phrases.
 
 ## Workflow
-1. **Tighten (Hemingway pass)**: cut adverbs/filler; one idea per sentence; prefer short Anglo-Saxon words (or plain Bangla); spoken-rhythm check; remove throat-clearing opening; keep voice from config. Show before→after for changed lines.
+1. **Tighten (Hemingway pass)** — the source strategy runs scripts through Hemingway Editor; aim for reading grade ≤6, no hard/very-hard sentences, minimal adverbs/passive (if the script is Bangla/Banglish, judge by sentence length and plain words instead; the app is English-only and can be run by the user on the English parts): cut adverbs/filler; one idea per sentence; prefer short Anglo-Saxon words (or plain Bangla); spoken-rhythm check; remove throat-clearing opening; keep voice from config. Show before→after for changed lines.
 2. **Compliance**: check every config `compliance` rule and `banned_phrases`. List each violation with the exact line.
 3. **Claims**: list each claim; status `verified` only if a source and date are in the record. Otherwise "UNVERIFIED — human must verify".
 4. **Flow**: hook promise paid off? CTA single? Length within range? Claim of urgency/scarcity honest?

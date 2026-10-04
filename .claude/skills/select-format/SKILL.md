@@ -13,7 +13,7 @@ Match the idea to a format that fits its content type, the creator's real produc
 
 ## Workflow
 1. Classify the idea's content type: process, warning, story, comparison, explainer, proof/case, Q&A.
-2. Map: process→`talking_head_educational` or `walkthrough`; warning→`myth_vs_fact` or `story`; comparison→`split_comparison` or `list`; proof→`case_study` (needs real documented case + consent); community question→`q_and_a`.
+2. Map (the seven formats from the source strategy first): process→`tutorial` or `walkthrough`; warning→`myth_bust` or `dos_vs_donts`; comparison→`comparison`; quick insight→`tip_hack`; before/after→`transformation` (needs real consented case; use anonymised/mock for property); engagement→`challenge`; narrative→`story`; proof→`case_study`; community question→`q_and_a`. Also available: `talking_head_educational`, `list`.
 3. Pick the primary format + one alternative. State length target within config range.
 4. Check feasibility: if the best format needs a site visit/crew the user hasn't confirmed, downgrade to the nearest feasible format and note the trade-off.
 5. Write a `content_format` record onto the idea.

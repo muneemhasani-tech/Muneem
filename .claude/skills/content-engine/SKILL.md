@@ -19,6 +19,7 @@ A natural-language request; active config via `content-engine/config/active.yaml
    - "plan the week" → `content-calendar` (needs scored ideas).
    - "prep to post" → `publish-prep` (manual invoke; requires approvals).
    - "what's working" → `log-performance` → `analyze-performance`.
+   - "profile / bio / grid" → `optimize-profile`.
    - "repurpose" → `repurpose-content`.
 3. **Run skills in order**, each reading prior records; update idea `status` after each stage.
 4. **Report**: what ran, what was skipped and why, files written, open human tasks.

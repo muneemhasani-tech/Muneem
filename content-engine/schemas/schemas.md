@@ -71,7 +71,7 @@ production_difficulty: 2     # 1 easy – 5 hard
 ## content_format
 ```yaml
 schema: content_format/1
-type: talking_head_educational   # talking_head_educational | story | list | myth_vs_fact | walkthrough | reaction | split_comparison | case_study | q_and_a
+type: tutorial   # tutorial | comparison | myth_bust | dos_vs_donts | tip_hack | transformation | challenge | story | talking_head_educational | list | walkthrough | case_study | q_and_a
 length_seconds: 40
 platform_targets: [instagram_reel, youtube_short]
 reason: "Process explanation needs authority + clarity; no location access needed"

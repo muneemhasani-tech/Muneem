@@ -2,11 +2,11 @@
 
 A modular set of Claude Code skills for short-form content: research → ideas → hooks → script → score → review → production → publish prep → performance feedback.
 
-> **Source note:** this was built from the 10-part "100K View Organic Short Form" structure described in the request. The screenshot itself was not visible when this was built, so there is **no verified transcription** of its 10 sections. Re-attach it and run a comparison pass if exact fidelity matters.
+> **Source:** built from the "100K Organic Short Form Content Strategy" screenshot (10 sections: viral hooks/topics; verbal, written and visual outlier hooks; 7 formats; storytelling and educational scripts; Hemingway edit; two unreadable rows; profile). Sections 8–9 were unreadable in the image and are not modelled — see their entries in the final report.
 
 ## Layout
 ```
-.claude/skills/            17 skills (generic — no MRA specifics)
+.claude/skills/            18 skills (generic — no MRA specifics)
 content-engine/
   config/active.yaml       which business config is loaded
   config/mra-real-estate.yaml   MRA audiences, pillars, voice, compliance, what data is actually connected
