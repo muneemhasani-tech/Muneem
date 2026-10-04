@@ -1,0 +1,2 @@
+# Which business config the content-engine skills load.
+active_config: content-engine/config/mra-real-estate.yaml

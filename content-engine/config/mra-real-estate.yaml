@@ -1,0 +1,74 @@
+# MRA Real Estate — business context for the generic content-engine skills.
+# To reuse the engine for another business: copy this file, edit it, and point
+# `active_config` in content-engine/config/active.yaml at the new file.
+# Generic skills must read their business assumptions from here, never hard-code them.
+
+business:
+  name: MRA Real Estate
+  site: mrarealestatebd.com
+  market: Dhaka, Bangladesh
+  offer: Property advisory, buying/selling support, due diligence, NRB investment guidance
+  primary_goal: Qualified WhatsApp/DM enquiries (not views)
+  secondary_goal: Authority + search traffic (video -> blog flywheel)
+
+audiences:
+  - id: local_buyer
+    description: Dhaka residents buying their first or second apartment/plot
+    pains: [fear of fraud, unclear documents, hidden costs, picking the wrong area]
+  - id: nrb_investor
+    description: Non-resident Bangladeshis buying or inheriting property remotely
+    pains: [trust, remote verification, power of attorney risk, repatriation questions]
+  - id: land_owner_seller
+    description: Owners selling land/flats, heirs with shared title
+    pains: [mutation delays, disputes, pricing, finding serious buyers]
+
+geography:
+  areas: [Gulshan, Banani, Baridhara, Bashundhara, Purbachal, Dhanmondi, Uttara, Mirpur]
+  rule: Name the area in the hook whenever the point is area-specific.
+
+topic_pillars:
+  - due_diligence        # title chain, khatian/porcha, mutation status, encumbrances
+  - land_law_process     # registration, mutation, khas land, stamp duty (process, not guessed figures)
+  - scams_and_mistakes   # patterns of fraud and buyer errors
+  - area_intelligence    # area comparisons, development, infrastructure
+  - nrb_investing        # remote buying, POA, documentation
+  - investment_education # yield vs appreciation, how to evaluate, financing basics
+  - market_intelligence  # price movement, supply, demand (only with a cited source)
+
+voice:
+  languages: [Bangla, English, Banglish]
+  default_language: Banglish   # confirm per video
+  tone: Calm, specific, protective-advisor. Never hype. Never "guaranteed".
+  banned_phrases: ["guaranteed return", "risk-free", "once in a lifetime", "100% safe", "invest now or lose"]
+
+platforms:
+  primary: [Instagram Reels, Facebook Reels, YouTube Shorts, TikTok]
+  secondary: [LinkedIn (NRB/investor angle), blog (mrarealestatebd.com)]
+  length_seconds: { reel: [20, 60], short: [20, 60] }
+
+cta_options:
+  - { id: whatsapp_keyword, text: "Comment/DM the keyword for the checklist", cost: low }
+  - { id: consult, text: "Book a free 15-minute property check", cost: high }
+  - { id: save_share, text: "Save this before you visit a plot", cost: low }
+  - { id: blog, text: "Full step-by-step guide on the site", cost: medium }
+
+compliance:   # HARD RULES — score-content and content-review treat any violation as a fail
+  - Never state a specific legal fee, tax rate, stamp duty %, or deadline as fact unless the script cites a source and a "checked on <date>" note. Say "rates change; verify current figures" otherwise.
+  - Never promise returns, appreciation, or safety. Use "can", "often", "depends on".
+  - Never name a private individual, developer, or company as fraudulent without documented public record AND human approval.
+  - Never show real client documents, plot numbers, phone numbers, or faces without written consent.
+  - Scam/fraud content describes the PATTERN and the CHECK, not an accusation.
+  - Legal-process claims require human verification (lawyer or current govt source) before publishing.
+  - State when something is general information, not legal advice, in the caption or end card.
+
+humans_required:
+  - Filming and on-camera delivery
+  - Legal/factual verification of every process claim
+  - Final approval before anything is published or sent
+  - Approving any named entity or real property shown
+
+data_access:   # what is ACTUALLY connected. Update this as integrations are added.
+  instagram_own_insights: "Available via Supermetrics MCP instagram_insights if the account is linked — verify with accounts_discovery before relying on it"
+  competitor_or_viral_data: "Not connected. User must paste links/metrics/transcripts, or add a scraper/MCP later."
+  tiktok_youtube_analytics: "Not connected unless added."
+  publishing: "Not connected. All publishing is manual."

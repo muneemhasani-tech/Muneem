@@ -1,0 +1,32 @@
+# ILLUSTRATIVE ONLY — shows record shapes. Not researched; the claim is unverified on purpose.
+idea:
+  schema: content_idea/1
+  id: idea-20261004-01
+  status: scored
+  pillar: due_diligence
+  audience: local_buyer
+  area: Bashundhara
+  topic: "What to check in a plot's mutation record before paying booking money"
+  angle: "The record sellers hope you skip"
+  source: { type: user_supplied, ref: null, research_id: null }
+  claims_needing_verification:
+    - "Which mutation/khatian documents a buyer should request (confirm with lawyer / current govt source)"
+  approvals: { script: null, publish: null }
+hook:
+  schema: hook/1
+  id: hook-01
+  verbal: "Bashundhara plot dekhchen? Booking-er age eta check korun."
+  written: "BEFORE you pay booking money"
+  mechanism: warning
+  payoff_at_second: 20
+score:
+  schema: content_score/1
+  idea_id: idea-20261004-01
+  total: 74
+  verdict: revise
+  caps_applied: []
+  confidence: low        # outlier_potential had no data -> capped at 5/10
+  top_fixes:
+    - "Add a 3s pattern interrupt (text change) — retention dimension 5/8"
+    - "Pick a keyword CTA only after the checklist exists (fulfilment_ready: false)"
+    - "Verify document list before scripting"
