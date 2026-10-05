@@ -131,3 +131,25 @@ checker raises a clear error.
 pip install -e '.[dev]' && pytest
 ```
 HTTP is mocked with `respx`; no test touches the network.
+
+---
+
+# Property Finder (dashboard)
+
+One local dashboard that finds **properties for sale** across ~20 Bangladeshi sources for **Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A**, ranks them by projected return, and keeps them as a lead list. Standard library only, no install.
+
+```bash
+python3 -m property_finder            # opens http://127.0.0.1:8770
+python3 -m property_finder probe      # tests all 20 sources: robots.txt verdict, reachability, anti-bot walls, listings recognised
+```
+
+- **Sale only.** Rent ads are never listed or exported. Apartment rent pages are crawled in the background only to measure rent per sqft per area (needs 5+ ads per area), which feeds the ROI projection. Until then the editable placeholder rents under *Return assumptions* are used.
+- **ROI on every listing:** rental yield (gross and net), and total return over 5 years = net rental income + price growth. Land shows growth only. Assumptions (rent per sqft by area, empty months, running costs %, growth %) are saved in the local database.
+- **Sources (verified live, Oct 2026):** Bproperty (via its sitemap, ~5,400 listing pages in our areas), bdHousing, Aabason, Homefair BD (their own listing pages), Property Finder BD and Concord Property Solutions (via sitemaps). Bikroy (Cloudflare refuses cloud servers) and Bdstall (robots.txt bans AI crawlers) are included but only work when run from your own computer. **Web search** replaces the old one-click links: 12 query templates per area (Facebook groups in English and Bangla, plot posts, Marketplace, Facebook pages, Navana, Shanta, Rangs, Bashundhara, Assure, open web in English and Bangla, see `web_queries` in `sources.json`) run through an official search API (Serper.dev for Google results, or Brave Search). Facebook and Google pages are never fetched; the listing is built from the engine's title and snippet, and other result pages are opened only when their robots.txt allows. Each such listing records the query that found it, the snippet, and its evidence level. Set `SERPER_API_KEY` or `BRAVE_API_KEY`, or paste a key under *Web search* in the dashboard. A full run is 12 queries x 6 areas = 72 searches; repeats within 20 hours are skipped and a monthly budget caps spend. Removed: BDHouse24, ToLet, Bhumi, Property.com.bd, BanglaProperty, DhakaProperty (domains do not exist), Lamudi and RealEstate.com.bd (unreachable), Flatbazar (an Indian site), Basha Lagbe (robots.txt forbids crawling).
+- **Area rule:** a listing is kept only if its own text (English or Bangla) names one of the six areas.
+- **Lead tools:** duplicate flag ("on N sites"), owner-only filter, price-drop flag, price per sqft by area, lead status and notes, WhatsApp links, **Export CSV** (columns match `lead-verifier run`, plus yield and return columns).
+- **Crawling manners:** identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips what it forbids (when an AI agent such as Claude runs it, rules aimed at AI crawlers are obeyed too) (or any site whose robots.txt it cannot read), honours `Crawl-delay`, waits ~1.5 s between requests per site, never tries to get around a block. Robots.txt is not a site's terms of service, so check those too.
+- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code). Text size: `--sec` at the top of `static/index.html` scales secondary text (1 = normal).
+- Data lives in `data/property/listings.db` (git-ignored; contains phone numbers).
+
+**Not yet verified against live sites** (the build sandbox blocks them): run `probe` first. Sites showing `BLOCKED`, `DEAD` or `NO LISTINGS RECOGNISED` need their URL or parser adjusted.

@@ -1,0 +1,181 @@
+{
+ "areas": {
+  "gulshan": "Gulshan",
+  "banani": "Banani",
+  "purbachal": "Purbachal",
+  "uttara": "Uttara",
+  "dhanmondi": "Dhanmondi",
+  "bashundhara": "Bashundhara R/A"
+ },
+ "sources": [
+  {
+   "id": "bproperty",
+   "name": "Bproperty",
+   "kind": "portal",
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://www.bproperty.com/sitemap.xml",
+   "match": "/property/",
+   "per_run": 40,
+   "url": "https://www.bproperty.com/for-sale?category={type}&cities=dhaka&q={area}",
+   "types": {
+    "apartment": "apartment",
+    "house": "house",
+    "land": "land"
+   },
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "bikroy",
+   "name": "Bikroy",
+   "kind": "classifieds",
+   "mode": "scrape",
+   "confidence": "cloudflare blocks cloud servers; test from your own computer",
+   "url": "https://bikroy.com/en/ads/dhaka/property?query={area}+{type}+sale",
+   "types": {
+    "apartment": "apartment",
+    "house": "house",
+    "land": "land"
+   },
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "bdstall",
+   "name": "Bdstall",
+   "kind": "classifieds",
+   "mode": "scrape",
+   "confidence": "robots.txt allows normal crawlers but bans AI bots, so not tested from Claude's session",
+   "url": "https://www.bdstall.com/search/?q={area}+{type}+{purpose}",
+   "purposes": {
+    "sale": "sale",
+    "rent": "rent"
+   }
+  },
+  {
+   "id": "bdhousing",
+   "name": "bdHousing",
+   "kind": "portal",
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "/details/\\d+/",
+   "max_pages": 6,
+   "list": [
+    "https://www.bdhousing.com/list/Sale/Residential/Apartment?page={page}",
+    "https://www.bdhousing.com/list/Sale/Residential/duplex-home?page={page}",
+    "https://www.bdhousing.com/list/Sale/Residential/independent-house?page={page}",
+    "https://www.bdhousing.com/list/Sale/Land/residential-plot?page={page}",
+    "https://www.bdhousing.com/list/Rent/Residential/Apartment?page={page}"
+   ]
+  },
+  {
+   "id": "aabason",
+   "name": "Aabason",
+   "kind": "classifieds",
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "/property/\\d+$",
+   "max_pages": 6,
+   "list": [
+    "https://aabason.com/property/for-sale?page={page}"
+   ]
+  },
+  {
+   "id": "homefairbd",
+   "name": "Homefair BD",
+   "kind": "classifieds",
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "homefairbd\\.com/ad/",
+   "max_pages": 6,
+   "list": [
+    "https://www.homefairbd.com/listing?page={page}"
+   ]
+  },
+  {
+   "id": "propertyfinderbd",
+   "name": "Property Finder BD",
+   "kind": "portal",
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://propertyfinderbd.com/sitemap.xml",
+   "match": "propertyfinderbd.com/",
+   "per_run": 25
+  },
+  {
+   "id": "concordcps",
+   "name": "Concord Property Solutions",
+   "kind": "developer",
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://concordcps.com/en/property-sitemap.xml",
+   "match": "/en/property/",
+   "per_run": 25
+  }
+ ],
+ "web_queries": [
+  {
+   "id": "fb_groups",
+   "name": "Facebook groups",
+   "q": "site:facebook.com/groups \"{area}\" flat sale"
+  },
+  {
+   "id": "fb_groups_bn",
+   "name": "Facebook groups (Bangla)",
+   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট বিক্রি"
+  },
+  {
+   "id": "fb_plots",
+   "name": "Facebook groups: plots",
+   "q": "site:facebook.com/groups \"{area}\" plot sale katha"
+  },
+  {
+   "id": "fb_marketplace",
+   "name": "Facebook Marketplace",
+   "q": "site:facebook.com/marketplace \"{area}\" apartment sale"
+  },
+  {
+   "id": "fb_pages",
+   "name": "Facebook pages and posts",
+   "q": "site:facebook.com \"{area}\" \"apartment for sale\" sqft"
+  },
+  {
+   "id": "dev_navana",
+   "name": "Navana Real Estate",
+   "q": "site:navana-realestate.com {area}"
+  },
+  {
+   "id": "dev_shanta",
+   "name": "Shanta Holdings",
+   "q": "site:shantaholdings.com {area}"
+  },
+  {
+   "id": "dev_rangs",
+   "name": "Rangs Properties",
+   "q": "site:rangsproperties.com {area}"
+  },
+  {
+   "id": "dev_bashundhara",
+   "name": "Bashundhara Group",
+   "q": "site:bashundharagroup.com {area} apartment OR plot"
+  },
+  {
+   "id": "dev_assure",
+   "name": "Assure Group",
+   "q": "assure group {area} apartment for sale"
+  },
+  {
+   "id": "web_open",
+   "name": "Open web (other sites)",
+   "q": "\"{area}\" \"flat for sale\" price sqft -site:bproperty.com -site:bdhousing.com -site:facebook.com"
+  },
+  {
+   "id": "web_bn",
+   "name": "Open web (Bangla)",
+   "q": "{area_bn} ফ্ল্যাট বিক্রয় দাম"
+  }
+ ]
+}
