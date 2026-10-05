@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Property Finder</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#16202c;--mute:#5d6b7b;--line:#dfe4ea;--brand:#0b6b57;--bi:#fff;--warn:#c98a06;--bad:#c8372d;--ok:#0f8a5f}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1419;--card:#182029;--ink:#e8edf2;--mute:#98a6b5;--line:#2a3542;--brand:#2fb392;--bi:#06251d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+.wrap{max-width:1200px;margin:0 auto;padding:16px}h1{font-size:1.4rem;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+button,.btn{font:inherit;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
+.pri{background:var(--brand);color:var(--bi);border-color:var(--brand);font-weight:600}
+.chip{padding:5px 12px;border-radius:99px}.chip.on{background:var(--brand);color:var(--bi);border-color:var(--brand)}
+table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:.8rem;color:var(--mute);text-transform:uppercase}.tbl{overflow-x:auto}
+.tag{font-size:.75rem;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--mute)}
+.own{color:var(--ok);border-color:var(--ok)}.drop{color:var(--bad);border-color:var(--bad)}.multi{color:var(--warn);border-color:var(--warn)}
+.mute{color:var(--mute)}.err{color:var(--bad)}a{color:var(--brand)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+</style></head><body><div class="wrap">
+<h1>Property Finder</h1><p class="sub">Search Bangladeshi property sites in one place. Runs on this computer only.</p>
+
+<div class="card">
+ <div class="row" id="areas"></div>
+ <div class="row" style="margin-top:10px">
+  <input id="q" placeholder="Any keyword (e.g. 'duplex', 'lake view') — optional" size="34">
+  <select id="purpose"><option value="">Sale + Rent</option><option>sale</option><option>rent</option></select>
+  <select id="ptype"></select>
+  <label class="mute"><input type="checkbox" id="det"> fetch phone numbers from listing pages (slower)</label>
+  <button class="pri" id="go">Search all sites</button>
+ </div>
+ <div id="prog" class="mute" style="margin-top:8px"></div>
+</div>
+
+<div class="card"><b>Sources</b> <span class="mute">(scraped sites show health after a search; the rest are one-click searches)</span>
+ <div class="grid" id="srcs" style="margin-top:8px"></div><div id="links" style="margin-top:8px"></div></div>
+
+<div class="card">
+ <div class="row">
+  <select id="farea"></select><select id="fstatus"></select>
+  <input id="fmin" placeholder="Min ৳" size="9"><input id="fmax" placeholder="Max ৳" size="9">
+  <label><input type="checkbox" id="fown"> Owners only</label>
+  <select id="fsort"><option value="new">Newest</option><option value="cheap">Cheapest</option><option value="dear">Priciest</option><option value="drop">Biggest price drop</option></select>
+  <input id="fq" placeholder="Filter text" size="14">
+  <a class="btn" id="csv" href="#">Export CSV</a>
+ </div>
+ <div id="stats" class="mute" style="margin:10px 0"></div>
+ <div class="tbl"><table><thead><tr><th>Property</th><th>Area</th><th>Price</th><th>Size</th><th>Contact</th><th>Lead</th></tr></thead><tbody id="rows"></tbody></table></div>
+ <p class="mute" id="count"></p>
+</div></div>
+<script>
+const $=id=>document.getElementById(id);let cfg,sel=new Set();
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bdt=n=>n==null?'—':n>=1e7?(n/1e7).toFixed(2)+' Cr':n>=1e5?(n/1e5).toFixed(1)+' Lakh':Math.round(n).toLocaleString();
+async function j(u,o){return (await fetch(u,o)).json()}
+async function init(){cfg=await j('/api/config');
+ $('areas').innerHTML='<span class="mute">Areas:</span>';
+ for(const[k,v]of Object.entries(cfg.areas)){sel.add(k);const b=document.createElement('button');b.className='chip on';b.textContent=v;b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);b.classList.toggle('on')};$('areas').append(b)}
+ $('ptype').innerHTML=cfg.ptypes.map(p=>`<option>${p}</option>`).join('');
+ $('farea').innerHTML='<option value="">All areas</option>'+Object.entries(cfg.areas).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+ $('fstatus').innerHTML='<option value="">Any status</option>'+cfg.statuses.map(s=>`<option>${s}</option>`).join('');
+ $('srcs').innerHTML=cfg.sources.map(s=>`<div id="s_${s.id}"><b>${esc(s.name)}</b> <span class="tag">${s.mode==='scrape'?'auto':'link-out'}</span><div class="mute" id="h_${s.id}">${s.mode==='scrape'?'not run yet':''}</div></div>`).join('');
+ for(const id of['farea','fstatus','fmin','fmax','fown','fsort','fq'])$(id).onchange=load;$('fq').oninput=load;
+ load()}
+$('go').onclick=async()=>{const body={areas:[...sel],purposes:$('purpose').value?[$('purpose').value]:['sale','rent'],ptypes:[$('ptype').value],q:$('q').value.trim(),details:$('det').checked?15:0};
+ const r=await fetch('/api/search',{method:'POST',body:JSON.stringify(body)});if(r.status==409)alert('A search is already running');poll()};
+async function poll(){const s=await j('/api/job');$('prog').textContent=s.total?`Searching… ${s.done}/${s.total} pages${s.running?'':' — done'}`:'';
+ const by={};for(const r of s.results){(by[r.source]??=[]).push(r)}
+ for(const[id,rs]of Object.entries(by)){const f=rs.reduce((a,r)=>a+r.found,0),n=rs.reduce((a,r)=>a+r.new,0),e=rs.find(r=>r.error&&!r.found);
+  const h=$('h_'+id);if(h)h.innerHTML=e?`<span class="err">${esc(e.error)}</span>`:`${f} found, ${n} new`}
+ $('links').innerHTML=s.links.length?'<span class="mute">Also search manually: </span>'+s.links.slice(0,60).map(l=>`<a class="btn" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.name.split(' (')[0])} · ${esc(cfg.areas[l.area]||l.area)}</a>`).join(' '):'';
+ load();if(s.running)setTimeout(poll,2000)}
+function qs(){const p=new URLSearchParams();const m={area:'farea',status:'fstatus',min:'fmin',max:'fmax',sort:'fsort',q:'fq'};
+ for(const[k,id]of Object.entries(m))if($(id).value)p.set(k,$(id).value);if($('fown').checked)p.set('owner','1');if($('purpose').value)p.set('purpose',$('purpose').value);if($('ptype').value)p.set('ptype',$('ptype').value);return p}
+async function load(){const p=qs();$('csv').href='/api/export.csv?'+p;const d=await j('/api/listings?'+p);
+ $('stats').innerHTML=d.stats.map(s=>`<span style="margin-right:14px"><b>${esc(cfg.areas[s.area]||s.area)}</b> ${s.purpose}: ${s.n} listings, avg ৳${bdt(s.avg_price)}${s.avg_ppsf?`, ৳${s.avg_ppsf.toLocaleString()}/sqft`:''}</span>`).join('');
+ $('count').textContent=d.rows.length+' listings shown';
+ $('rows').innerHTML=d.rows.map(r=>`<tr><td><a target="_blank" rel="noopener" href="${esc(r.url)}">${esc(r.title.slice(0,90))}</a><br>
+  <span class="tag">${esc(r.source)}</span> <span class="tag">${r.purpose}</span> ${r.is_owner===1?'<span class="tag own">owner</span>':''}${r.dropped?'<span class="tag drop">price drop</span>':''}${r.sites>1?`<span class="tag multi">on ${r.sites} sites</span>`:''}</td>
+  <td>${esc(cfg.areas[r.area]||r.area)}</td><td>৳${bdt(r.price)}${r.ppsf?`<br><span class="mute">${r.ppsf.toLocaleString()}/sqft</span>`:''}</td>
+  <td>${r.size_sqft?r.size_sqft+' sqft':''}${r.beds?`<br>${r.beds} bed`:''}${r.baths?` ${r.baths} bath`:''}</td>
+  <td>${esc(r.poster)}${r.phone?`<br><a href="tel:${r.phone}">${r.phone}</a> · <a target="_blank" rel="noopener" href="https://wa.me/88${r.phone}">WhatsApp</a>`:'<br><span class="mute">open listing</span>'}</td>
+  <td><select data-id="${r.id}" class="st">${cfg.statuses.map(s=>`<option${s===r.status?' selected':''}>${s}</option>`).join('')}</select><br>
+  <input data-id="${r.id}" class="nt" placeholder="note" value="${esc(r.notes)}" size="14"></td></tr>`).join('');
+ document.querySelectorAll('.st').forEach(e=>e.onchange=()=>save(e.dataset.id,{status:e.value}));
+ document.querySelectorAll('.nt').forEach(e=>e.onchange=()=>save(e.dataset.id,{notes:e.value}))}
+function save(id,b){fetch('/api/lead',{method:'POST',body:JSON.stringify({id,...b})})}
+init();
+</script></body></html>
