@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS listings(
   image TEXT, first_seen REAL, last_seen REAL, status TEXT DEFAULT 'new', notes TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS rent_obs(url TEXT PRIMARY KEY, source TEXT, area TEXT, rent REAL, size_sqft REAL, seen REAL);
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS crawled(url TEXT PRIMARY KEY, lastmod TEXT, seen REAL);
 CREATE INDEX IF NOT EXISTS ix_area ON listings(area, purpose);
 CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 """
@@ -62,7 +64,9 @@ def upsert(con: sqlite3.Connection, r: dict) -> bool:
 
 def add_rent(con, r: dict) -> None:
     """Rent ads are stored only as price-per-sqft evidence for ROI. They are never listed or exported."""
-    if r.get("price") and r.get("size_sqft"):
+    if re.search(r"office|shop|room|sublet|commercial|space|hostel|mess", (r.get("title") or "").lower()):
+        return  # only whole homes say anything about residential rent
+    if r.get("price") and r.get("size_sqft") and r.get("ptype") in (None, "apartment", "house"):
         con.execute("INSERT OR REPLACE INTO rent_obs(url,source,area,rent,size_sqft,seen) VALUES(?,?,?,?,?,?)",
                     (r["url"].split("?")[0], r["source"], r.get("area"), r["price"], r["size_sqft"], time.time()))
 

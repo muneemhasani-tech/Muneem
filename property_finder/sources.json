@@ -1,52 +1,214 @@
 {
-  "areas": {
-    "gulshan": "Gulshan", "banani": "Banani", "purbachal": "Purbachal",
-    "uttara": "Uttara", "dhanmondi": "Dhanmondi", "bashundhara": "Bashundhara R/A"
+ "areas": {
+  "gulshan": "Gulshan",
+  "banani": "Banani",
+  "purbachal": "Purbachal",
+  "uttara": "Uttara",
+  "dhanmondi": "Dhanmondi",
+  "bashundhara": "Bashundhara R/A"
+ },
+ "sources": [
+  {
+   "id": "bproperty",
+   "name": "Bproperty",
+   "kind": "portal",
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://www.bproperty.com/sitemap.xml",
+   "match": "/property/",
+   "per_run": 40,
+   "url": "https://www.bproperty.com/for-sale?category={type}&cities=dhaka&q={area}",
+   "types": {
+    "apartment": "apartment",
+    "house": "house",
+    "land": "land"
+   },
+   "purposes": {
+    "sale": "sale"
+   }
   },
-  "sources": [
-    {"id": "bikroy", "name": "Bikroy", "kind": "classifieds", "mode": "scrape", "confidence": "medium",
-     "url": "https://bikroy.com/en/ads/dhaka/{type}-{purpose}?query={area}",
-     "types": {"apartment": "apartment", "house": "house", "land": "land", "commercial": "commercial-property"},
-     "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "bproperty", "name": "Bproperty", "kind": "portal", "mode": "scrape", "confidence": "medium",
-     "url": "https://www.bproperty.com/en/dhaka/{type}-for-{purpose}-in-{area}/",
-     "types": {"apartment": "flats-apartments", "house": "houses", "land": "plots-land", "commercial": "commercial-properties"},
-     "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "lamudi", "name": "Lamudi Bangladesh", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.lamudi.com.bd/{purpose}/?q={area}", "purposes": {"sale": "buy", "rent": "rent"}},
-    {"id": "bdhouse24", "name": "BDHouse24", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.bdhouse24.com/?s={area}+{purpose}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "tolet", "name": "ToLet.com.bd", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.tolet.com.bd/search?q={area}", "purposes": {"rent": "rent"}},
-    {"id": "bdstall", "name": "Bdstall", "kind": "classifieds", "mode": "scrape", "confidence": "low",
-     "url": "https://www.bdstall.com/search/?q={area}+{type}+{purpose}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "flatbazar", "name": "Flatbazar", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.flatbazar.com/search?q={area}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "bhumi", "name": "Bhumi", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.bhumi.com.bd/search?q={area}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "basalagbe", "name": "Basha Lagbe", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://basalagbe.com/?s={area}", "purposes": {"rent": "rent"}},
-    {"id": "propertybd", "name": "Property.com.bd", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.property.com.bd/search?q={area}+{purpose}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "realestatebd", "name": "RealEstate.com.bd", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.realestate.com.bd/search?q={area}+{purpose}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "banglaproperty", "name": "BanglaProperty", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.banglaproperty.com/?s={area}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "dhakaproperty", "name": "DhakaProperty", "kind": "portal", "mode": "scrape", "confidence": "low",
-     "url": "https://www.dhakaproperty.com/?s={area}", "purposes": {"sale": "sale", "rent": "rent"}},
-    {"id": "facebook", "name": "Facebook Marketplace", "kind": "social", "mode": "link", "confidence": "high",
-     "url": "https://www.facebook.com/marketplace/dhaka/search?query={area}%20{type}%20{purpose}"},
-    {"id": "fbgroups", "name": "Facebook property groups", "kind": "social", "mode": "link", "confidence": "high",
-     "url": "https://www.facebook.com/search/groups?q={area}%20property%20{purpose}"},
-    {"id": "google", "name": "Google (whole web)", "kind": "web", "mode": "link", "confidence": "high",
-     "url": "https://www.google.com/search?q={type}+for+{purpose}+{area}+dhaka+price+contact"},
-    {"id": "bashundhara", "name": "Bashundhara Group (developer)", "kind": "developer", "mode": "link", "confidence": "high",
-     "url": "https://www.google.com/search?q=site:bashundharagroup.com+{area}+{type}+{purpose}"},
-    {"id": "rangs", "name": "Rangs Properties (developer)", "kind": "developer", "mode": "link", "confidence": "high",
-     "url": "https://www.google.com/search?q=Rangs+Properties+{area}+{type}+{purpose}"},
-    {"id": "navana", "name": "Navana Real Estate (developer)", "kind": "developer", "mode": "link", "confidence": "high",
-     "url": "https://www.google.com/search?q=Navana+Real+Estate+{area}+{type}+{purpose}"},
-    {"id": "shanta", "name": "Shanta / Concord / Assure (developers)", "kind": "developer", "mode": "link", "confidence": "high",
-     "url": "https://www.google.com/search?q=Shanta+OR+Concord+OR+Assure+developer+{area}+{type}+{purpose}"}
-  ]
+  {
+   "id": "bikroy",
+   "name": "Bikroy",
+   "kind": "classifieds",
+   "mode": "scrape",
+   "confidence": "cloudflare blocks cloud servers; test from your own computer",
+   "url": "https://bikroy.com/en/ads/dhaka/property?query={area}+{type}+sale",
+   "types": {
+    "apartment": "apartment",
+    "house": "house",
+    "land": "land"
+   },
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "bdstall",
+   "name": "Bdstall",
+   "kind": "classifieds",
+   "mode": "scrape",
+   "confidence": "robots.txt allows normal crawlers but bans AI bots, so not tested from Claude's session",
+   "url": "https://www.bdstall.com/search/?q={area}+{type}+{purpose}",
+   "purposes": {
+    "sale": "sale",
+    "rent": "rent"
+   }
+  },
+  {
+   "id": "bdhousing",
+   "name": "bdHousing",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://www.bdhousing.com/homes/listings/Sale/Residential/Apartment?q={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "aabason",
+   "name": "Aabason",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://aabason.com/property?q={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "homefairbd",
+   "name": "Homefair BD",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://www.homefairbd.com/listing?q={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "propertyfinderbd",
+   "name": "Property Finder BD",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://propertyfinderbd.com/?s={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "pbazaar",
+   "name": "PBazaar",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://www.pbazaar.com/?s={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "flatbazar",
+   "name": "Flatbazar",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://flatbazar.com/?s={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "realestatebd",
+   "name": "RealEstate.com.bd",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://realestate.com.bd/?s={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "concordcps",
+   "name": "Concord Property Solutions",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://concordcps.com/en/city/apartments-for-sale-in-{area}/",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "swadesh",
+   "name": "Swadesh Properties",
+   "kind": "portal",
+   "mode": "scrape",
+   "confidence": "untested",
+   "url": "https://www.swadeshproperties.com/?s={area}",
+   "purposes": {
+    "sale": "sale"
+   }
+  },
+  {
+   "id": "facebook",
+   "name": "Facebook Marketplace",
+   "kind": "social",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.facebook.com/marketplace/dhaka/search?query={area}%20{type}%20{purpose}"
+  },
+  {
+   "id": "fbgroups",
+   "name": "Facebook property groups",
+   "kind": "social",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.facebook.com/search/groups?q={area}%20property%20{purpose}"
+  },
+  {
+   "id": "google",
+   "name": "Google (whole web)",
+   "kind": "web",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.google.com/search?q={type}+for+{purpose}+{area}+dhaka+price+contact"
+  },
+  {
+   "id": "bashundhara",
+   "name": "Bashundhara Group (developer)",
+   "kind": "developer",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.google.com/search?q=site:bashundharagroup.com+{area}+{type}+{purpose}"
+  },
+  {
+   "id": "rangs",
+   "name": "Rangs Properties (developer)",
+   "kind": "developer",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.google.com/search?q=Rangs+Properties+{area}+{type}+{purpose}"
+  },
+  {
+   "id": "navana",
+   "name": "Navana Real Estate (developer)",
+   "kind": "developer",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.google.com/search?q=Navana+Real+Estate+{area}+{type}+{purpose}"
+  },
+  {
+   "id": "shanta",
+   "name": "Shanta / Concord / Assure (developers)",
+   "kind": "developer",
+   "mode": "link",
+   "confidence": "high",
+   "url": "https://www.google.com/search?q=Shanta+OR+Concord+OR+Assure+developer+{area}+{type}+{purpose}"
+  }
+ ]
 }

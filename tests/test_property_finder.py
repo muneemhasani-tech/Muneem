@@ -30,10 +30,10 @@ def test_price_units():
 
 
 def test_url_building():
-    b = scrape.build_url(scrape.SOURCES["bproperty"], "gulshan", "sale", "apartment")
-    assert b == "https://www.bproperty.com/en/dhaka/flats-apartments-for-sale-in-gulshan/"
-    assert scrape.build_url(scrape.SOURCES["tolet"], "gulshan", "sale", "apartment") is None
-    assert len(scrape.SOURCES) >= 20
+    b = scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "sale", "apartment")
+    assert b == "https://bikroy.com/en/ads/dhaka/property?query=gulshan+apartment+sale"
+    assert scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "rent", "apartment") is None
+    assert len(scrape.SOURCES) >= 19
 
 
 def test_store_dedupe_and_price_drop(tmp_path):
@@ -87,7 +87,7 @@ def test_probe_blocked_robots(monkeypatch):
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
     scrape._ROBOTS.clear()
     rows = scrape.probe()
-    assert len(rows) == 20
+    assert len(rows) == len(scrape.SOURCES)
     assert all(r["verdict"].startswith(("BLOCKED", "LINK-OUT")) for r in rows)
 
 
@@ -114,3 +114,34 @@ def test_roi_math_and_rent_hidden(tmp_path):
     assert {r["title"]: r for r in store.query(con)}["Flat"]["rent_est"] == 185000
     roi.save(con, {"growth_pct": 10})
     assert roi.load(con)["growth_pct"] == 10
+
+
+FLIGHT = ('<script>self.__next_f.push([1,"20:T2e,<p>Lovely flat of 1,450 sqft, 3 beds.</p>\\n"])</script>'
+          '<script>self.__next_f.push([1,"9:{\\"title\\":\\"Lake flat Gulshan 2\\",\\"slug\\":\\"lake-flat-1\\",\\"price\\":18500000,'
+          '\\"status\\":\\"Sale\\",\\"hide_price\\":false,\\"description\\":\\"$20\\",\\"userName\\":\\"Sample Owner\\",'
+          '\\"tags\\":\\"[\\\\\\"Apartment\\\\\\",\\\\\\"Gulshan\\\\\\"]\\",\\"detail\\":{\\"bathrooms\\":\\"3\\"}}\\n"])</script>')
+
+
+def test_detail_record_from_flight_data():
+    r = parse.detail_record(FLIGHT, "https://x.bd/property/lake-flat-1")
+    assert r["title"] == "Lake flat Gulshan 2" and r["price"] == 18500000 and r["purpose"] == "sale"
+    assert r["ptype"] == "apartment" and r["baths"] == 3 and r["size_sqft"] == 1450 and r["beds"] == 3
+    assert "Gulshan" in r["tags"]
+
+
+def test_sitemap_crawl(tmp_path, monkeypatch):
+    monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "s.db",))
+    xml = ("<urlset><url><loc>https://x.bd/property/lake-flat-gulshan-1</loc><lastmod>2026-10-01</lastmod></url>"
+           "<url><loc>https://x.bd/property/other-uttara-9</loc><lastmod>2026-10-02</lastmod></url>"
+           "<url><loc>https://x.bd/news/gulshan-guide</loc><lastmod>2026-10-02</lastmod></url></urlset>")
+    pages = {"https://x.bd/robots.txt": "User-agent: *\nAllow: /\n", "https://x.bd/sitemap.xml": xml,
+             "https://x.bd/property/lake-flat-gulshan-1": FLIGHT.replace("lake-flat-1", "lake-flat-gulshan-1")}
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, pages[u]) if u in pages else (404, ""))
+    monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
+    scrape._ROBOTS.clear(); scrape._SITEMAPS.clear()
+    src = {"id": "x", "sitemap": "https://x.bd/sitemap.xml", "match": "/property/"}
+    res = scrape.search_sitemap(src, "gulshan", 0)
+    assert res["found"] == 1 and res["new"] == 1
+    assert scrape.search_sitemap(src, "gulshan", 0)["found"] == 0  # unchanged pages are not fetched twice
+    rows = store.query(store.connect())
+    assert rows[0]["title"] == "Lake flat Gulshan 2" and rows[0]["area"] == "gulshan"

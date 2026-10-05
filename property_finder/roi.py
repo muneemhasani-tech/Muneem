@@ -53,6 +53,9 @@ def project(r: dict, a: dict, bench: dict) -> dict:
     else:
         psf, basis = a["rent_psf"].get(area, 0), "your assumption"
     rent = size * psf
+    if rent * 12 / price > 0.25:  # a 25%+ gross yield means the advertised price is wrong (often per sqft or a typo)
+        out.update(rent_basis="price looks wrong, check the listing", total=None)
+        return out
     net_year = rent * (12 - a["vacancy_months"]) * (1 - a["cost_pct"] / 100)
     out.update(rent_est=round(rent), rent_basis=basis, gross=round(rent * 12 / price * 100, 2),
                net=round(net_year / price * 100, 2), total=round((net_year * yrs / price + (1 + g) ** yrs - 1) * 100, 1))

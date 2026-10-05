@@ -167,3 +167,107 @@ def detail_contact(html: str) -> dict:
     n = re.search(r'"(?:sellerName|posterName|contactName|agentName|ownerName)"\s*:\s*"([^"]{2,60})"', html)
     out["poster"] = n.group(1) if n else ""
     return out
+
+
+# ---- Structured records (Next.js flight data, __NEXT_DATA__, JSON-LD) on listing detail pages ----
+
+PTYPE_WORDS = [("land", ("land", "plot")), ("commercial", ("commercial", "office", "shop", "warehouse", "factory")),
+               ("house", ("house", "building", "duplex", "villa")), ("apartment", ("apartment", "flat", "condo"))]
+
+
+def flight_text(html: str) -> str:
+    chunks = re.findall(r'self\.__next_f\.push\(\[1,"(.*?)"\]\)', html, re.S)
+    return "".join(json.loads('"' + c + '"') if '\\' in c else c for c in chunks) if chunks else ""
+
+
+def records(html: str) -> list[dict]:
+    """Every JSON object on the page that looks like a property record (has a title and a price)."""
+    blobs = [flight_text(html)]
+    p = _Cards()
+    try:
+        p.feed(html)
+    except Exception:  # noqa: BLE001
+        pass
+    blobs += p.jsonld + p.next_data
+    dec, out = json.JSONDecoder(), []
+    for b in blobs:
+        for m in re.finditer(r'"price"\s*:', b):
+            depth, i = 0, m.start()
+            while i > 0:  # walk back to the brace that opens this object
+                i -= 1
+                if b[i] == "}":
+                    depth += 1
+                elif b[i] == "{":
+                    if depth == 0:
+                        break
+                    depth -= 1
+            try:
+                o, _ = dec.raw_decode(b, i)
+            except ValueError:
+                continue
+            if isinstance(o, dict) and (o.get("title") or o.get("name")):
+                out.append(o)
+    return out
+
+
+def flight_ref(flight: str, ref) -> str:
+    """Resolve a flight reference like "$20" to its text chunk ("20:T<hexlen>,<text>")."""
+    if not (isinstance(ref, str) and ref.startswith("$")):
+        return ref if isinstance(ref, str) else ""
+    m = re.search(r"(?:^|\n|\})" + re.escape(ref[1:]) + r":T([0-9a-f]+),", flight)
+    return flight[m.end():m.end() + int(m.group(1), 16)] if m else ""
+
+
+def _ptype(words: str) -> str:
+    low = words.lower()
+    for t, keys in PTYPE_WORDS:
+        if any(k in low for k in keys):
+            return t
+    return ""
+
+
+def detail_record(html: str, url: str) -> dict | None:
+    """One listing from its detail page: title, price, purpose, type, size, beds, baths, poster, phone, tags."""
+    recs = [r for r in records(html) if isinstance(r.get("price"), (int, float, str))]
+    if not recs:
+        return None
+    slug = url.rstrip("/").rsplit("/", 1)[-1]
+    mine = [r for r in recs if r.get("slug") == slug] or recs
+    rec = max(mine, key=lambda r: (isinstance(r.get("detail"), dict), len(r)))  # prefer the copy with details inline
+    det = rec.get("detail") if isinstance(rec.get("detail"), dict) else {}
+    tags = rec.get("tags")
+    if isinstance(tags, str):
+        try:
+            tags = json.loads(tags)
+        except ValueError:
+            tags = [tags]
+    tag_text = " ".join(map(str, tags or []))
+    status = str(rec.get("status") or rec.get("purpose") or "").lower()
+    size = next((_num(det.get(k)) for k in ("builtup_area", "size", "area_sqft", "land_area") if _num(det.get(k))), None)
+    text = f"{rec.get('title', '')} {tag_text} {rec.get('address', '')}"
+    f = facts(text)
+    if not size or not f["beds"]:  # fall back to the listing's own description, never the rest of the page
+        desc = re.sub(r"<[^>]+>", " ", flight_ref(flight_text(html), rec.get("description")) or "")
+        fd = facts(desc)
+        f = {k: f[k] or fd[k] for k in f}
+    phone = clean_phone(str(rec.get("userPhone") or rec.get("phone") or ""))
+    katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha)", text, re.I)
+    if not size and katha:
+        size = float(katha.group(1)) * 720  # 1 katha = 720 sqft
+    price = None if rec.get("hide_price") else (_num(rec.get("price")) or None)
+    postfix = str(rec.get("price_postfix") or rec.get("pricePostfix") or "").lower()
+    if "call" in postfix:
+        price = None
+    elif price and re.search(r"sq|sft|per\s*s", postfix):  # quoted per sqft: convert to a total when size is known
+        price = price * (size or f["size_sqft"]) if (size or f["size_sqft"]) else None
+    return {
+        "title": str(rec.get("title") or rec.get("name"))[:200], "url": url,
+        "price": price,
+        "purpose": "rent" if "rent" in status else "sale" if "sale" in status or "sell" in status else "",
+        "ptype": _ptype(str(rec.get("title"))) or _ptype(tag_text) or "apartment",  # the seller's own title wins over tags
+        "size_sqft": size or f["size_sqft"],
+        "beds": int(_num(det.get("Bedrooms") or det.get("bedrooms") or rec.get("bedrooms")) or 0) or f["beds"],
+        "baths": int(_num(det.get("Bathrooms") or det.get("bathrooms") or rec.get("bathrooms")) or 0) or f["baths"],
+        "phone": phone, "poster": str(rec.get("userName") or rec.get("agentName") or "")[:80],
+        "is_owner": f["is_owner"], "image": "", "tags": text,
+    }

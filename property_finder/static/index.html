@@ -96,7 +96,7 @@ async function init(){cfg=await j('/api/config');AS=await j('/api/assumptions');
  $('fstatus').innerHTML='<option value="">Any lead status</option>'+cfg.statuses.filter(s=>s!=='ignore').map(s=>`<option>${s}</option>`).join('');
  $('assume').innerHTML=Object.keys(cfg.areas).map(k=>`<label class="f">${cfg.areas[k]} rent, ৳ per sqft a month<input type="number" data-r="${k}" value="${AS.rent_psf[k]??''}"></label>`).join('')
   +`<label class="f">Empty months a year<input type="number" data-k="vacancy_months" value="${AS.vacancy_months}"></label><label class="f">Running costs, % of rent<input type="number" data-k="cost_pct" value="${AS.cost_pct}"></label><label class="f">Price growth a year, %<input type="number" data-k="growth_pct" value="${AS.growth_pct}"></label>`;
- $('srcs').innerHTML=cfg.sources.filter(s=>s.mode==='scrape').map(s=>`<div class="src" id="s_${s.id}"><b>${esc(s.name)}</b><span>Not checked yet</span></div>`).join('');
+ $('srcs').innerHTML=cfg.sources.filter(s=>s.mode!=='link').map(s=>`<div class="src" id="s_${s.id}"><b>${esc(s.name)}</b><span>Not checked yet</span></div>`).join('');
  for(const id of['ptype','fmax','fmin','fown','fsort','farea','fstatus'])$(id).onchange=load;$('fq').oninput=load;load()}
 $('saveA').onclick=async()=>{const b={rent_psf:{}};document.querySelectorAll('[data-r]').forEach(e=>b.rent_psf[e.dataset.r]=e.value);document.querySelectorAll('[data-k]').forEach(e=>b[e.dataset.k]=e.value);
  AS=await j('/api/assumptions',{method:'POST',body:JSON.stringify(b)});$('aMsg').textContent='Saved. Returns recalculated.';load()};

@@ -159,6 +159,73 @@ def search_source(src: dict, area: str, purpose: str, ptype: str, q: str, detail
     return res
 
 
+_SITEMAPS: dict[str, tuple[float, list[tuple[str, str]]]] = {}
+
+
+def sitemap_urls(src: dict) -> tuple[list[tuple[str, str]], str]:
+    """(url, lastmod) pairs from the site's own sitemap (cached 1 hour), following sitemap indexes one level."""
+    sm = src["sitemap"]
+    hit = _SITEMAPS.get(sm)
+    if hit and time.time() - hit[0] < 3600:
+        return hit[1], ""
+    ok, why = may_fetch(sm)
+    if not ok:
+        return [], "skipped: " + why
+    status, xml = fetch(sm, 60)
+    if status != 200:
+        return [], "sitemap: " + block_reason(status, xml)
+    locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>(?:\s*<lastmod>\s*([^<\s]*))?", xml)
+    if "<sitemapindex" in xml[:500]:
+        sub = []
+        for u, _ in locs[:20]:
+            if may_fetch(u)[0]:
+                st, x = fetch(u, 60)
+                sub += re.findall(r"<loc>\s*([^<\s]+)\s*</loc>(?:\s*<lastmod>\s*([^<\s]*))?", x) if st == 200 else []
+                time.sleep(1.5)
+        locs = sub
+    locs = [(u, m) for u, m in locs if src.get("match", "") in u]
+    _SITEMAPS[sm] = (time.time(), locs)
+    return locs, ""
+
+
+def search_sitemap(src: dict, area: str, details: int) -> dict:
+    """Fetch the newest not-yet-seen listing pages for one area. Sale goes to listings, rent only to the ROI benchmark."""
+    res = {"source": src["id"], "url": src["sitemap"], "status": 200, "found": 0, "new": 0, "error": ""}
+    locs, err = sitemap_urls(src)
+    if err:
+        res.update(error=err, status=0)
+        return res
+    con = store.connect()
+    seen = {u: m for u, m in con.execute("SELECT url, lastmod FROM crawled")}
+    fresh = sorted((x for x in locs if area in x[0].lower() and seen.get(x[0]) != x[1]), key=lambda x: x[1], reverse=True)
+    rentish = re.compile(r"rent|sublet|to-let|tolet|room|hostel|mess")
+    sale = [x for x in fresh if not rentish.search(x[0].rsplit("/", 1)[-1])]
+    rent = [x for x in fresh if re.search(r"(flat|apartment|bed)", x[0]) and re.search(r"rent", x[0])
+            and not re.search(r"office|shop|sublet|room|commercial|space", x[0])]
+    todo = sale[: int(src.get("per_run", 40))] + rent[: int(src.get("rent_per_run", 8))]
+    for url, lastmod in todo:
+        if not may_fetch(url)[0]:
+            continue
+        time.sleep(max(1.5, crawl_delay(url)))
+        st, page = fetch(url)
+        con.execute("INSERT OR REPLACE INTO crawled(url,lastmod,seen) VALUES(?,?,?)", (url, lastmod, time.time()))
+        r = parse.detail_record(page, url) if st == 200 else None
+        if not r or not r["purpose"]:
+            continue
+        res["found"] += 1
+        r.update(source=src["id"], area=_area_in(r.pop("tags") + " " + url, area))
+        if r["purpose"] == "rent":
+            store.add_rent(con, r)
+        else:
+            res["new"] += store.upsert(con, r)
+        con.commit()
+    con.commit()
+    con.close()
+    if not todo:
+        res["error"] = "" if locs else "sitemap has no listing pages"
+    return res
+
+
 class Job:
     def __init__(self):
         self.lock, self.state = threading.Lock(), {"running": False, "done": 0, "total": 0, "results": [], "links": []}
@@ -169,9 +236,11 @@ class Job:
             if self.state["running"]:
                 return False
             live = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "scrape"]
+            maps = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "sitemap"]
             tasks = [(s, a, "sale", t) for s in live for a in areas for t in ptypes if "sale" in s.get("purposes", {"sale": 1})]
             if benchmark and not q:
                 tasks += [(s, a, "rent", "apartment") for s in live for a in areas if "rent" in s.get("purposes", {})]
+            tasks += [(s, a, "sitemap", "") for s in maps for a in areas]
             self.state = {"running": True, "done": 0, "total": len(tasks), "results": [],
                           "links": link_outs(areas, "sale", ptypes[0] if ptypes else "apartment", q)}
         threading.Thread(target=self._run, args=(tasks, q, details), daemon=True).start()
@@ -185,7 +254,7 @@ class Job:
         def one(t):
             src, a, p, ty = t
             with by_src[src["id"]]:  # one request at a time per site, with a pause
-                r = search_source(src, a, p, ty, q, details)
+                r = search_sitemap(src, a, details) if p == "sitemap" else search_source(src, a, p, ty, q, details)
                 time.sleep(1.5)
             with self.lock:
                 self.state["results"].append({**r, "area": a, "purpose": p, "ptype": ty, "benchmark": p == "rent"})
@@ -206,8 +275,23 @@ def probe() -> list[dict]:
     out = []
     for s in SOURCES.values():
         row = {"source": s["id"], "name": s["name"], "robots": "", "status": "", "listings": 0, "verdict": ""}
-        if s["mode"] != "scrape":
+        if s["mode"] == "link":
             row.update(verdict="LINK-OUT (never crawled; you open it yourself)")
+            out.append(row)
+            continue
+        if s["mode"] == "sitemap":
+            ok, why = may_fetch(s["sitemap"])
+            row["robots"] = why
+            locs, err = sitemap_urls(s) if ok else ([], why)
+            hits = [u for u, _ in locs if any(a in u.lower() for a in AREAS)]
+            row["status"] = 200 if locs else 0
+            if not hits:
+                row["verdict"] = "BLOCKED/DEAD: " + (err or "no listing pages for our areas in sitemap")
+            else:
+                st, page = fetch(hits[0]) if may_fetch(hits[0])[0] else (0, "")
+                rec = parse.detail_record(page, hits[0]) if st == 200 else None
+                row["listings"] = len(hits)
+                row["verdict"] = f"CRAWLABLE via sitemap ({len(hits)} listing pages in our areas)" if rec else "SITEMAP OK BUT LISTING PAGE NOT PARSED"
             out.append(row)
             continue
         p = next(iter(s.get("purposes", {"sale": 1})))
