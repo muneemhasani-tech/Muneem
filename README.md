@@ -140,7 +140,7 @@ One local dashboard that searches ~20 Bangladeshi property sources for **Gulshan
 
 ```bash
 python3 -m property_finder            # opens http://127.0.0.1:8770
-python3 -m property_finder probe      # which sites respond from YOUR network and how many listings are recognised
+python3 -m property_finder probe      # tests all 20 sources: robots.txt verdict, reachability, anti-bot walls, listings recognised
 ```
 
 - **Auto sources** (Bikroy, Bproperty, Lamudi, BDHouse24, ToLet, Bdstall, Flatbazar, Bhumi, Basha Lagbe, Property.com.bd, RealEstate.com.bd, BanglaProperty, DhakaProperty): fetched and parsed. Health shows per site after each search.
@@ -149,4 +149,4 @@ python3 -m property_finder probe      # which sites respond from YOUR network an
 - Add or fix a site by editing `property_finder/sources.json` (URL template only, no code).
 - Data lives in `data/property/listings.db` (git-ignored; contains phone numbers).
 
-**Important:** the URL patterns and parsers could not be tested against the live sites when this was built (the build sandbox blocks them). Run `probe` first; sites showing `HTTP 404`/`listings recognised: 0` need their `url` template adjusted in `sources.json`. Respect each site's terms; the scraper is rate-limited (one request per site every ~1.5 s).
+**Important:** the URL patterns and parsers could not be tested against the live sites when this was built (the build sandbox blocks them). Run `probe` first; sites showing `HTTP 404`/`listings recognised: 0` need their `url` template adjusted in `sources.json`. The scraper identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips any URL it forbids (or any site whose robots.txt it cannot read), honours `Crawl-delay`, and waits ~1.5 s between requests per site. It never tries to get around a block. Robots.txt is not the same as a site's terms of service, so check those too.

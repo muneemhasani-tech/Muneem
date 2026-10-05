@@ -56,3 +56,33 @@ def test_web_roundtrip(tmp_path, monkeypatch):
     assert json.load(urllib.request.urlopen(base + "/api/listings"))["rows"] == []
     assert urllib.request.urlopen(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
     srv.shutdown()
+
+
+def test_robots_gate(monkeypatch):
+    txt = "User-agent: *\nDisallow: /search\nCrawl-delay: 3\n"
+    calls = []
+
+    def fake_fetch(url, timeout=20):
+        calls.append(url)
+        return (200, txt) if url.endswith("/robots.txt") else (200, "<html></html>")
+
+    monkeypatch.setattr(scrape, "fetch", fake_fetch)
+    scrape._ROBOTS.clear()
+    assert scrape.may_fetch("https://a.bd/search?q=x") == (False, "disallowed by robots.txt")
+    assert scrape.may_fetch("https://a.bd/flats/gulshan")[0] is True
+    assert scrape.crawl_delay("https://a.bd/x") == 3.0
+    scrape._ROBOTS.clear()
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (0, ""))
+    assert scrape.may_fetch("https://b.bd/x")[0] is False  # unknown robots.txt means no crawl
+    scrape._ROBOTS.clear()
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (404, ""))
+    assert scrape.may_fetch("https://c.bd/x")[0] is True
+
+
+def test_probe_blocked_robots(monkeypatch):
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, "User-agent: *\nDisallow: /\n") if u.endswith("robots.txt") else (200, ""))
+    monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
+    scrape._ROBOTS.clear()
+    rows = scrape.probe()
+    assert len(rows) == 20
+    assert all(r["verdict"].startswith(("BLOCKED", "LINK-OUT")) for r in rows)

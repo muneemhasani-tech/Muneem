@@ -7,28 +7,84 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import urllib.robotparser
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlparse
 
 from . import parse, store
 
 CONF = json.loads((Path(__file__).parent / "sources.json").read_text(encoding="utf-8"))
 AREAS: dict[str, str] = CONF["areas"]
 SOURCES: dict[str, dict] = {s["id"]: s for s in CONF["sources"]}
-UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+UA = "MRA-PropertyFinder/1.0 (lead research; mrarealestatebd.com)"  # honest bot name, so robots.txt rules for it apply
 PTYPES = ["apartment", "house", "land", "commercial"]
 
 
 def fetch(url: str, timeout: int = 20) -> tuple[int, str]:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en", "Accept": "text/html"})
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "en", "Accept": "text/html,text/plain"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.status, r.read(3_000_000).decode(r.headers.get_content_charset() or "utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        return e.code, ""
+        try:
+            return e.code, e.read(200_000).decode("utf-8", errors="replace")
+        except Exception:  # noqa: BLE001
+            return e.code, ""
     except Exception:  # noqa: BLE001  network failure is reported as status 0
         return 0, ""
+
+
+_ROBOTS: dict[str, tuple[str, urllib.robotparser.RobotFileParser | None]] = {}
+_RLOCK = threading.Lock()
+
+
+def robots(url: str) -> tuple[str, urllib.robotparser.RobotFileParser | None]:
+    """(state, parser) per host. state: ok | none (404/410, everything allowed) | unreachable | error (5xx: treated as closed)."""
+    host = urlparse(url)
+    key = f"{host.scheme}://{host.netloc}"
+    with _RLOCK:
+        if key in _ROBOTS:
+            return _ROBOTS[key]
+    status, body = fetch(key + "/robots.txt", 15)
+    rp = urllib.robotparser.RobotFileParser()
+    if status == 200 and "<html" not in body[:300].lower():
+        rp.parse(body.splitlines())
+        out = ("ok", rp)
+    elif status in (404, 410) or (status == 200):
+        out = ("none", None)
+    elif status == 0:
+        out = ("unreachable", None)
+    elif status in (401, 403):
+        out = ("blocked", None)  # the site refuses even robots.txt: treat as a no
+    else:
+        out = ("error", None)
+    with _RLOCK:
+        _ROBOTS[key] = out
+    return out
+
+
+def may_fetch(url: str) -> tuple[bool, str]:
+    """Is our bot allowed to request this exact URL? Unknown means no."""
+    state, rp = robots(url)
+    if state == "none":
+        return True, "no robots.txt (allowed)"
+    if state == "ok":
+        return (True, "allowed by robots.txt") if rp.can_fetch(UA, url) else (False, "disallowed by robots.txt")
+    return False, {"unreachable": "robots.txt unreachable", "blocked": "site refuses robots.txt", "error": "robots.txt server error"}[state]
+
+
+def crawl_delay(url: str) -> float:
+    _, rp = robots(url)
+    d = rp.crawl_delay(UA) if rp else None
+    return float(d) if d else 0.0
+
+
+def block_reason(status: int, body: str) -> str:
+    low = body[:4000].lower()
+    if status in (403, 429, 503) and any(w in low for w in ("cloudflare", "captcha", "just a moment", "access denied", "bot")):
+        return "anti-bot wall (Cloudflare/captcha)"
+    return {0: "no connection (blocked network or dead domain)", 403: "blocked (403)", 429: "rate limited (429)", 404: "page not found"}.get(status, f"HTTP {status}")
 
 
 def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> str | None:
@@ -67,10 +123,15 @@ def search_source(src: dict, area: str, purpose: str, ptype: str, q: str, detail
     if not url:
         res["error"] = "unsupported combo"
         return res
+    ok, why = may_fetch(url)
+    if not ok:
+        res["error"] = "skipped: " + why
+        return res
+    time.sleep(crawl_delay(url))
     status, html = fetch(url)
     res["status"] = status
     if status != 200:
-        res["error"] = {0: "network blocked/timeout", 403: "blocked (403)", 404: "page not found - fix URL in sources.json"}.get(status, f"HTTP {status}")
+        res["error"] = block_reason(status, html) + (" - fix URL in sources.json" if status == 404 else "")
         return res
     rows = parse.extract(html, url)
     res["found"] = len(rows)
@@ -81,7 +142,9 @@ def search_source(src: dict, area: str, purpose: str, ptype: str, q: str, detail
     for r in rows:
         r.update(source=src["id"], purpose=purpose, ptype=ptype, area=_area_in(r["title"], area))
         if details and not r.get("phone") and fetched < details:
-            time.sleep(1.0)
+            if not may_fetch(r["url"])[0]:
+                continue
+            time.sleep(max(1.0, crawl_delay(r["url"])))
             st, page = fetch(r["url"])
             fetched += 1
             if st == 200:
@@ -132,13 +195,30 @@ class Job:
 
 
 def probe() -> list[dict]:
-    """Health check for every scrapeable source: does it respond, and do we recognise listings?"""
+    """Test all sources. Verdict per site: CRAWLABLE, BLOCKED (robots.txt), BLOCKED (anti-bot), DEAD, NO LISTINGS FOUND, LINK-OUT."""
     out = []
     for s in SOURCES.values():
+        row = {"source": s["id"], "name": s["name"], "robots": "", "status": "", "listings": 0, "verdict": ""}
         if s["mode"] != "scrape":
+            row.update(verdict="LINK-OUT (never crawled; you open it yourself)")
+            out.append(row)
             continue
         p = next(iter(s.get("purposes", {"sale": 1})))
         t = next(iter(s["types"])) if s.get("types") else "apartment"
-        status, html = fetch(build_url(s, "gulshan", p, t) or "")
-        out.append({"source": s["id"], "status": status, "listings": len(parse.extract(html, s["url"])) if html else 0})
+        url = build_url(s, "gulshan", p, t) or ""
+        ok, why = may_fetch(url)
+        row["robots"] = why + (f", crawl-delay {crawl_delay(url):g}s" if crawl_delay(url) else "")
+        if not ok:
+            row["verdict"] = "BLOCKED: " + why
+            out.append(row)
+            continue
+        status, html = fetch(url)
+        row["status"] = status
+        if status == 200:
+            row["listings"] = len(parse.extract(html, url))
+            row["verdict"] = "CRAWLABLE" if row["listings"] else "REACHABLE BUT NO LISTINGS RECOGNISED (needs parser/URL fix or JS rendering)"
+        else:
+            row["verdict"] = "BLOCKED/DEAD: " + block_reason(status, html)
+        out.append(row)
+        time.sleep(1.5)
     return out
