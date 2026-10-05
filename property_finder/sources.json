@@ -114,62 +114,68 @@
    "sitemap": "https://concordcps.com/en/property-sitemap.xml",
    "match": "/en/property/",
    "per_run": 25
+  }
+ ],
+ "web_queries": [
+  {
+   "id": "fb_groups",
+   "name": "Facebook groups",
+   "q": "site:facebook.com/groups \"{area}\" flat sale"
   },
   {
-   "id": "facebook",
+   "id": "fb_groups_bn",
+   "name": "Facebook groups (Bangla)",
+   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট বিক্রি"
+  },
+  {
+   "id": "fb_plots",
+   "name": "Facebook groups: plots",
+   "q": "site:facebook.com/groups \"{area}\" plot sale katha"
+  },
+  {
+   "id": "fb_marketplace",
    "name": "Facebook Marketplace",
-   "kind": "social",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.facebook.com/marketplace/dhaka/search?query={area}%20{type}%20{purpose}"
+   "q": "site:facebook.com/marketplace \"{area}\" apartment sale"
   },
   {
-   "id": "fbgroups",
-   "name": "Facebook property groups",
-   "kind": "social",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.facebook.com/search/groups?q={area}%20property%20{purpose}"
+   "id": "fb_pages",
+   "name": "Facebook pages and posts",
+   "q": "site:facebook.com \"{area}\" \"apartment for sale\" sqft"
   },
   {
-   "id": "google",
-   "name": "Google (whole web)",
-   "kind": "web",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.google.com/search?q={type}+for+{purpose}+{area}+dhaka+price+contact"
+   "id": "dev_navana",
+   "name": "Navana Real Estate",
+   "q": "site:navana-realestate.com {area}"
   },
   {
-   "id": "bashundhara",
-   "name": "Bashundhara Group (developer)",
-   "kind": "developer",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.google.com/search?q=site:bashundharagroup.com+{area}+{type}+{purpose}"
+   "id": "dev_shanta",
+   "name": "Shanta Holdings",
+   "q": "site:shantaholdings.com {area}"
   },
   {
-   "id": "rangs",
-   "name": "Rangs Properties (developer)",
-   "kind": "developer",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.google.com/search?q=Rangs+Properties+{area}+{type}+{purpose}"
+   "id": "dev_rangs",
+   "name": "Rangs Properties",
+   "q": "site:rangsproperties.com {area}"
   },
   {
-   "id": "navana",
-   "name": "Navana Real Estate (developer)",
-   "kind": "developer",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.google.com/search?q=Navana+Real+Estate+{area}+{type}+{purpose}"
+   "id": "dev_bashundhara",
+   "name": "Bashundhara Group",
+   "q": "site:bashundharagroup.com {area} apartment OR plot"
   },
   {
-   "id": "shanta",
-   "name": "Shanta / Concord / Assure (developers)",
-   "kind": "developer",
-   "mode": "link",
-   "confidence": "high",
-   "url": "https://www.google.com/search?q=Shanta+OR+Concord+OR+Assure+developer+{area}+{type}+{purpose}"
+   "id": "dev_assure",
+   "name": "Assure Group",
+   "q": "assure group {area} apartment for sale"
+  },
+  {
+   "id": "web_open",
+   "name": "Open web (other sites)",
+   "q": "\"{area}\" \"flat for sale\" price sqft -site:bproperty.com -site:bdhousing.com -site:facebook.com"
+  },
+  {
+   "id": "web_bn",
+   "name": "Open web (Bangla)",
+   "q": "{area_bn} ফ্ল্যাট বিক্রয় দাম"
   }
  ]
 }

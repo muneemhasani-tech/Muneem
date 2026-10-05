@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import roi, scrape, store
+from . import roi, scrape, store, websearch
 
 JOB = scrape.Job()
 PAGE = Path(__file__).parent / "static" / "index.html"
@@ -22,11 +22,12 @@ def to_csv(rows: list[dict]) -> str:
     """Column names match lead-verifier's input, so exports go straight into `lead-verifier run`."""
     buf = io.StringIO()
     wr = csv.writer(buf, lineterminator="\n")
-    wr.writerow(CSV_COLS + ["Area", "Type", "Price", "SizeSqft", "Beds", "Owner", "GrossYieldPct", "NetYieldPct", "TotalReturnPct", "Status"])
+    wr.writerow(CSV_COLS + ["Area", "Type", "Price", "SizeSqft", "Beds", "Owner", "GrossYieldPct", "NetYieldPct", "TotalReturnPct", "Status", "Evidence", "FoundVia", "Snippet"])
     for r in rows:
         note = f"{r['title'][:90]} | {r['status']} | {r['notes']}".strip(" |")
         wr.writerow([r["poster"], r["phone"], "", r["url"], r["source"], note, r["area"], r["ptype"], r["price"], r["size_sqft"],
-                     r["beds"], {1: "owner", 0: "agent"}.get(r["is_owner"], ""), r["gross"], r["net"], r["total"], r["status"]])
+                     r["beds"], {1: "owner", 0: "agent"}.get(r["is_owner"], ""), r["gross"], r["net"], r["total"], r["status"],
+                     r.get("evidence") or "listing page", r.get("found_via") or "", r.get("snippet") or ""])
     return buf.getvalue()
 
 
@@ -59,9 +60,14 @@ def handler():
                 con = store.connect()
                 self._json(200, roi.load(con))
                 con.close()
+            elif u.path == "/api/websearch":
+                con = store.connect()
+                self._json(200, websearch.status(con))
+                con.close()
             elif u.path == "/api/config":
                 self._json(200, {"areas": scrape.AREAS, "ptypes": ["apartment", "house", "land"], "statuses": store.STATUSES,
-                                 "sources": [{k: s[k] for k in ("id", "name", "kind", "mode", "confidence")} for s in scrape.SOURCES.values()]})
+                                 "sources": [{k: s[k] for k in ("id", "name", "kind", "mode", "confidence")} for s in scrape.SOURCES.values()]
+                                 + [{"id": q["id"], "name": q["name"], "kind": "search", "mode": "search", "confidence": ""} for q in websearch.QUERIES]})
             elif u.path == "/api/job":
                 self._json(200, JOB.snapshot())
             elif u.path in ("/api/listings", "/api/export.csv"):
@@ -87,12 +93,18 @@ def handler():
                     areas = [a for a in b.get("areas", []) if a in scrape.AREAS] or list(scrape.AREAS)
                     ok = JOB.start(areas, [t for t in b.get("ptypes", []) if t in scrape.PTYPES] or ["apartment", "house", "land"],
                                    b.get("sources") or list(scrape.SOURCES), (b.get("q") or "")[:80],
-                                   min(int(b.get("details") or 0), 40), b.get("benchmark", True) is not False)
+                                   min(int(b.get("details") or 0), 40), b.get("benchmark", True) is not False,
+                                   b.get("web", True) is not False)
                     self._json(200 if ok else 409, {"started": ok})
                 elif u.path == "/api/assumptions":
                     con = store.connect()
                     roi.save(con, b)
                     self._json(200, roi.load(con))
+                    con.close()
+                elif u.path == "/api/websearch":
+                    con = store.connect()
+                    websearch.save_key(con, str(b.get("provider", "serper")), str(b.get("key", "")), b.get("budget"))
+                    self._json(200, websearch.status(con))
                     con.close()
                 elif u.path == "/api/lead":
                     con = store.connect()

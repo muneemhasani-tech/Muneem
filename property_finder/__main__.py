@@ -9,7 +9,7 @@ if cmd == "probe":
     for r in rows:
         print(f"{r['name']:<40} robots: {r['robots'] or '-':<34} HTTP {str(r['status']) or '-':<4} listings: {r['listings']:<3} {r['verdict']}")
     ok = sum(r["verdict"].startswith("CRAWLABLE") for r in rows)
-    print(f"\n{ok} of {sum(r['verdict'] != 'LINK-OUT (never crawled; you open it yourself)' for r in rows)} auto sites crawlable; {len(rows)} sources total.")
+    print(f"\n{ok} of {sum(not r['name'].startswith('Search:') for r in rows)} auto sites crawlable; {len(rows)} sources total.")
 else:
     port = int(sys.argv[2]) if len(sys.argv) > 2 else 8770
     srv = web.serve(port)

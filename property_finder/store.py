@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS listings(
 CREATE TABLE IF NOT EXISTS rent_obs(url TEXT PRIMARY KEY, source TEXT, area TEXT, rent REAL, size_sqft REAL, seen REAL);
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS crawled(url TEXT PRIMARY KEY, lastmod TEXT, seen REAL);
+CREATE TABLE IF NOT EXISTS web_queries(q TEXT, ts REAL, month TEXT, results INT);
 CREATE INDEX IF NOT EXISTS ix_area ON listings(area, purpose);
 CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 """
@@ -28,6 +29,10 @@ def connect(path: Path | str = DB) -> sqlite3.Connection:
     con = sqlite3.connect(str(path), check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
+    have = {r[1] for r in con.execute("PRAGMA table_info(listings)")}
+    for col in ("snippet", "found_via", "evidence"):  # added later; older databases get them on open
+        if col not in have:
+            con.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT DEFAULT ''")
     return con
 
 
@@ -51,11 +56,11 @@ def upsert(con: sqlite3.Connection, r: dict) -> bool:
     dk = dup_key(r)
     if old is None:
         con.execute(
-            "INSERT INTO listings(id,dup_key,source,url,title,purpose,ptype,area,price,size_sqft,beds,baths,phone,poster,is_owner,image,first_seen,last_seen)"
-            " VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO listings(id,dup_key,source,url,title,purpose,ptype,area,price,size_sqft,beds,baths,phone,poster,is_owner,image,"
+            "first_seen,last_seen,snippet,found_via,evidence) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (lid, dk, r["source"], r["url"], r["title"], r.get("purpose"), r.get("ptype"), r.get("area"), r.get("price"),
              r.get("size_sqft"), r.get("beds"), r.get("baths"), r.get("phone", ""), r.get("poster", ""), r.get("is_owner"),
-             r.get("image", ""), now, now))
+             r.get("image", ""), now, now, r.get("snippet", ""), r.get("found_via", ""), r.get("evidence", "listing page")))
         return True
     prev = old["price"] if r.get("price") and old["price"] and r["price"] != old["price"] else None
     con.execute("UPDATE listings SET last_seen=?, dup_key=?, price=COALESCE(?,price), price_prev=COALESCE(?,price_prev),"

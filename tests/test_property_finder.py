@@ -33,7 +33,7 @@ def test_url_building():
     b = scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "sale", "apartment")
     assert b == "https://bikroy.com/en/ads/dhaka/property?query=gulshan+apartment+sale"
     assert scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "rent", "apartment") is None
-    assert len(scrape.SOURCES) >= 15
+    assert len(scrape.SOURCES) >= 8
 
 
 def test_store_dedupe_and_price_drop(tmp_path):
@@ -89,13 +89,15 @@ def test_robots_gate(monkeypatch):
     assert scrape.may_fetch("https://c.bd/x")[0] is True
 
 
-def test_probe_blocked_robots(monkeypatch):
+def test_probe_blocked_robots(monkeypatch, tmp_path):
     monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, "User-agent: *\nDisallow: /\n") if u.endswith("robots.txt") else (200, ""))
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
     scrape._ROBOTS.clear()
+    monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "p.db",))
     rows = scrape.probe()
-    assert len(rows) == len(scrape.SOURCES)
-    assert all(r["verdict"].startswith(("BLOCKED", "LINK-OUT")) for r in rows)
+    from property_finder import websearch
+    assert len(rows) == len(scrape.SOURCES) + len(websearch.QUERIES)
+    assert all(r["verdict"].startswith(("BLOCKED", "NEEDS A SEARCH API KEY")) for r in rows)
 
 
 def test_roi_math_and_rent_hidden(tmp_path):
@@ -152,3 +154,28 @@ def test_sitemap_crawl(tmp_path, monkeypatch):
     assert scrape.search_sitemap(src, "gulshan", 0)["found"] == 0  # unchanged pages are not fetched twice
     rows = store.query(store.connect())
     assert rows[0]["title"] == "Lake flat Gulshan 2" and rows[0]["area"] == "gulshan"
+
+
+def test_web_search_results_become_listings(tmp_path, monkeypatch):
+    from property_finder import websearch
+    monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "w.db",))
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (404, ""))
+    monkeypatch.setattr(websearch.time, "sleep", lambda s: None)
+    monkeypatch.setenv("SERPER_API_KEY", "test-key")
+    hits = [
+        {"title": "3 bed flat for sale in Gulshan 2 | Facebook", "url": "https://www.facebook.com/groups/1/posts/2",
+         "snippet": "1850 sqft, south facing, price 3.2 crore. Call 01711-223344", "date": ""},
+        {"title": "Need a flat in Gulshan", "url": "https://www.facebook.com/groups/1/posts/3", "snippet": "Looking for 3 bed, sale", "date": ""},
+        {"title": "Flat for sale in Mirpur", "url": "https://www.facebook.com/groups/1/posts/4", "snippet": "1200 sqft", "date": ""},
+    ]
+    calls = []
+    monkeypatch.setattr(websearch, "run_query", lambda p, k, q: (calls.append(q), (200, hits))[1])
+    monkeypatch.setattr(websearch, "QUERIES", [{"id": "fb_groups", "name": "Facebook groups", "q": "site:facebook.com/groups \"{area}\" flat sale"}])
+    res = websearch.search_web(["gulshan"])
+    assert calls == ['site:facebook.com/groups "Gulshan" flat sale'] and res[0]["new"] == 1
+    r = store.query(store.connect())[0]
+    assert r["title"] == "3 bed flat for sale in Gulshan 2" and r["price"] == 3.2e7 and r["phone"] == "01711223344"
+    assert r["found_via"].startswith("Google (Serper): site:facebook.com/groups") and "1850 sqft" in r["snippet"]
+    assert websearch.search_web(["gulshan"])[0]["new"] == 0 and len(calls) == 1  # same query not repeated within 20h
+    monkeypatch.delenv("SERPER_API_KEY")
+    assert "API key" in websearch.search_web(["gulshan"])[0]["error"]

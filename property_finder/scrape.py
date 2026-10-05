@@ -105,17 +105,6 @@ def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> st
                              type=(types or {}).get(ptype, ptype), q=quote_plus(q))
 
 
-def link_outs(areas: list[str], purpose: str, ptype: str, q: str = "") -> list[dict]:  # sale searches only
-    """Search links for sites we can't or shouldn't scrape (Facebook, Google, developer sites)."""
-    out = []
-    for s in SOURCES.values():
-        if s["mode"] == "link":
-            for a in areas or ["dhaka"]:
-                out.append({"source": s["id"], "name": s["name"], "kind": s["kind"], "area": a,
-                            "url": build_url(s, q or a, purpose, ptype)})
-    return out
-
-
 AREA_RX = {"gulshan": r"gulshan|গুলশান", "banani": r"banani|বনানী", "purbachal": r"purbachal|পূর্বাচল",
            "uttara": r"uttara|uttra|uttora|উত্তরা", "dhanmondi": r"dhanmondi|dhanmandi|ধানমন্ডি|ধানমণ্ডি",
            "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা"}
@@ -296,7 +285,7 @@ class Job:
     def __init__(self):
         self.lock, self.state = threading.Lock(), {"running": False, "done": 0, "total": 0, "results": [], "links": []}
 
-    def start(self, areas, ptypes, sources, q="", details=0, benchmark=True) -> bool:
+    def start(self, areas, ptypes, sources, q="", details=0, benchmark=True, web=True) -> bool:
         """Sale searches for the chosen types, plus (optionally) apartment rent pages used only to measure rent per sqft."""
         with self.lock:
             if self.state["running"]:
@@ -309,8 +298,10 @@ class Job:
                 tasks += [(s, a, "rent", "apartment") for s in live for a in areas if "rent" in s.get("purposes", {})]
             tasks += [(s, a, "sitemap", "") for s in maps for a in areas]
             tasks += [(s, "", "list", "") for s in lists]
-            self.state = {"running": True, "done": 0, "total": len(tasks), "results": [],
-                          "links": link_outs(areas, "sale", ptypes[0] if ptypes else "apartment", q)}
+            if web:
+                tasks.append(({"id": "web"}, "", "web", ""))
+            self.state = {"running": True, "done": 0, "total": len(tasks), "results": [], "links": []}
+            self._areas = areas
         threading.Thread(target=self._run, args=(tasks, q, details), daemon=True).start()
         return True
 
@@ -321,6 +312,14 @@ class Job:
 
         def one(t):
             src, a, p, ty = t
+            if p == "web":
+                from . import websearch
+                for r in websearch.search_web(self._areas):
+                    with self.lock:
+                        self.state["results"].append({**r, "area": "", "purpose": "sale", "ptype": "", "benchmark": False})
+                with self.lock:
+                    self.state["done"] += 1
+                return
             with by_src[src["id"]]:  # one request at a time per site, with a pause
                 r = (search_sitemap(src, a, details) if p == "sitemap" else search_list(src, details) if p == "list"
                      else search_source(src, a, p, ty, q, details))
@@ -351,14 +350,10 @@ class _null_store:
 
 
 def probe() -> list[dict]:
-    """Test all sources. Verdict per site: CRAWLABLE, BLOCKED (robots.txt), BLOCKED (anti-bot), DEAD, NO LISTINGS FOUND, LINK-OUT."""
+    """Test all sources. Verdict per site: CRAWLABLE, BLOCKED (robots.txt), BLOCKED (anti-bot), DEAD, NO LISTINGS FOUND, plus search-API readiness."""
     out = []
     for s in SOURCES.values():
         row = {"source": s["id"], "name": s["name"], "robots": "", "status": "", "listings": 0, "verdict": ""}
-        if s["mode"] == "link":
-            row.update(verdict="LINK-OUT (never crawled; you open it yourself)")
-            out.append(row)
-            continue
         if s["mode"] == "list":
             one = dict(s, max_pages=1)
             with _null_store():
@@ -401,4 +396,13 @@ def probe() -> list[dict]:
             row["verdict"] = "BLOCKED/DEAD: " + block_reason(status, html)
         out.append(row)
         time.sleep(1.5)
+    from . import websearch
+    con = store.connect()
+    st = websearch.status(con)
+    con.close()
+    for spec in websearch.QUERIES:
+        out.append({"source": spec["id"], "name": "Search: " + spec["name"], "robots": "via search API (pages not crawled)",
+                    "status": "", "listings": 0,
+                    "verdict": f"READY ({st['provider']}, {st['used_this_month']}/{st['budget']} searches used this month)" if st["configured"]
+                    else "NEEDS A SEARCH API KEY (Serper.dev or Brave)"})
     return out

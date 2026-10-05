@@ -73,7 +73,13 @@ footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;b
   <div class="prog" id="prog" role="status">Ready when you are.</div>
   <details><summary>Return assumptions <span>(rent per sqft is measured from rent ads when there are enough, otherwise these figures are used)</span></summary>
    <div class="assume" id="assume"></div><div class="row" style="margin-top:24px"><button class="ghost" id="saveA">Save assumptions</button><span class="prog" id="aMsg"></span></div></details>
-  <details><summary>Source health <span>(sites checked each search)</span></summary><div class="srcs" id="srcs"></div><div class="row" id="links" style="margin-top:24px"></div></details>
+  <details><summary>Web search <span id="wsSum">(Facebook groups, Marketplace, developer sites and the open web)</span></summary>
+   <p class="meta" style="margin:16px 0 0">Facebook and Google don't allow crawling, so these come from an official search API. Paste a key from <b>serper.dev</b> (Google results) or <b>Brave Search API</b>. It is stored only on this computer.</p>
+   <div class="row" style="margin-top:16px"><label class="f">Provider<select id="wsProv"><option value="serper">Serper.dev (Google)</option><option value="brave">Brave Search</option></select></label>
+    <label class="f" style="flex:1 1 260px">API key<input type="text" id="wsKey" placeholder="Paste key" autocomplete="off"></label>
+    <label class="f">Searches per month<input type="number" id="wsBudget" value="300" style="width:120px"></label>
+    <button class="ghost" id="wsSave">Save</button></div><div class="prog" id="wsMsg"></div></details>
+  <details><summary>Source health <span>(sites and searches checked each run)</span></summary><div class="srcs" id="srcs"></div></details>
  </section>
  <section aria-labelledby="s2"><h2 id="s2">Market snapshot</h2><div class="snap" id="snap"></div></section>
  <section aria-labelledby="s3"><h2 id="s3">Properties for sale</h2>
@@ -96,8 +102,11 @@ async function init(){cfg=await j('/api/config');AS=await j('/api/assumptions');
  $('fstatus').innerHTML='<option value="">Any lead status</option>'+cfg.statuses.filter(s=>s!=='ignore').map(s=>`<option>${s}</option>`).join('');
  $('assume').innerHTML=Object.keys(cfg.areas).map(k=>`<label class="f">${cfg.areas[k]} rent, ৳ per sqft a month<input type="number" data-r="${k}" value="${AS.rent_psf[k]??''}"></label>`).join('')
   +`<label class="f">Empty months a year<input type="number" data-k="vacancy_months" value="${AS.vacancy_months}"></label><label class="f">Running costs, % of rent<input type="number" data-k="cost_pct" value="${AS.cost_pct}"></label><label class="f">Price growth a year, %<input type="number" data-k="growth_pct" value="${AS.growth_pct}"></label>`;
- $('srcs').innerHTML=cfg.sources.filter(s=>s.mode!=='link').map(s=>`<div class="src" id="s_${s.id}"><b>${esc(s.name)}</b><span>Not checked yet</span></div>`).join('');
+ $('srcs').innerHTML=cfg.sources.map(s=>`<div class="src" id="s_${s.id}"><b>${s.mode==='search'?'Search: ':''}${esc(s.name)}</b><span>Not checked yet</span></div>`).join('');
+ ws(await j('/api/websearch'));
  for(const id of['ptype','fmax','fmin','fown','fsort','farea','fstatus'])$(id).onchange=load;$('fq').oninput=load;load()}
+function ws(st){$('wsSum').textContent=st.configured?`(${st.provider==='serper'?'Google via Serper':'Brave'} key ${st.key_hint}, ${st.used_this_month} of ${st.budget} searches used this month)`:'(not set up yet: add an API key)';$('wsProv').value=st.provider||'serper';$('wsBudget').value=st.budget}
+$('wsSave').onclick=async()=>{const st=await j('/api/websearch',{method:'POST',body:JSON.stringify({provider:$('wsProv').value,key:$('wsKey').value,budget:+$('wsBudget').value})});$('wsKey').value='';ws(st);$('wsMsg').textContent='Saved.'};
 $('saveA').onclick=async()=>{const b={rent_psf:{}};document.querySelectorAll('[data-r]').forEach(e=>b.rent_psf[e.dataset.r]=e.value);document.querySelectorAll('[data-k]').forEach(e=>b[e.dataset.k]=e.value);
  AS=await j('/api/assumptions',{method:'POST',body:JSON.stringify(b)});$('aMsg').textContent='Saved. Returns recalculated.';load()};
 $('go').onclick=async()=>{const t=$('ptype').value;const r=await fetch('/api/search',{method:'POST',body:JSON.stringify({areas:[...sel],ptypes:t?[t]:[],q:$('q').value.trim(),details:$('det').checked?15:0})});
@@ -107,7 +116,6 @@ async function poll(){const s=await j('/api/job');$('fill').style.width=(s.total
  const by={};for(const r of s.results)(by[r.source]??=[]).push(r);
  for(const[id,rs]of Object.entries(by)){const f=rs.reduce((a,r)=>a+r.found,0),n=rs.filter(r=>!r.benchmark).reduce((a,r)=>a+r.new,0),e=rs.find(r=>r.error&&!r.found),h=$('s_'+id);
   if(h){h.className='src '+(e?'bad':'ok');h.querySelector('span').textContent=e?e.error:`${f} found, ${n} new for sale`}}
- $('links').innerHTML=s.links.length?'<span class="lbl" style="width:100%">Search by hand</span>'+[...new Map(s.links.map(l=>[l.source,l])).values()].map(l=>`<a class="ghost" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.name.split(' (')[0])}</a>`).join(''):'';
  load();if(s.running)setTimeout(poll,2000);else $('go').disabled=false}
 function qs(){const p=new URLSearchParams(),m={area:'farea',status:'fstatus',max:'fmax',minroi:'fmin',sort:'fsort',q:'fq',ptype:'ptype'};
  for(const[k,id]of Object.entries(m))if($(id).value)p.set(k,$(id).value);if($('fown').value)p.set('owner','1');return p}
@@ -116,7 +124,8 @@ async function load(){const p=qs();$('csv').href='/api/export.csv?'+p;const d=aw
  $('count').textContent=d.rows.length?`Showing ${d.rows.length} properties. Projections are estimates, not guarantees.`:'';
  $('rows').innerHTML=d.rows.length?d.rows.map(r=>`<article class="item"><div><h3><a target="_blank" rel="noopener" href="${esc(r.url)}">${esc(r.title.slice(0,100))}</a></h3>
   <div class="meta">${esc(cfg.areas[r.area]||r.area)}${r.size_sqft?` · ${r.size_sqft.toLocaleString('en-US')} sqft`:''}${r.beds?` · ${r.beds} bed`:''}${r.baths?` · ${r.baths} bath`:''} · via ${esc(r.source)}</div>
-  <div>${r.is_owner===1?'<span class="b">OWNER</span>':''}${r.dropped?'<span class="b">PRICE DROPPED</span>':''}${r.sites>1?`<span class="b q">On ${r.sites} sites</span>`:''}</div></div>
+  ${r.found_via?`<div class="meta" style="margin-top:8px">Found via ${esc(r.found_via)}</div>`:''}${r.snippet?`<div class="meta" style="margin-top:4px;font-style:italic">“${esc(r.snippet.slice(0,260))}”</div>`:''}
+  <div>${r.evidence&&r.evidence.startsWith('search')?`<span class="b q">${r.evidence==='search result'?'FROM SEARCH SNIPPET':'SEARCH + LISTING PAGE'}</span>`:''}${r.is_owner===1?'<span class="b">OWNER</span>':''}${r.dropped?'<span class="b">PRICE DROPPED</span>':''}${r.sites>1?`<span class="b q">On ${r.sites} sites</span>`:''}</div></div>
   <div class="num">৳${bdt(r.price)}<small>${r.ppsf?'৳'+r.ppsf.toLocaleString('en-US')+' per sqft':''}${r.dropped?` · was ৳${bdt(r.price_prev)}`:''}</small></div>
   <div class="num">${r.gross?r.gross.toFixed(1)+'%':'None'}<small>${r.rent_est?`about ৳${bdt(r.rent_est)} a month projected (${r.rent_basis})`:r.growth_only?'Land earns no rent':'Size needed to project'}</small></div>
   <div class="num roi">${r.total!=null?r.total.toFixed(0)+'%':'-'}<small>${r.net?`${r.net}% net yield + growth`:'Growth only'}</small></div>
