@@ -90,6 +90,8 @@ def test_robots_gate(monkeypatch):
 
 
 def test_probe_blocked_robots(monkeypatch, tmp_path):
+    monkeypatch.delenv("SERPER_API_KEY", raising=False)
+    monkeypatch.delenv("BRAVE_API_KEY", raising=False)
     monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, "User-agent: *\nDisallow: /\n") if u.endswith("robots.txt") else (200, ""))
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
     scrape._ROBOTS.clear()
@@ -179,3 +181,16 @@ def test_web_search_results_become_listings(tmp_path, monkeypatch):
     assert websearch.search_web(["gulshan"])[0]["new"] == 0 and len(calls) == 1  # same query not repeated within 20h
     monkeypatch.delenv("SERPER_API_KEY")
     assert "API key" in websearch.search_web(["gulshan"])[0]["error"]
+
+
+def test_web_hit_filters():
+    from property_finder import websearch as w
+    fb = {"id": "fb_groups", "host": r"(^|\.)facebook\.com$", "engine_label": "x"}
+    hit = {"title": "Flat for sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/2", "snippet": "3 bed 2456 sqft, price 3 crore"}
+    assert w.to_listing(hit, fb, "q", "gulshan")["size_sqft"] == 2456
+    assert w.to_listing({**hit, "url": "https://bikroy.com/x"}, fb, "q", "gulshan") is None  # wrong host
+    assert w.to_listing({**hit, "title": "Flat for sale in Gulshan e Iqbal"}, fb, "q", "gulshan") is None
+    dev = {"id": "dev_rangs", "host": r"rangsproperties\.com$", "engine_label": "x"}
+    page = {"title": "Diorama in Gulshan", "snippet": "Project", "url": "https://rangsproperties.com/projects/Diorama"}
+    assert w.to_listing(page, dev, "q", "gulshan")  # no "for sale" needed for a developer
+    assert w.to_listing({**page, "url": "https://rangsproperties.com/about-us"}, dev, "q", "gulshan") is None

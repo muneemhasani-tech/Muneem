@@ -120,62 +120,74 @@
   {
    "id": "fb_groups",
    "name": "Facebook groups",
-   "q": "site:facebook.com/groups \"{area}\" flat sale"
+   "q": "facebook groups {area} flat sale",
+   "host": "(^|\\.)facebook\\.com$"
   },
   {
    "id": "fb_groups_bn",
    "name": "Facebook groups (Bangla)",
-   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট বিক্রি"
+   "q": "{area_bn} ফ্ল্যাট বিক্রি ফেসবুক গ্রুপ",
+   "host": "(^|\\.)facebook\\.com$"
   },
   {
    "id": "fb_plots",
    "name": "Facebook groups: plots",
-   "q": "site:facebook.com/groups \"{area}\" plot sale katha"
+   "q": "{area} plot sale katha facebook",
+   "host": "(^|\\.)facebook\\.com$"
   },
   {
    "id": "fb_marketplace",
    "name": "Facebook Marketplace",
-   "q": "site:facebook.com/marketplace \"{area}\" apartment sale"
+   "q": "facebook marketplace {area} apartment sale",
+   "host": "(^|\\.)facebook\\.com$"
   },
   {
    "id": "fb_pages",
    "name": "Facebook pages and posts",
-   "q": "site:facebook.com \"{area}\" \"apartment for sale\" sqft"
+   "q": "facebook {area} apartment for sale sqft",
+   "host": "(^|\\.)facebook\\.com$"
   },
   {
    "id": "dev_navana",
    "name": "Navana Real Estate",
-   "q": "site:navana-realestate.com {area}"
+   "q": "Navana Real Estate {area} apartment",
+   "host": "navana"
   },
   {
    "id": "dev_shanta",
    "name": "Shanta Holdings",
-   "q": "site:shantaholdings.com {area}"
+   "q": "Shanta Holdings {area} apartment",
+   "host": "shantaholdings\\.com$"
   },
   {
    "id": "dev_rangs",
    "name": "Rangs Properties",
-   "q": "site:rangsproperties.com {area}"
+   "q": "Rangs Properties {area} apartment",
+   "host": "rangsproperties\\.com$"
   },
   {
    "id": "dev_bashundhara",
    "name": "Bashundhara Group",
-   "q": "site:bashundharagroup.com {area} apartment OR plot"
+   "q": "Bashundhara Group {area} apartment plot",
+   "host": "bashundharagroup\\.com$"
   },
   {
    "id": "dev_assure",
    "name": "Assure Group",
-   "q": "assure group {area} apartment for sale"
+   "q": "Assure Group {area} apartment for sale",
+   "host": "assuregroupbd\\.com$"
   },
   {
    "id": "web_open",
    "name": "Open web (other sites)",
-   "q": "\"{area}\" \"flat for sale\" price sqft -site:bproperty.com -site:bdhousing.com -site:facebook.com"
+   "q": "{area} flat for sale price sqft",
+   "exclude": "bproperty\\.com|bdhousing\\.com|bikroy\\.com|facebook\\.com|instagram\\.com|youtube\\.com"
   },
   {
    "id": "web_bn",
    "name": "Open web (Bangla)",
-   "q": "{area_bn} ফ্ল্যাট বিক্রয় দাম"
+   "q": "{area_bn} ফ্ল্যাট বিক্রয় দাম",
+   "exclude": "facebook\\.com|instagram\\.com|youtube\\.com"
   }
  ]
 }

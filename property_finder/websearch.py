@@ -97,18 +97,35 @@ def expand(areas: list[str]) -> list[tuple[dict, str, str]]:
 
 def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None:
     from .scrape import _area_in  # same area rule as every other source
+    host = urllib.parse.urlparse(hit["url"]).netloc.lower()
+    if spec.get("host") and not re.search(spec["host"], host):  # free Serper tier rejects site:, so filter here
+        return None
+    if spec.get("exclude") and re.search(spec["exclude"], host):
+        return None
     text = f"{hit['title']} {hit['snippet']}"
-    if not SALE.search(text) or WANTED.search(text):
+    path = urllib.parse.urlparse(hit["url"]).path.lower()
+    if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)):
+        return None  # a company page, not a project
+    dev = spec["id"].startswith("dev_")  # developers sell by definition; their pages seldom say "for sale"
+    if (not dev and not SALE.search(text)) or WANTED.search(text):
         return None
     area = _area_in(text, None)
     if not area:
         return None
+    if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
+        return None
     f = parse.facts(text)
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
+    ptype = parse._ptype(text) or "apartment"
+    size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
+    lo, hi = (200, 20000) if ptype == "apartment" else (360, 400000)
+    if size and not lo <= size <= hi:
+        size = None  # a stray number from the snippet, not a size
+    if f["price"] and f["price"] < 500_000:
+        f["price"] = None  # BDT price under 5 lakh is a mis-read (rent, a floor number, a phone digit)
     return {**f, "title": re.sub(r"\s*[|\-–]\s*Facebook\s*$", "", hit["title"])[:200], "url": hit["url"],
             "source": spec["id"], "area": area, "purpose": "rent" if RENT.search(hit["title"]) else "sale",
-            "ptype": parse._ptype(text) or "apartment", "image": "",
-            "size_sqft": f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None),
+            "ptype": ptype, "image": "", "size_sqft": size,
             "snippet": hit["snippet"][:600], "found_via": f"{spec['engine_label']}: {query}", "evidence": "search result"}
 
 
@@ -137,7 +154,7 @@ def search_web(areas: list[str], max_queries: int | None = None, enrich: int = 1
         code, hits = run_query(prov, key, q)
         con.execute("INSERT INTO web_queries(q, ts, month, results) VALUES(?,?,?,?)", (q, time.time(), time.strftime("%Y-%m"), len(hits)))
         if code != 200:
-            res[spec["id"]].update(status=code, error={401: "API key rejected", 403: "API key rejected", 429: "search API rate limit"}.get(code, f"search API error {code}"))
+            res[spec["id"]].update(status=code, error={400: "query rejected by the search plan (site:/-site: need a paid Serper plan)", 401: "API key rejected", 403: "API key rejected", 429: "search API rate limit"}.get(code, f"search API error {code}"))
             continue
         for h in hits:
             r = to_listing(h, {**spec, "engine_label": "Google (Serper)" if prov == "serper" else "Brave Search"}, q, area)
