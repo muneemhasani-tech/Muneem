@@ -148,7 +148,7 @@ python3 -m property_finder probe      # tests all 20 sources: robots.txt verdict
 - **Auto sources:** Bikroy, Bproperty, Lamudi, BDHouse24, ToLet, Bdstall, Flatbazar, Bhumi, Basha Lagbe, Property.com.bd, RealEstate.com.bd, BanglaProperty, DhakaProperty. **Link-out sources** (Facebook Marketplace/groups, Google, Bashundhara, Rangs, Navana, Shanta/Concord/Assure) open a ready-made search; they are never crawled.
 - **Lead tools:** duplicate flag ("on N sites"), owner-only filter, price-drop flag, price per sqft by area, lead status and notes, WhatsApp links, **Export CSV** (columns match `lead-verifier run`, plus yield and return columns).
 - **Crawling manners:** identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips what it forbids (or any site whose robots.txt it cannot read), honours `Crawl-delay`, waits ~1.5 s between requests per site, never tries to get around a block. Robots.txt is not a site's terms of service, so check those too.
-- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code). Text size: change `--sec` at the top of `static/index.html` (2 = double, 1 = original).
+- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code). Text size: `--sec` at the top of `static/index.html` scales secondary text (1 = normal).
 - Data lives in `data/property/listings.db` (git-ignored; contains phone numbers).
 
 **Not yet verified against live sites** (the build sandbox blocks them): run `probe` first. Sites showing `BLOCKED`, `DEAD` or `NO LISTINGS RECOGNISED` need their URL or parser adjusted.

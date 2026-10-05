@@ -5,30 +5,30 @@
 <style>
 /* Layout: navy header band with the logo, then a plain white working area. Gold appears once: a thin rule under the header.
    --sec scales all secondary (sans) text. 1 = original size, 2 = double. */
-:root{--sec:2;--navy:#0b163e;--navy2:#1b2a63;--ink:#101a3a;--mute:#4d5878;--line:#d5d9e6;--bg:#f6f7fa;--card:#fff;--gold:#c8922a;--pos:#176a47;--neg:#a3281f;
+:root{--sec:1;--navy:#0b163e;--navy2:#1b2a63;--ink:#101a3a;--mute:#4d5878;--line:#d5d9e6;--bg:#f6f7fa;--card:#fff;--gold:#c8922a;--pos:#176a47;--neg:#a3281f;
 --serif:'Source Serif 4',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;color-scheme:light}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:calc(.94rem*var(--sec))/1.45 var(--sans)}
+body{margin:0;background:var(--bg);color:var(--ink);font:calc(.94rem*var(--sec))/1.55 var(--sans)}
 .top{background:var(--navy);border-bottom:3px solid var(--gold);padding:24px 20px}
-.top .in,.main{max-width:1320px;margin:0 auto}
+.top .in,.main{max-width:1080px;margin:0 auto}
 .top .in{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
-.top img{width:130px;height:auto;display:block}
-.top h1{font:700 clamp(2rem,4vw,2.8rem) var(--serif);color:#fff;margin:0}
+.top img{width:84px;height:auto;display:block}
+.top h1{font:700 1.5rem var(--serif);color:#fff;margin:0}
 .top p{margin:4px 0 0;color:#c3cae6;font-size:calc(.9rem*var(--sec))}
 .main{padding:48px 20px 64px;display:flex;flex-direction:column;gap:56px}
 section{display:flex;flex-direction:column;gap:28px}
-h2{font:700 clamp(1.7rem,3vw,2.2rem) var(--serif);margin:0;color:var(--navy)}
+h2{font:700 1.25rem var(--serif);margin:0;color:var(--navy)}
 .lbl{font-size:calc(.72rem*var(--sec));letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
 .group{display:flex;flex-direction:column;gap:14px}
 .row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end}
 button,input,select{font:inherit}
-.chip{padding:12px 26px;border:1px solid var(--navy);background:var(--card);color:var(--navy);cursor:pointer;border-radius:3px}
+.chip{padding:10px 20px;border:1px solid var(--navy);background:var(--card);color:var(--navy);cursor:pointer;border-radius:3px}
 .chip[aria-pressed=true]{background:var(--navy);color:#fff}
 input,select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:12px 14px;min-width:0}
 input[type=text]{flex:1 1 360px}
 label.f{display:flex;flex-direction:column;gap:6px;font-size:calc(.78rem*var(--sec));color:var(--mute)}
-.chk{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:calc(.85rem*var(--sec))}.chk input{width:22px;height:22px;padding:0}
-.go{background:var(--navy);color:#fff;border:0;border-radius:3px;padding:14px 36px;font-weight:600;cursor:pointer}
+.chk{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:calc(.85rem*var(--sec))}.chk input{width:16px;height:16px;padding:0}
+.go{background:var(--navy);color:#fff;border:0;border-radius:3px;padding:12px 28px;font-weight:600;cursor:pointer}
 .go:hover:not(:disabled){background:var(--navy2)}.go:disabled{opacity:.6;cursor:default}
 .ghost{background:var(--card);color:var(--navy);border:1px solid var(--navy);border-radius:3px;padding:11px 24px;cursor:pointer;text-decoration:none;display:inline-block;font-weight:500}
 .ghost:hover{background:var(--navy);color:#fff}
@@ -36,17 +36,17 @@ label.f{display:flex;flex-direction:column;gap:6px;font-size:calc(.78rem*var(--s
 .bar{height:4px;background:var(--line)}.bar i{display:block;height:100%;width:0;background:var(--navy);transition:width .3s}
 .prog{color:var(--mute);font-size:calc(.9rem*var(--sec));min-height:1.5em}
 details{border:1px solid var(--line);background:var(--card);padding:20px 26px}summary{cursor:pointer;font-weight:600;color:var(--navy)}summary span{font-weight:400;color:var(--mute)}
-.assume{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px;margin-top:24px}.assume input{width:100%}
-.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px 28px;margin-top:24px}
+.assume{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:20px;margin-top:20px}.assume input{width:100%}
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px 24px;margin-top:20px}
 .src b{display:block;font-weight:500}.src span{font-size:calc(.82rem*var(--sec));color:var(--mute)}.src.ok span{color:var(--pos)}.src.bad span{color:var(--neg)}
-.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
 .snap div{background:var(--card);padding:20px 24px}
-.snap .a{color:var(--mute);font-size:calc(.8rem*var(--sec))}.snap .n{font:700 1.8rem var(--serif);color:var(--navy)}.snap .m{color:var(--mute);font-size:calc(.82rem*var(--sec))}
+.snap .a{color:var(--mute);font-size:calc(.8rem*var(--sec))}.snap .n{font:700 1.4rem var(--serif);color:var(--navy)}.snap .m{color:var(--mute);font-size:calc(.82rem*var(--sec))}
 .list{background:var(--card);border:1px solid var(--line);padding:0 28px}
 .head,.item{display:grid;grid-template-columns:minmax(0,2.2fr) 1fr 1fr 1fr;gap:16px 32px}
 .head{padding:20px 0 12px;border-bottom:2px solid var(--navy)}
-.item{padding:32px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}
-.item h3{font:600 1.6rem/1.3 var(--serif);margin:0 0 6px;color:var(--navy)}.item h3 a{color:inherit;text-decoration:none}.item h3 a:hover{text-decoration:underline}
+.item{padding:24px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}
+.item h3{font:600 1.05rem/1.35 var(--serif);margin:0 0 6px;color:var(--navy)}.item h3 a{color:inherit;text-decoration:none}.item h3 a:hover{text-decoration:underline}
 .meta{color:var(--mute);font-size:calc(.88rem*var(--sec))}
 .b{display:inline-block;font-size:calc(.72rem*var(--sec));font-weight:600;letter-spacing:.04em;padding:3px 12px;border:1px solid var(--navy);color:var(--navy);margin:14px 10px 0 0;border-radius:2px}
 .b.q{border-color:var(--line);color:var(--mute);font-weight:500}
@@ -55,7 +55,7 @@ details{border:1px solid var(--line);background:var(--card);padding:20px 26px}su
 .acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:20px;align-items:center}.acts select{padding:9px 12px}
 .empty{padding:48px 0;color:var(--mute)}
 footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;border-top:1px solid var(--line);padding-top:24px;color:var(--mute);font-size:calc(.88rem*var(--sec))}
-@media(max-width:900px){.head{display:none}.item{grid-template-columns:1fr 1fr}.item>div:first-child{grid-column:1/-1}.list{padding:0 18px}}
+@media(max-width:760px){.head{display:none}.item{grid-template-columns:1fr 1fr}.item>div:first-child{grid-column:1/-1}.list{padding:0 18px}}
 </style></head><body>
 <div class="top"><div class="in"><img src="/static/logo.png" alt="MRA Real Estate"><div><h1>Property Finder</h1><p>Properties for sale in Dhaka, ranked by projected return.</p></div></div></div>
 <div class="main">
