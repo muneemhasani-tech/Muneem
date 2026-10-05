@@ -33,7 +33,7 @@ def test_url_building():
     b = scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "sale", "apartment")
     assert b == "https://bikroy.com/en/ads/dhaka/property?query=gulshan+apartment+sale"
     assert scrape.build_url(scrape.SOURCES["bikroy"], "gulshan", "rent", "apartment") is None
-    assert len(scrape.SOURCES) >= 19
+    assert len(scrape.SOURCES) >= 15
 
 
 def test_store_dedupe_and_price_drop(tmp_path):
@@ -74,6 +74,13 @@ def test_robots_gate(monkeypatch):
     assert scrape.may_fetch("https://a.bd/search?q=x") == (False, "disallowed by robots.txt")
     assert scrape.may_fetch("https://a.bd/flats/gulshan")[0] is True
     assert scrape.crawl_delay("https://a.bd/x") == 3.0
+    scrape._ROBOTS.clear()
+    txt = "User-agent: *\nAllow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n"
+    monkeypatch.setenv("CLAUDECODE", "1")
+    assert scrape.may_fetch("https://a.bd/flats")[0] is False  # an AI agent at the wheel obeys AI-bot bans
+    monkeypatch.delenv("CLAUDECODE")
+    scrape._ROBOTS.clear()
+    assert scrape.may_fetch("https://a.bd/flats")[0] is True   # the user's own runs follow the * rules
     scrape._ROBOTS.clear()
     monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (0, ""))
     assert scrape.may_fetch("https://b.bd/x")[0] is False  # unknown robots.txt means no crawl

@@ -31,11 +31,20 @@ def parse_price(text: str) -> float | None:
     return None
 
 
+PPSF = re.compile(r"per\s*(?:sft|sqft|sq\.?\s*ft)[^\d]{0,12}([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*(?:tk|bdt|taka|৳)?\s*(?:/|per)\s*(?:sft|sqft|sq\.?\s*ft)", re.I)
+
+
 def facts(text: str) -> dict:
     size, beds, baths = SIZE.search(text), BEDS.search(text), BATHS.search(text)
     low = text.lower()
+    price = parse_price(text)
+    pp = PPSF.search(text)
+    if pp and size:  # "15,000 per sqft" with a known size: the total is what matters
+        rate = float((pp.group(1) or pp.group(2)).replace(",", ""))
+        if 1000 <= rate <= 100000 and (price is None or price == rate):
+            price = rate * float(size.group(1).replace(",", ""))
     return {
-        "price": parse_price(text),
+        "price": price,
         "size_sqft": float(size.group(1).replace(",", "")) if size else None,
         "beds": int(beds.group(1)) if beds else None,
         "baths": int(baths.group(1)) if baths else None,
@@ -226,11 +235,42 @@ def _ptype(words: str) -> str:
     return ""
 
 
+def _strip(s: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", s or "")).strip()
+
+
+def detail_html(html: str, url: str) -> dict | None:
+    """Plain HTML listing page: read the heading and the text right after it (not the sidebars or footer)."""
+    body = re.sub(r"<!--.*?-->", " ", html, flags=re.S)
+    body = re.sub(r"<(script|style|nav|header|footer|aside|noscript)\b.*?</\1>", " ", body, flags=re.S | re.I)
+    if re.search(r"\boops\b|page not found|ad (?:is )?(?:not available|expired|removed)", _strip(body)[:3000], re.I):
+        return None  # deleted or expired ad
+    h1 = re.search(r"<h1[^>]*>(.*?)</h1>", body, re.S)
+    og = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', html)
+    title = _strip(h1.group(1)) if h1 and _strip(h1.group(1)) else (og.group(1) if og else "")
+    slug = re.sub(r"[-_]+", " ", url.rstrip("/").rsplit("/", 1)[-1])
+    if not h1 and len(slug) > 15:  # sites without a heading usually have a descriptive URL
+        title = slug.strip().capitalize()
+    if not title:
+        return None
+    window = body[h1.end():h1.end() + 30000] if h1 else body
+    text = _strip(window)[:5000]
+    f = facts(title + " " + text)
+    tel = re.search(r'href=["\']tel:([^"\']+)', window)
+    head = (title + " " + url).lower()
+    purpose = "rent" if re.search(r"\brent\b|to-let|to let|sublet", head) else "sale" if re.search(r"sale|sell|buy", head + text[:400].lower()) else ""
+    katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha)", title + " " + text[:1500], re.I)
+    size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
+    return {"title": title[:200], "url": url, "price": f["price"], "purpose": purpose, "ptype": _ptype(title) or _ptype(text[:300]) or "apartment",
+            "size_sqft": size, "beds": f["beds"], "baths": f["baths"], "phone": clean_phone(tel.group(1)) if tel else f["phone"],
+            "poster": "", "is_owner": f["is_owner"], "image": "", "tags": title + " " + text[:600]}
+
+
 def detail_record(html: str, url: str) -> dict | None:
     """One listing from its detail page: title, price, purpose, type, size, beds, baths, poster, phone, tags."""
     recs = [r for r in records(html) if isinstance(r.get("price"), (int, float, str))]
     if not recs:
-        return None
+        return detail_html(html, url)
     slug = url.rstrip("/").rsplit("/", 1)[-1]
     mine = [r for r in recs if r.get("slug") == slug] or recs
     rec = max(mine, key=lambda r: (isinstance(r.get("detail"), dict), len(r)))  # prefer the copy with details inline
@@ -271,3 +311,27 @@ def detail_record(html: str, url: str) -> dict | None:
         "phone": phone, "poster": str(rec.get("userName") or rec.get("agentName") or "")[:80],
         "is_owner": f["is_owner"], "image": "", "tags": text,
     }
+
+
+def extract_cards(html: str, base_url: str, detail: str) -> list[dict]:
+    """Listing cards where the link and the details sit in different elements: each card is the
+    stretch of HTML from one listing link to the next different listing link."""
+    links = [(m.start(), urljoin(base_url, m.group(1))) for m in re.finditer(r'href="([^"]+)"', html)
+             if re.search(detail, m.group(1))]
+    starts, seen = [], set()
+    for pos, url in links:
+        if url not in seen:
+            seen.add(url)
+            starts.append((pos, url))
+    out = []
+    for i, (pos, url) in enumerate(starts):
+        end = starts[i + 1][0] if i + 1 < len(starts) else pos + 6000
+        chunk = html[max(0, html.rfind("<", 0, pos)):min(end, pos + 6000)]
+        title_m = re.search(r'title="([^"]{8,200})"', chunk) or re.search(r"<h[1-6][^>]*>(.*?)</h[1-6]>", chunk, re.S)
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", chunk)).strip()
+        title = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", title_m.group(1))).strip() if title_m else text[:120]
+        f = facts(text)
+        img = re.search(r'<img[^>]+src="([^"]+)"', chunk)
+        f.update(title=title[:200], url=url, image=urljoin(base_url, img.group(1)) if img else "", text=text[:1500])
+        out.append(f)
+    return out

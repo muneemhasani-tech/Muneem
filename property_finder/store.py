@@ -44,6 +44,8 @@ def dup_key(r: dict) -> str:
 def upsert(con: sqlite3.Connection, r: dict) -> bool:
     """Returns True if the listing is new."""
     now = time.time()
+    if r.get("price"):
+        r["price"] = float(round(r["price"]))
     lid = hashlib.sha1((r["source"] + "|" + r["url"].split("?")[0]).encode()).hexdigest()[:16]
     old = con.execute("SELECT price FROM listings WHERE id=?", (lid,)).fetchone()
     dk = dup_key(r)

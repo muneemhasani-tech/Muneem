@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import time
@@ -35,6 +36,7 @@ def fetch(url: str, timeout: int = 20) -> tuple[int, str]:
         return 0, ""
 
 
+AI_AGENTS = ("ClaudeBot", "Claude-User", "anthropic-ai")  # honoured too whenever an AI agent is driving the tool
 _ROBOTS: dict[str, tuple[str, urllib.robotparser.RobotFileParser | None]] = {}
 _RLOCK = threading.Lock()
 
@@ -70,7 +72,11 @@ def may_fetch(url: str) -> tuple[bool, str]:
     if state == "none":
         return True, "no robots.txt (allowed)"
     if state == "ok":
-        return (True, "allowed by robots.txt") if rp.can_fetch(UA, url) else (False, "disallowed by robots.txt")
+        if not rp.can_fetch(UA, url):
+            return False, "disallowed by robots.txt"
+        if os.environ.get("CLAUDECODE") and not all(rp.can_fetch(a, url) for a in AI_AGENTS):
+            return False, "robots.txt bans AI crawlers (run it on your own computer)"
+        return True, "allowed by robots.txt"
     return False, {"unreachable": "robots.txt unreachable", "blocked": "site refuses robots.txt", "error": "robots.txt server error"}[state]
 
 
@@ -110,9 +116,16 @@ def link_outs(areas: list[str], purpose: str, ptype: str, q: str = "") -> list[d
     return out
 
 
-def _area_in(text: str, fallback: str) -> str:
-    for slug, label in AREAS.items():
-        if re.search(rf"\b{slug}\b", text, re.I):
+AREA_RX = {"gulshan": r"gulshan|গুলশান", "banani": r"banani|বনানী", "purbachal": r"purbachal|পূর্বাচল",
+           "uttara": r"uttara|uttra|uttora|উত্তরা", "dhanmondi": r"dhanmondi|dhanmandi|ধানমন্ডি|ধানমণ্ডি",
+           "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা"}
+
+
+def _area_in(text: str, fallback: str | None) -> str | None:
+    """The area a listing is in, read from the listing itself. Falls back only when the URL already proved it."""
+    low = (text or "").lower()
+    for slug, rx in AREA_RX.items():
+        if re.search(rx, low):
             return slug
     return fallback
 
@@ -140,7 +153,9 @@ def search_source(src: dict, area: str, purpose: str, ptype: str, q: str, detail
     con = store.connect()
     fetched = 0
     for r in rows:
-        r.update(source=src["id"], purpose=purpose, ptype=ptype, area=_area_in(r["title"], area))
+        r.update(source=src["id"], purpose=purpose, ptype=ptype, area=_area_in(r["title"] + " " + r.get("text", ""), None))
+        if not r["area"]:
+            continue  # outside MRA's six areas
         if purpose == "rent":  # benchmark only: feeds the ROI projection, never shown
             store.add_rent(con, r)
             res["new"] += 1
@@ -226,6 +241,57 @@ def search_sitemap(src: dict, area: str, details: int) -> dict:
     return res
 
 
+RENT_WORDS = re.compile(r"\b(?:for rent|to-let|to let|rent)\b|sublet|bachelor", re.I)
+
+
+def search_list(src: dict, details: int) -> dict:
+    """Walk a site's own listing pages (newest first), keep only cards in MRA's areas."""
+    res = {"source": src["id"], "url": src["list"][0], "status": 200, "found": 0, "new": 0, "error": ""}
+    con = store.connect()
+    for tmpl in src["list"]:
+        purpose_hint = "rent" if "/rent" in tmpl.lower() else "sale"
+        prev: set[str] = set()
+        for page in range(1, int(src.get("max_pages", 5)) + 1):
+            url = tmpl.format(page=page)
+            ok, why = may_fetch(url)
+            if not ok:
+                res["error"] = "skipped: " + why
+                break
+            time.sleep(max(1.5, crawl_delay(url)))
+            st, html = fetch(url)
+            if st != 200:
+                res.update(status=st, error=block_reason(st, html))
+                break
+            cards = parse.extract_cards(html, url, src["detail"]) if src.get("detail") else parse.extract(html, url)
+            urls = {c["url"] for c in cards}
+            if not urls or urls <= prev:
+                break  # ran out of pages
+            prev = urls
+            for c in cards:
+                text = c["title"] + " " + c.get("text", "")
+                area = _area_in(text, None)
+                if not area:
+                    continue
+                purpose = "rent" if RENT_WORDS.search(c["title"]) else purpose_hint
+                c.update(source=src["id"], area=area, purpose=purpose, ptype=parse._ptype(c["title"]) or "apartment")
+                res["found"] += 1
+                if details and purpose == "sale" and not c.get("phone") and may_fetch(c["url"])[0]:
+                    details -= 1
+                    time.sleep(max(1.5, crawl_delay(c["url"])))
+                    st2, page = fetch(c["url"])
+                    if st2 == 200:
+                        c.update({k: v for k, v in parse.detail_contact(page).items() if v})
+                if purpose == "rent":
+                    store.add_rent(con, c)
+                else:
+                    res["new"] += store.upsert(con, c)
+            con.commit()
+    con.close()
+    if not res["found"] and not res["error"]:
+        res["error"] = "no listings in MRA's areas on the pages checked"
+    return res
+
+
 class Job:
     def __init__(self):
         self.lock, self.state = threading.Lock(), {"running": False, "done": 0, "total": 0, "results": [], "links": []}
@@ -237,10 +303,12 @@ class Job:
                 return False
             live = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "scrape"]
             maps = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "sitemap"]
+            lists = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "list"]
             tasks = [(s, a, "sale", t) for s in live for a in areas for t in ptypes if "sale" in s.get("purposes", {"sale": 1})]
             if benchmark and not q:
                 tasks += [(s, a, "rent", "apartment") for s in live for a in areas if "rent" in s.get("purposes", {})]
             tasks += [(s, a, "sitemap", "") for s in maps for a in areas]
+            tasks += [(s, "", "list", "") for s in lists]
             self.state = {"running": True, "done": 0, "total": len(tasks), "results": [],
                           "links": link_outs(areas, "sale", ptypes[0] if ptypes else "apartment", q)}
         threading.Thread(target=self._run, args=(tasks, q, details), daemon=True).start()
@@ -254,7 +322,8 @@ class Job:
         def one(t):
             src, a, p, ty = t
             with by_src[src["id"]]:  # one request at a time per site, with a pause
-                r = search_sitemap(src, a, details) if p == "sitemap" else search_source(src, a, p, ty, q, details)
+                r = (search_sitemap(src, a, details) if p == "sitemap" else search_list(src, details) if p == "list"
+                     else search_source(src, a, p, ty, q, details))
                 time.sleep(1.5)
             with self.lock:
                 self.state["results"].append({**r, "area": a, "purpose": p, "ptype": ty, "benchmark": p == "rent"})
@@ -270,6 +339,17 @@ class Job:
             return json.loads(json.dumps(self.state))
 
 
+class _null_store:
+    """Probe runs must not write test results into the real lead database."""
+    def __enter__(self):
+        import tempfile
+        self._old = store.connect.__defaults__
+        store.connect.__defaults__ = (Path(tempfile.mkdtemp()) / "probe.db",)
+
+    def __exit__(self, *a):
+        store.connect.__defaults__ = self._old
+
+
 def probe() -> list[dict]:
     """Test all sources. Verdict per site: CRAWLABLE, BLOCKED (robots.txt), BLOCKED (anti-bot), DEAD, NO LISTINGS FOUND, LINK-OUT."""
     out = []
@@ -279,9 +359,18 @@ def probe() -> list[dict]:
             row.update(verdict="LINK-OUT (never crawled; you open it yourself)")
             out.append(row)
             continue
+        if s["mode"] == "list":
+            one = dict(s, max_pages=1)
+            with _null_store():
+                r = search_list(one, 0)
+            row.update(robots="checked per page", status=r["status"], listings=r["found"],
+                       verdict=f"CRAWLABLE via listing pages ({r['found']} in our areas on page 1)" if r["found"] else "BLOCKED/DEAD: " + r["error"])
+            out.append(row)
+            continue
         if s["mode"] == "sitemap":
             ok, why = may_fetch(s["sitemap"])
             row["robots"] = why
+            s = dict(s)
             locs, err = sitemap_urls(s) if ok else ([], why)
             hits = [u for u, _ in locs if any(a in u.lower() for a in AREAS)]
             row["status"] = 200 if locs else 0

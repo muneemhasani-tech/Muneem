@@ -59,100 +59,61 @@
    "id": "bdhousing",
    "name": "bdHousing",
    "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://www.bdhousing.com/homes/listings/Sale/Residential/Apartment?q={area}",
-   "purposes": {
-    "sale": "sale"
-   }
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "/details/\\d+/",
+   "max_pages": 6,
+   "list": [
+    "https://www.bdhousing.com/list/Sale/Residential/Apartment?page={page}",
+    "https://www.bdhousing.com/list/Sale/Residential/duplex-home?page={page}",
+    "https://www.bdhousing.com/list/Sale/Residential/independent-house?page={page}",
+    "https://www.bdhousing.com/list/Sale/Land/residential-plot?page={page}",
+    "https://www.bdhousing.com/list/Rent/Residential/Apartment?page={page}"
+   ]
   },
   {
    "id": "aabason",
    "name": "Aabason",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://aabason.com/property?q={area}",
-   "purposes": {
-    "sale": "sale"
-   }
+   "kind": "classifieds",
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "/property/\\d+$",
+   "max_pages": 6,
+   "list": [
+    "https://aabason.com/property/for-sale?page={page}"
+   ]
   },
   {
    "id": "homefairbd",
    "name": "Homefair BD",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://www.homefairbd.com/listing?q={area}",
-   "purposes": {
-    "sale": "sale"
-   }
+   "kind": "classifieds",
+   "mode": "list",
+   "confidence": "verified",
+   "detail": "homefairbd\\.com/ad/",
+   "max_pages": 6,
+   "list": [
+    "https://www.homefairbd.com/listing?page={page}"
+   ]
   },
   {
    "id": "propertyfinderbd",
    "name": "Property Finder BD",
    "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://propertyfinderbd.com/?s={area}",
-   "purposes": {
-    "sale": "sale"
-   }
-  },
-  {
-   "id": "pbazaar",
-   "name": "PBazaar",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://www.pbazaar.com/?s={area}",
-   "purposes": {
-    "sale": "sale"
-   }
-  },
-  {
-   "id": "flatbazar",
-   "name": "Flatbazar",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://flatbazar.com/?s={area}",
-   "purposes": {
-    "sale": "sale"
-   }
-  },
-  {
-   "id": "realestatebd",
-   "name": "RealEstate.com.bd",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://realestate.com.bd/?s={area}",
-   "purposes": {
-    "sale": "sale"
-   }
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://propertyfinderbd.com/sitemap.xml",
+   "match": "propertyfinderbd.com/",
+   "per_run": 25
   },
   {
    "id": "concordcps",
    "name": "Concord Property Solutions",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://concordcps.com/en/city/apartments-for-sale-in-{area}/",
-   "purposes": {
-    "sale": "sale"
-   }
-  },
-  {
-   "id": "swadesh",
-   "name": "Swadesh Properties",
-   "kind": "portal",
-   "mode": "scrape",
-   "confidence": "untested",
-   "url": "https://www.swadeshproperties.com/?s={area}",
-   "purposes": {
-    "sale": "sale"
-   }
+   "kind": "developer",
+   "mode": "sitemap",
+   "confidence": "verified",
+   "sitemap": "https://concordcps.com/en/property-sitemap.xml",
+   "match": "/en/property/",
+   "per_run": 25
   },
   {
    "id": "facebook",
