@@ -54,6 +54,9 @@ def test_web_roundtrip(tmp_path, monkeypatch):
     base = f"http://127.0.0.1:{srv.server_port}"
     assert json.load(urllib.request.urlopen(base + "/api/config"))["areas"]["bashundhara"]
     assert json.load(urllib.request.urlopen(base + "/api/listings"))["rows"] == []
+    assert b"/static/logo.png" in urllib.request.urlopen(base + "/").read()
+    assert urllib.request.urlopen(base + "/static/logo.png").read()[:4] == b"\x89PNG"
+    assert json.load(urllib.request.urlopen(base + "/api/assumptions"))["growth_pct"] == 6
     assert urllib.request.urlopen(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
     srv.shutdown()
 
@@ -86,3 +89,28 @@ def test_probe_blocked_robots(monkeypatch):
     rows = scrape.probe()
     assert len(rows) == 20
     assert all(r["verdict"].startswith(("BLOCKED", "LINK-OUT")) for r in rows)
+
+
+def test_roi_math_and_rent_hidden(tmp_path):
+    from property_finder import roi
+    con = store.connect(tmp_path / "r.db")
+    store.upsert(con, dict(source="a", url="https://a/1", title="Flat", purpose="sale", ptype="apartment", area="gulshan",
+                           price=32_000_000, size_sqft=1850, beds=3))
+    store.upsert(con, dict(source="a", url="https://a/2", title="Plot", purpose="sale", ptype="land", area="purbachal",
+                           price=14_500_000, size_sqft=3600))
+    store.upsert(con, dict(source="a", url="https://a/9", title="Rent flat", purpose="rent", ptype="apartment", area="gulshan",
+                           price=90000, size_sqft=1800))  # a rent ad must never appear as a listing
+    con.commit()
+    rows = {r["title"]: r for r in store.query(con)}
+    assert "Rent flat" not in rows and len(rows) == 2
+    f = rows["Flat"]                      # 1850 sqft x 55 = 101,750 a month
+    assert f["rent_est"] == 101750 and f["gross"] == round(101750 * 12 / 32e6 * 100, 2)
+    assert f["net"] < f["gross"] and f["total"] > f["net"] * 5 - 1
+    assert rows["Plot"]["rent_est"] is None and rows["Plot"]["total"] == round((1.06 ** 5 - 1) * 100, 1)
+    assert store.query(con, min_roi=999) == []
+    for i in range(5):                    # enough rent ads: measured benchmark replaces the placeholder
+        store.add_rent(con, dict(url=f"https://a/r{i}", source="a", area="gulshan", price=2000 * 100, size_sqft=2000))
+    assert roi.benchmarks(con)["gulshan"][0] == 100
+    assert {r["title"]: r for r in store.query(con)}["Flat"]["rent_est"] == 185000
+    roi.save(con, {"growth_pct": 10})
+    assert roi.load(con)["growth_pct"] == 10

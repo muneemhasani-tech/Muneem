@@ -99,7 +99,7 @@ def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> st
                              type=(types or {}).get(ptype, ptype), q=quote_plus(q))
 
 
-def link_outs(areas: list[str], purpose: str, ptype: str, q: str = "") -> list[dict]:
+def link_outs(areas: list[str], purpose: str, ptype: str, q: str = "") -> list[dict]:  # sale searches only
     """Search links for sites we can't or shouldn't scrape (Facebook, Google, developer sites)."""
     out = []
     for s in SOURCES.values():
@@ -141,6 +141,10 @@ def search_source(src: dict, area: str, purpose: str, ptype: str, q: str, detail
     fetched = 0
     for r in rows:
         r.update(source=src["id"], purpose=purpose, ptype=ptype, area=_area_in(r["title"], area))
+        if purpose == "rent":  # benchmark only: feeds the ROI projection, never shown
+            store.add_rent(con, r)
+            res["new"] += 1
+            continue
         if details and not r.get("phone") and fetched < details:
             if not may_fetch(r["url"])[0]:
                 continue
@@ -159,14 +163,17 @@ class Job:
     def __init__(self):
         self.lock, self.state = threading.Lock(), {"running": False, "done": 0, "total": 0, "results": [], "links": []}
 
-    def start(self, areas, purposes, ptypes, sources, q="", details=0) -> bool:
+    def start(self, areas, ptypes, sources, q="", details=0, benchmark=True) -> bool:
+        """Sale searches for the chosen types, plus (optionally) apartment rent pages used only to measure rent per sqft."""
         with self.lock:
             if self.state["running"]:
                 return False
-            tasks = [(SOURCES[s], a, p, t) for s in sources if s in SOURCES and SOURCES[s]["mode"] == "scrape"
-                     for a in areas for p in purposes for t in ptypes]
+            live = [SOURCES[s] for s in sources if s in SOURCES and SOURCES[s]["mode"] == "scrape"]
+            tasks = [(s, a, "sale", t) for s in live for a in areas for t in ptypes if "sale" in s.get("purposes", {"sale": 1})]
+            if benchmark and not q:
+                tasks += [(s, a, "rent", "apartment") for s in live for a in areas if "rent" in s.get("purposes", {})]
             self.state = {"running": True, "done": 0, "total": len(tasks), "results": [],
-                          "links": link_outs(areas, purposes[0] if purposes else "sale", ptypes[0] if ptypes else "apartment", q)}
+                          "links": link_outs(areas, "sale", ptypes[0] if ptypes else "apartment", q)}
         threading.Thread(target=self._run, args=(tasks, q, details), daemon=True).start()
         return True
 
@@ -181,7 +188,7 @@ class Job:
                 r = search_source(src, a, p, ty, q, details)
                 time.sleep(1.5)
             with self.lock:
-                self.state["results"].append({**r, "area": a, "purpose": p, "ptype": ty})
+                self.state["results"].append({**r, "area": a, "purpose": p, "ptype": ty, "benchmark": p == "rent"})
                 self.state["done"] += 1
 
         with ThreadPoolExecutor(max_workers=8) as ex:

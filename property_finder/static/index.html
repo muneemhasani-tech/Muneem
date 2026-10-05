@@ -1,90 +1,130 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Property Finder</title>
+<title>MRA Property Finder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap">
 <style>
-:root{--bg:#f5f6f8;--card:#fff;--ink:#16202c;--mute:#5d6b7b;--line:#dfe4ea;--brand:#0b6b57;--bi:#fff;--warn:#c98a06;--bad:#c8372d;--ok:#0f8a5f}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1419;--card:#182029;--ink:#e8edf2;--mute:#98a6b5;--line:#2a3542;--brand:#2fb392;--bi:#06251d}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
-.wrap{max-width:1200px;margin:0 auto;padding:16px}h1{font-size:1.4rem;margin:0 0 4px}.sub{color:var(--mute);margin:0 0 14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-button,.btn{font:inherit;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
-.pri{background:var(--brand);color:var(--bi);border-color:var(--brand);font-weight:600}
-.chip{padding:5px 12px;border-radius:99px}.chip.on{background:var(--brand);color:var(--bi);border-color:var(--brand)}
-table{width:100%;border-collapse:collapse}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-th{font-size:.8rem;color:var(--mute);text-transform:uppercase}.tbl{overflow-x:auto}
-.tag{font-size:.75rem;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--mute)}
-.own{color:var(--ok);border-color:var(--ok)}.drop{color:var(--bad);border-color:var(--bad)}.multi{color:var(--warn);border-color:var(--warn)}
-.mute{color:var(--mute)}.err{color:var(--bad)}a{color:var(--brand)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
-</style></head><body><div class="wrap">
-<h1>Property Finder</h1><p class="sub">Search Bangladeshi property sites in one place. Runs on this computer only.</p>
-
-<div class="card">
- <div class="row" id="areas"></div>
- <div class="row" style="margin-top:10px">
-  <input id="q" placeholder="Any keyword (e.g. 'duplex', 'lake view') — optional" size="34">
-  <select id="purpose"><option value="">Sale + Rent</option><option>sale</option><option>rent</option></select>
-  <select id="ptype"></select>
-  <label class="mute"><input type="checkbox" id="det"> fetch phone numbers from listing pages (slower)</label>
-  <button class="pri" id="go">Search all sites</button>
- </div>
- <div id="prog" class="mute" style="margin-top:8px"></div>
+/* Layout: navy header band with the logo, then a plain white working area. Gold appears once: a thin rule under the header.
+   --sec scales all secondary (sans) text. 1 = original size, 2 = double. */
+:root{--sec:2;--navy:#0b163e;--navy2:#1b2a63;--ink:#101a3a;--mute:#4d5878;--line:#d5d9e6;--bg:#f6f7fa;--card:#fff;--gold:#c8922a;--pos:#176a47;--neg:#a3281f;
+--serif:'Source Serif 4',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:calc(.94rem*var(--sec))/1.45 var(--sans)}
+.top{background:var(--navy);border-bottom:3px solid var(--gold);padding:24px 20px}
+.top .in,.main{max-width:1320px;margin:0 auto}
+.top .in{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.top img{width:130px;height:auto;display:block}
+.top h1{font:700 clamp(2rem,4vw,2.8rem) var(--serif);color:#fff;margin:0}
+.top p{margin:4px 0 0;color:#c3cae6;font-size:calc(.9rem*var(--sec))}
+.main{padding:48px 20px 64px;display:flex;flex-direction:column;gap:56px}
+section{display:flex;flex-direction:column;gap:28px}
+h2{font:700 clamp(1.7rem,3vw,2.2rem) var(--serif);margin:0;color:var(--navy)}
+.lbl{font-size:calc(.72rem*var(--sec));letter-spacing:.1em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.group{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end}
+button,input,select{font:inherit}
+.chip{padding:12px 26px;border:1px solid var(--navy);background:var(--card);color:var(--navy);cursor:pointer;border-radius:3px}
+.chip[aria-pressed=true]{background:var(--navy);color:#fff}
+input,select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:12px 14px;min-width:0}
+input[type=text]{flex:1 1 360px}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:calc(.78rem*var(--sec));color:var(--mute)}
+.chk{display:flex;gap:10px;align-items:center;color:var(--mute);font-size:calc(.85rem*var(--sec))}.chk input{width:22px;height:22px;padding:0}
+.go{background:var(--navy);color:#fff;border:0;border-radius:3px;padding:14px 36px;font-weight:600;cursor:pointer}
+.go:hover:not(:disabled){background:var(--navy2)}.go:disabled{opacity:.6;cursor:default}
+.ghost{background:var(--card);color:var(--navy);border:1px solid var(--navy);border-radius:3px;padding:11px 24px;cursor:pointer;text-decoration:none;display:inline-block;font-weight:500}
+.ghost:hover{background:var(--navy);color:#fff}
+:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
+.bar{height:4px;background:var(--line)}.bar i{display:block;height:100%;width:0;background:var(--navy);transition:width .3s}
+.prog{color:var(--mute);font-size:calc(.9rem*var(--sec));min-height:1.5em}
+details{border:1px solid var(--line);background:var(--card);padding:20px 26px}summary{cursor:pointer;font-weight:600;color:var(--navy)}summary span{font-weight:400;color:var(--mute)}
+.assume{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px;margin-top:24px}.assume input{width:100%}
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px 28px;margin-top:24px}
+.src b{display:block;font-weight:500}.src span{font-size:calc(.82rem*var(--sec));color:var(--mute)}.src.ok span{color:var(--pos)}.src.bad span{color:var(--neg)}
+.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.snap div{background:var(--card);padding:20px 24px}
+.snap .a{color:var(--mute);font-size:calc(.8rem*var(--sec))}.snap .n{font:700 1.8rem var(--serif);color:var(--navy)}.snap .m{color:var(--mute);font-size:calc(.82rem*var(--sec))}
+.list{background:var(--card);border:1px solid var(--line);padding:0 28px}
+.head,.item{display:grid;grid-template-columns:minmax(0,2.2fr) 1fr 1fr 1fr;gap:16px 32px}
+.head{padding:20px 0 12px;border-bottom:2px solid var(--navy)}
+.item{padding:32px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}
+.item h3{font:600 1.6rem/1.3 var(--serif);margin:0 0 6px;color:var(--navy)}.item h3 a{color:inherit;text-decoration:none}.item h3 a:hover{text-decoration:underline}
+.meta{color:var(--mute);font-size:calc(.88rem*var(--sec))}
+.b{display:inline-block;font-size:calc(.72rem*var(--sec));font-weight:600;letter-spacing:.04em;padding:3px 12px;border:1px solid var(--navy);color:var(--navy);margin:14px 10px 0 0;border-radius:2px}
+.b.q{border-color:var(--line);color:var(--mute);font-weight:500}
+.num{font:600 calc(1.15rem*var(--sec)) var(--sans);font-variant-numeric:tabular-nums}.num small{display:block;font-weight:400;font-size:calc(.8rem*var(--sec));color:var(--mute)}
+.num.roi{color:var(--pos)}
+.acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:20px;align-items:center}.acts select{padding:9px 12px}
+.empty{padding:48px 0;color:var(--mute)}
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;border-top:1px solid var(--line);padding-top:24px;color:var(--mute);font-size:calc(.88rem*var(--sec))}
+@media(max-width:900px){.head{display:none}.item{grid-template-columns:1fr 1fr}.item>div:first-child{grid-column:1/-1}.list{padding:0 18px}}
+</style></head><body>
+<div class="top"><div class="in"><img src="/static/logo.png" alt="MRA Real Estate"><div><h1>Property Finder</h1><p>Properties for sale in Dhaka, ranked by projected return.</p></div></div></div>
+<div class="main">
+ <section aria-labelledby="s1"><h2 id="s1">Search</h2>
+  <div class="group"><span class="lbl">Areas</span><div class="row" id="areas"></div></div>
+  <div class="row">
+   <label class="f">Property type<select id="ptype"><option value="">All types</option><option value="apartment">Apartment</option><option value="house">House</option><option value="land">Land</option></select></label>
+   <label class="f">Budget up to<select id="fmax"><option value="">Any budget</option><option value="10000000">৳1 Cr</option><option value="30000000">৳3 Cr</option><option value="60000000">৳6 Cr</option><option value="100000000">৳10 Cr</option></select></label>
+   <label class="f">Minimum 5-year return<select id="fmin"><option value="">Any</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option></select></label>
+   <label class="f">Poster<select id="fown"><option value="">Owners and agents</option><option value="1">Owners only</option></select></label>
+  </div>
+  <div class="row"><input type="text" id="q" placeholder="Add a keyword, such as duplex or lake view" aria-label="Keyword"><button class="go" id="go">Search all sites</button></div>
+  <label class="chk"><input type="checkbox" id="det"> Also fetch phone numbers from listing pages (slower)</label>
+  <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+  <div class="prog" id="prog" role="status">Ready when you are.</div>
+  <details><summary>Return assumptions <span>(rent per sqft is measured from rent ads when there are enough, otherwise these figures are used)</span></summary>
+   <div class="assume" id="assume"></div><div class="row" style="margin-top:24px"><button class="ghost" id="saveA">Save assumptions</button><span class="prog" id="aMsg"></span></div></details>
+  <details><summary>Source health <span>(sites checked each search)</span></summary><div class="srcs" id="srcs"></div><div class="row" id="links" style="margin-top:24px"></div></details>
+ </section>
+ <section aria-labelledby="s2"><h2 id="s2">Market snapshot</h2><div class="snap" id="snap"></div></section>
+ <section aria-labelledby="s3"><h2 id="s3">Properties for sale</h2>
+  <div class="row"><select id="fsort" aria-label="Sort"><option value="roi">Highest 5-year return</option><option value="yield">Highest rental yield</option><option value="cheap">Lowest price</option><option value="drop">Biggest price drop</option><option value="new">Newest</option></select>
+   <select id="farea" aria-label="Area"></select><select id="fstatus" aria-label="Lead status"></select>
+   <input type="text" id="fq" placeholder="Filter by text" style="flex:0 1 260px" aria-label="Filter">
+   <a class="ghost" id="csv" href="#" style="margin-left:auto">Export to CSV</a></div>
+  <div class="list"><div class="head lbl"><span>Property</span><span>Price</span><span>Rental yield</span><span>5-year return</span></div><div id="rows"></div></div>
+  <div class="prog" id="count"></div></section>
+ <footer><span>+880 1619-669879</span><span>MRA Real Estate</span><span>mrarealestatebd.com</span></footer>
 </div>
-
-<div class="card"><b>Sources</b> <span class="mute">(scraped sites show health after a search; the rest are one-click searches)</span>
- <div class="grid" id="srcs" style="margin-top:8px"></div><div id="links" style="margin-top:8px"></div></div>
-
-<div class="card">
- <div class="row">
-  <select id="farea"></select><select id="fstatus"></select>
-  <input id="fmin" placeholder="Min ৳" size="9"><input id="fmax" placeholder="Max ৳" size="9">
-  <label><input type="checkbox" id="fown"> Owners only</label>
-  <select id="fsort"><option value="new">Newest</option><option value="cheap">Cheapest</option><option value="dear">Priciest</option><option value="drop">Biggest price drop</option></select>
-  <input id="fq" placeholder="Filter text" size="14">
-  <a class="btn" id="csv" href="#">Export CSV</a>
- </div>
- <div id="stats" class="mute" style="margin:10px 0"></div>
- <div class="tbl"><table><thead><tr><th>Property</th><th>Area</th><th>Price</th><th>Size</th><th>Contact</th><th>Lead</th></tr></thead><tbody id="rows"></tbody></table></div>
- <p class="mute" id="count"></p>
-</div></div>
 <script>
-const $=id=>document.getElementById(id);let cfg,sel=new Set();
+const $=id=>document.getElementById(id);let cfg,sel=new Set(),AS;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const bdt=n=>n==null?'—':n>=1e7?(n/1e7).toFixed(2)+' Cr':n>=1e5?(n/1e5).toFixed(1)+' Lakh':Math.round(n).toLocaleString();
-async function j(u,o){return (await fetch(u,o)).json()}
-async function init(){cfg=await j('/api/config');
- $('areas').innerHTML='<span class="mute">Areas:</span>';
- for(const[k,v]of Object.entries(cfg.areas)){sel.add(k);const b=document.createElement('button');b.className='chip on';b.textContent=v;b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);b.classList.toggle('on')};$('areas').append(b)}
- $('ptype').innerHTML=cfg.ptypes.map(p=>`<option>${p}</option>`).join('');
+const bdt=n=>n==null?'':n>=1e7?(n/1e7).toFixed(2)+' Cr':n>=1e5?(n/1e5).toFixed(1)+' Lakh':Math.round(n).toLocaleString('en-US');
+const j=async(u,o)=>(await fetch(u,o)).json();
+async function init(){cfg=await j('/api/config');AS=await j('/api/assumptions');
+ for(const[k,v]of Object.entries(cfg.areas)){sel.add(k);const b=document.createElement('button');b.className='chip';b.textContent=v.replace(' R/A','');b.setAttribute('aria-pressed','true');b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);b.setAttribute('aria-pressed',sel.has(k))};$('areas').append(b)}
  $('farea').innerHTML='<option value="">All areas</option>'+Object.entries(cfg.areas).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
- $('fstatus').innerHTML='<option value="">Any status</option>'+cfg.statuses.map(s=>`<option>${s}</option>`).join('');
- $('srcs').innerHTML=cfg.sources.map(s=>`<div id="s_${s.id}"><b>${esc(s.name)}</b> <span class="tag">${s.mode==='scrape'?'auto':'link-out'}</span><div class="mute" id="h_${s.id}">${s.mode==='scrape'?'not run yet':''}</div></div>`).join('');
- for(const id of['farea','fstatus','fmin','fmax','fown','fsort','fq'])$(id).onchange=load;$('fq').oninput=load;
- load()}
-$('go').onclick=async()=>{const body={areas:[...sel],purposes:$('purpose').value?[$('purpose').value]:['sale','rent'],ptypes:[$('ptype').value],q:$('q').value.trim(),details:$('det').checked?15:0};
- const r=await fetch('/api/search',{method:'POST',body:JSON.stringify(body)});if(r.status==409)alert('A search is already running');poll()};
-async function poll(){const s=await j('/api/job');$('prog').textContent=s.total?`Searching… ${s.done}/${s.total} pages${s.running?'':' — done'}`:'';
- const by={};for(const r of s.results){(by[r.source]??=[]).push(r)}
- for(const[id,rs]of Object.entries(by)){const f=rs.reduce((a,r)=>a+r.found,0),n=rs.reduce((a,r)=>a+r.new,0),e=rs.find(r=>r.error&&!r.found);
-  const h=$('h_'+id);if(h)h.innerHTML=e?`<span class="err">${esc(e.error)}</span>`:`${f} found, ${n} new`}
- $('links').innerHTML=s.links.length?'<span class="mute">Also search manually: </span>'+s.links.slice(0,60).map(l=>`<a class="btn" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.name.split(' (')[0])} · ${esc(cfg.areas[l.area]||l.area)}</a>`).join(' '):'';
- load();if(s.running)setTimeout(poll,2000)}
-function qs(){const p=new URLSearchParams();const m={area:'farea',status:'fstatus',min:'fmin',max:'fmax',sort:'fsort',q:'fq'};
- for(const[k,id]of Object.entries(m))if($(id).value)p.set(k,$(id).value);if($('fown').checked)p.set('owner','1');if($('purpose').value)p.set('purpose',$('purpose').value);if($('ptype').value)p.set('ptype',$('ptype').value);return p}
+ $('fstatus').innerHTML='<option value="">Any lead status</option>'+cfg.statuses.filter(s=>s!=='ignore').map(s=>`<option>${s}</option>`).join('');
+ $('assume').innerHTML=Object.keys(cfg.areas).map(k=>`<label class="f">${cfg.areas[k]} rent, ৳ per sqft a month<input type="number" data-r="${k}" value="${AS.rent_psf[k]??''}"></label>`).join('')
+  +`<label class="f">Empty months a year<input type="number" data-k="vacancy_months" value="${AS.vacancy_months}"></label><label class="f">Running costs, % of rent<input type="number" data-k="cost_pct" value="${AS.cost_pct}"></label><label class="f">Price growth a year, %<input type="number" data-k="growth_pct" value="${AS.growth_pct}"></label>`;
+ $('srcs').innerHTML=cfg.sources.filter(s=>s.mode==='scrape').map(s=>`<div class="src" id="s_${s.id}"><b>${esc(s.name)}</b><span>Not checked yet</span></div>`).join('');
+ for(const id of['ptype','fmax','fmin','fown','fsort','farea','fstatus'])$(id).onchange=load;$('fq').oninput=load;load()}
+$('saveA').onclick=async()=>{const b={rent_psf:{}};document.querySelectorAll('[data-r]').forEach(e=>b.rent_psf[e.dataset.r]=e.value);document.querySelectorAll('[data-k]').forEach(e=>b[e.dataset.k]=e.value);
+ AS=await j('/api/assumptions',{method:'POST',body:JSON.stringify(b)});$('aMsg').textContent='Saved. Returns recalculated.';load()};
+$('go').onclick=async()=>{const t=$('ptype').value;const r=await fetch('/api/search',{method:'POST',body:JSON.stringify({areas:[...sel],ptypes:t?[t]:[],q:$('q').value.trim(),details:$('det').checked?15:0})});
+ if(r.status===409){$('prog').textContent='A search is already running.';return}$('go').disabled=true;poll()};
+async function poll(){const s=await j('/api/job');$('fill').style.width=(s.total?Math.round(s.done/s.total*100):0)+'%';
+ $('prog').textContent=s.total?`Searching… ${s.done} of ${s.total} pages${s.running?'':'. Finished.'}`:'';
+ const by={};for(const r of s.results)(by[r.source]??=[]).push(r);
+ for(const[id,rs]of Object.entries(by)){const f=rs.reduce((a,r)=>a+r.found,0),n=rs.filter(r=>!r.benchmark).reduce((a,r)=>a+r.new,0),e=rs.find(r=>r.error&&!r.found),h=$('s_'+id);
+  if(h){h.className='src '+(e?'bad':'ok');h.querySelector('span').textContent=e?e.error:`${f} found, ${n} new for sale`}}
+ $('links').innerHTML=s.links.length?'<span class="lbl" style="width:100%">Search by hand</span>'+[...new Map(s.links.map(l=>[l.source,l])).values()].map(l=>`<a class="ghost" target="_blank" rel="noopener" href="${esc(l.url)}">${esc(l.name.split(' (')[0])}</a>`).join(''):'';
+ load();if(s.running)setTimeout(poll,2000);else $('go').disabled=false}
+function qs(){const p=new URLSearchParams(),m={area:'farea',status:'fstatus',max:'fmax',minroi:'fmin',sort:'fsort',q:'fq',ptype:'ptype'};
+ for(const[k,id]of Object.entries(m))if($(id).value)p.set(k,$(id).value);if($('fown').value)p.set('owner','1');return p}
 async function load(){const p=qs();$('csv').href='/api/export.csv?'+p;const d=await j('/api/listings?'+p);
- $('stats').innerHTML=d.stats.map(s=>`<span style="margin-right:14px"><b>${esc(cfg.areas[s.area]||s.area)}</b> ${s.purpose}: ${s.n} listings, avg ৳${bdt(s.avg_price)}${s.avg_ppsf?`, ৳${s.avg_ppsf.toLocaleString()}/sqft`:''}</span>`).join('');
- $('count').textContent=d.rows.length+' listings shown';
- $('rows').innerHTML=d.rows.map(r=>`<tr><td><a target="_blank" rel="noopener" href="${esc(r.url)}">${esc(r.title.slice(0,90))}</a><br>
-  <span class="tag">${esc(r.source)}</span> <span class="tag">${r.purpose}</span> ${r.is_owner===1?'<span class="tag own">owner</span>':''}${r.dropped?'<span class="tag drop">price drop</span>':''}${r.sites>1?`<span class="tag multi">on ${r.sites} sites</span>`:''}</td>
-  <td>${esc(cfg.areas[r.area]||r.area)}</td><td>৳${bdt(r.price)}${r.ppsf?`<br><span class="mute">${r.ppsf.toLocaleString()}/sqft</span>`:''}</td>
-  <td>${r.size_sqft?r.size_sqft+' sqft':''}${r.beds?`<br>${r.beds} bed`:''}${r.baths?` ${r.baths} bath`:''}</td>
-  <td>${esc(r.poster)}${r.phone?`<br><a href="tel:${r.phone}">${r.phone}</a> · <a target="_blank" rel="noopener" href="https://wa.me/88${r.phone}">WhatsApp</a>`:'<br><span class="mute">open listing</span>'}</td>
-  <td><select data-id="${r.id}" class="st">${cfg.statuses.map(s=>`<option${s===r.status?' selected':''}>${s}</option>`).join('')}</select><br>
-  <input data-id="${r.id}" class="nt" placeholder="note" value="${esc(r.notes)}" size="14"></td></tr>`).join('');
+ $('snap').innerHTML=d.stats.map(s=>`<div><div class="a">${esc(cfg.areas[s.area]||s.area)}</div><div class="n">${s.avg_ppsf?'৳'+s.avg_ppsf.toLocaleString('en-US')+' / sqft':'No prices yet'}</div><div class="m">${s.n} for sale${s.avg_yield?` · average yield ${s.avg_yield}% (${s.rent_basis} rent)`:''}</div></div>`).join('')||'<div><div class="m">Run a search to fill this in.</div></div>';
+ $('count').textContent=d.rows.length?`Showing ${d.rows.length} properties. Projections are estimates, not guarantees.`:'';
+ $('rows').innerHTML=d.rows.length?d.rows.map(r=>`<article class="item"><div><h3><a target="_blank" rel="noopener" href="${esc(r.url)}">${esc(r.title.slice(0,100))}</a></h3>
+  <div class="meta">${esc(cfg.areas[r.area]||r.area)}${r.size_sqft?` · ${r.size_sqft.toLocaleString('en-US')} sqft`:''}${r.beds?` · ${r.beds} bed`:''}${r.baths?` · ${r.baths} bath`:''} · via ${esc(r.source)}</div>
+  <div>${r.is_owner===1?'<span class="b">OWNER</span>':''}${r.dropped?'<span class="b">PRICE DROPPED</span>':''}${r.sites>1?`<span class="b q">On ${r.sites} sites</span>`:''}</div></div>
+  <div class="num">৳${bdt(r.price)}<small>${r.ppsf?'৳'+r.ppsf.toLocaleString('en-US')+' per sqft':''}${r.dropped?` · was ৳${bdt(r.price_prev)}`:''}</small></div>
+  <div class="num">${r.gross?r.gross.toFixed(1)+'%':'None'}<small>${r.rent_est?`about ৳${bdt(r.rent_est)} a month projected (${r.rent_basis})`:r.growth_only?'Land earns no rent':'Size needed to project'}</small></div>
+  <div class="num roi">${r.total!=null?r.total.toFixed(0)+'%':'-'}<small>${r.net?`${r.net}% net yield + growth`:'Growth only'}</small></div>
+  <div class="acts">${r.phone?`<span>${esc(r.poster)} ${esc(r.phone)}</span><a class="ghost" target="_blank" rel="noopener" href="https://wa.me/88${r.phone.replace(/\D/g,'').replace(/^88/,'')}">WhatsApp</a>`:'<span class="meta">Open the listing to see the contact number</span>'}
+  <select data-id="${r.id}" class="st" aria-label="Lead status">${cfg.statuses.map(s=>`<option${s===r.status?' selected':''}>${s}</option>`).join('')}</select>
+  <input data-id="${r.id}" class="nt" placeholder="Add a note" value="${esc(r.notes)}" aria-label="Note"></div></article>`).join(''):'<div class="empty">No properties yet. Choose areas and press Search all sites.</div>';
  document.querySelectorAll('.st').forEach(e=>e.onchange=()=>save(e.dataset.id,{status:e.value}));
  document.querySelectorAll('.nt').forEach(e=>e.onchange=()=>save(e.dataset.id,{notes:e.value}))}
-function save(id,b){fetch('/api/lead',{method:'POST',body:JSON.stringify({id,...b})})}
+const save=(id,b)=>fetch('/api/lead',{method:'POST',body:JSON.stringify({id,...b})});
 init();
 </script></body></html>

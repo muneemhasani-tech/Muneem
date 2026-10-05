@@ -136,17 +136,19 @@ HTTP is mocked with `respx`; no test touches the network.
 
 # Property Finder (dashboard)
 
-One local dashboard that searches ~20 Bangladeshi property sources for **Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A**, dedupes the results, and keeps them as a lead list. Standard library only, no extra install.
+One local dashboard that finds **properties for sale** across ~20 Bangladeshi sources for **Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A**, ranks them by projected return, and keeps them as a lead list. Standard library only, no install.
 
 ```bash
 python3 -m property_finder            # opens http://127.0.0.1:8770
 python3 -m property_finder probe      # tests all 20 sources: robots.txt verdict, reachability, anti-bot walls, listings recognised
 ```
 
-- **Auto sources** (Bikroy, Bproperty, Lamudi, BDHouse24, ToLet, Bdstall, Flatbazar, Bhumi, Basha Lagbe, Property.com.bd, RealEstate.com.bd, BanglaProperty, DhakaProperty): fetched and parsed. Health shows per site after each search.
-- **Link-out sources** (Facebook Marketplace/groups, Google whole-web, Bashundhara, Rangs, Navana, Shanta/Concord/Assure): one-click searches, because they need a login or render in JS.
-- Dashboard: filters (area, price, owner-only, status), "on N sites" duplicate flag, price-drop flag, price/sqft per area, lead status + notes, WhatsApp links, **Export CSV** (columns match `lead-verifier run`, so leads can go straight into the verifier).
-- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code).
+- **Sale only.** Rent ads are never listed or exported. Apartment rent pages are crawled in the background only to measure rent per sqft per area (needs 5+ ads per area), which feeds the ROI projection. Until then the editable placeholder rents under *Return assumptions* are used.
+- **ROI on every listing:** rental yield (gross and net), and total return over 5 years = net rental income + price growth. Land shows growth only. Assumptions (rent per sqft by area, empty months, running costs %, growth %) are saved in the local database.
+- **Auto sources:** Bikroy, Bproperty, Lamudi, BDHouse24, ToLet, Bdstall, Flatbazar, Bhumi, Basha Lagbe, Property.com.bd, RealEstate.com.bd, BanglaProperty, DhakaProperty. **Link-out sources** (Facebook Marketplace/groups, Google, Bashundhara, Rangs, Navana, Shanta/Concord/Assure) open a ready-made search; they are never crawled.
+- **Lead tools:** duplicate flag ("on N sites"), owner-only filter, price-drop flag, price per sqft by area, lead status and notes, WhatsApp links, **Export CSV** (columns match `lead-verifier run`, plus yield and return columns).
+- **Crawling manners:** identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips what it forbids (or any site whose robots.txt it cannot read), honours `Crawl-delay`, waits ~1.5 s between requests per site, never tries to get around a block. Robots.txt is not a site's terms of service, so check those too.
+- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code). Text size: change `--sec` at the top of `static/index.html` (2 = double, 1 = original).
 - Data lives in `data/property/listings.db` (git-ignored; contains phone numbers).
 
-**Important:** the URL patterns and parsers could not be tested against the live sites when this was built (the build sandbox blocks them). Run `probe` first; sites showing `HTTP 404`/`listings recognised: 0` need their `url` template adjusted in `sources.json`. The scraper identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips any URL it forbids (or any site whose robots.txt it cannot read), honours `Crawl-delay`, and waits ~1.5 s between requests per site. It never tries to get around a block. Robots.txt is not the same as a site's terms of service, so check those too.
+**Not yet verified against live sites** (the build sandbox blocks them): run `probe` first. Sites showing `BLOCKED`, `DEAD` or `NO LISTINGS RECOGNISED` need their URL or parser adjusted.

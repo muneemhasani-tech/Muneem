@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS listings(
   id TEXT PRIMARY KEY, dup_key TEXT, source TEXT, url TEXT, title TEXT, purpose TEXT, ptype TEXT, area TEXT,
   price REAL, price_prev REAL, size_sqft REAL, beds INT, baths INT, phone TEXT, poster TEXT, is_owner INT,
   image TEXT, first_seen REAL, last_seen REAL, status TEXT DEFAULT 'new', notes TEXT DEFAULT '');
+CREATE TABLE IF NOT EXISTS rent_obs(url TEXT PRIMARY KEY, source TEXT, area TEXT, rent REAL, size_sqft REAL, seen REAL);
+CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 CREATE INDEX IF NOT EXISTS ix_area ON listings(area, purpose);
 CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 """
@@ -58,30 +60,42 @@ def upsert(con: sqlite3.Connection, r: dict) -> bool:
     return False
 
 
-def query(con, area="", purpose="", ptype="", q="", min_price=None, max_price=None, owner_only=False,
-          status="", sort="new", limit=500) -> list[dict]:
-    w, a = ["1=1"], []
-    for col, v in (("area", area), ("purpose", purpose), ("ptype", ptype), ("status", status)):
+def add_rent(con, r: dict) -> None:
+    """Rent ads are stored only as price-per-sqft evidence for ROI. They are never listed or exported."""
+    if r.get("price") and r.get("size_sqft"):
+        con.execute("INSERT OR REPLACE INTO rent_obs(url,source,area,rent,size_sqft,seen) VALUES(?,?,?,?,?,?)",
+                    (r["url"].split("?")[0], r["source"], r.get("area"), r["price"], r["size_sqft"], time.time()))
+
+
+def query(con, area="", ptype="", q="", max_price=None, min_roi=None, owner_only=False,
+          status="", sort="roi", limit=500) -> list[dict]:
+    from . import roi
+    w, a = ["purpose='sale'"], []
+    for col, v in (("area", area), ("ptype", ptype), ("status", status)):
         if v:
             w.append(f"{col}=?")
             a.append(v)
     if q:
         w.append("(title LIKE ? OR poster LIKE ?)")
         a += [f"%{q}%"] * 2
-    if min_price:
-        w.append("price>=?"); a.append(min_price)
     if max_price:
         w.append("price<=?"); a.append(max_price)
     if owner_only:
         w.append("is_owner=1")
-    order = {"new": "first_seen DESC", "cheap": "price ASC", "dear": "price DESC", "drop": "(price_prev-price) DESC"}.get(sort, "first_seen DESC")
-    rows = [dict(r) for r in con.execute(f"SELECT * FROM listings WHERE {' AND '.join(w)} ORDER BY {order} LIMIT ?", a + [limit])]
+    rows = [dict(r) for r in con.execute(f"SELECT * FROM listings WHERE {' AND '.join(w)} LIMIT 5000", a)]
     counts = {r[0]: r[1] for r in con.execute("SELECT dup_key, COUNT(DISTINCT source) FROM listings WHERE dup_key!='' GROUP BY dup_key")}
+    assume, bench = roi.load(con), roi.benchmarks(con)
     for r in rows:
+        r.update(roi.project(r, assume, bench))
         r["sites"] = counts.get(r["dup_key"], 1)
-        r["ppsf"] = round(r["price"] / r["size_sqft"]) if r["price"] and r["size_sqft"] and r["purpose"] == "sale" else None
+        r["ppsf"] = round(r["price"] / r["size_sqft"]) if r["price"] and r["size_sqft"] else None
         r["dropped"] = bool(r["price_prev"] and r["price"] and r["price"] < r["price_prev"])
-    return rows
+    if min_roi:
+        rows = [r for r in rows if (r["total"] or 0) >= min_roi]
+    key = {"roi": lambda r: -(r["total"] or -1), "yield": lambda r: -(r["gross"] or -1), "cheap": lambda r: r["price"] or 1e18,
+           "drop": lambda r: -((r["price_prev"] or 0) - (r["price"] or 0)), "new": lambda r: -r["first_seen"]}.get(sort, lambda r: -(r["total"] or -1))
+    rows.sort(key=key)
+    return rows[:limit]
 
 
 def set_lead(con, lid: str, status: str | None, notes: str | None) -> None:
@@ -93,8 +107,19 @@ def set_lead(con, lid: str, status: str | None, notes: str | None) -> None:
 
 
 def stats(con) -> list[dict]:
-    """Median-ish market view: avg price per sqft (sale) and avg monthly rent, per area."""
-    return [dict(r) for r in con.execute(
-        "SELECT area, purpose, COUNT(*) n, ROUND(AVG(price)) avg_price,"
-        " ROUND(AVG(CASE WHEN purpose='sale' AND size_sqft>0 THEN price/size_sqft END)) avg_ppsf,"
-        " SUM(is_owner=1) owners FROM listings WHERE price>0 GROUP BY area, purpose ORDER BY area")]
+    """Per area, sale only: listings, average price per sqft and average gross yield."""
+    from . import roi
+    assume, bench = roi.load(con), roi.benchmarks(con)
+    by: dict[str, list[dict]] = {}
+    for r in con.execute("SELECT * FROM listings WHERE purpose='sale' AND price>0"):
+        r = dict(r)
+        r.update(roi.project(r, assume, bench))
+        by.setdefault(r["area"], []).append(r)
+    out = []
+    for area, rs in sorted(by.items()):
+        pp = [r["price"] / r["size_sqft"] for r in rs if r["size_sqft"]]
+        gy = [r["gross"] for r in rs if r["gross"]]
+        out.append({"area": area, "n": len(rs), "avg_ppsf": round(sum(pp) / len(pp)) if pp else None,
+                    "avg_yield": round(sum(gy) / len(gy), 1) if gy else None, "owners": sum(1 for r in rs if r["is_owner"] == 1),
+                    "rent_basis": f"measured ({bench[area][1]} ads)" if area in bench else "assumed"})
+    return out
