@@ -194,3 +194,16 @@ def test_web_hit_filters():
     page = {"title": "Diorama in Gulshan", "snippet": "Project", "url": "https://rangsproperties.com/projects/Diorama"}
     assert w.to_listing(page, dev, "q", "gulshan")  # no "for sale" needed for a developer
     assert w.to_listing({**page, "url": "https://rangsproperties.com/about-us"}, dev, "q", "gulshan") is None
+
+
+def test_absurd_values_are_kept_and_flagged(tmp_path):
+    con = store.connect(tmp_path / "f.db")
+    r = {"source": "s", "url": "https://x/1", "title": "t", "purpose": "sale", "ptype": "apartment", "area": "gulshan",
+         "price": 1250.0, "size_sqft": 2.0}
+    assert store.upsert(con, r)
+    row = con.execute("SELECT price, size_sqft, data_flags FROM listings").fetchone()
+    assert row["price"] == 1250 and row["size_sqft"] == 2  # shown as found
+    assert "price 1,250 BDT looks absurd" in row["data_flags"] and "size 2 sqft looks absurd" in row["data_flags"]
+    r2 = dict(r, url="https://x/2", price=None, size_sqft=None)
+    store.upsert(con, r2)
+    assert "price missing" in con.execute("SELECT data_flags FROM listings WHERE url='https://x/2'").fetchone()[0]

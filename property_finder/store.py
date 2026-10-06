@@ -30,10 +30,31 @@ def connect(path: Path | str = DB) -> sqlite3.Connection:
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
     have = {r[1] for r in con.execute("PRAGMA table_info(listings)")}
-    for col in ("snippet", "found_via", "evidence"):  # added later; older databases get them on open
+    for col in ("snippet", "found_via", "evidence", "data_flags"):  # added later; older databases get them on open
         if col not in have:
             con.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT DEFAULT ''")
     return con
+
+
+def data_flags(r: dict) -> str:
+    """Odd or missing details to clear with the seller. Listings are never dropped for these:
+    sellers often hide the real price or size so that interested buyers have to call."""
+    f, price, size = [], r.get("price"), r.get("size_sqft")
+    if not price:
+        f.append("price missing - ask seller")
+    elif price < 500_000:
+        f.append(f"price {price:,.0f} BDT looks absurd - clear with seller")
+    elif price > 5_000_000_000:
+        f.append(f"price {price:,.0f} BDT looks absurd - clear with seller")
+    if not size:
+        f.append("size missing - ask seller")
+    else:
+        lo, hi = (200, 20000) if (r.get("ptype") or "apartment") in ("apartment", "house") else (360, 400000)
+        if not lo <= size <= hi:
+            f.append(f"size {size:,.0f} sqft looks absurd - clear with seller")
+    if price and size and 200 <= size and price / size < 1000:
+        f.append(f"price per sqft {price / size:,.0f} BDT is implausibly low - clear with seller")
+    return "; ".join(f)
 
 
 def dup_key(r: dict) -> str:
@@ -57,15 +78,15 @@ def upsert(con: sqlite3.Connection, r: dict) -> bool:
     if old is None:
         con.execute(
             "INSERT INTO listings(id,dup_key,source,url,title,purpose,ptype,area,price,size_sqft,beds,baths,phone,poster,is_owner,image,"
-            "first_seen,last_seen,snippet,found_via,evidence) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "first_seen,last_seen,snippet,found_via,evidence,data_flags) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (lid, dk, r["source"], r["url"], r["title"], r.get("purpose"), r.get("ptype"), r.get("area"), r.get("price"),
              r.get("size_sqft"), r.get("beds"), r.get("baths"), r.get("phone", ""), r.get("poster", ""), r.get("is_owner"),
-             r.get("image", ""), now, now, r.get("snippet", ""), r.get("found_via", ""), r.get("evidence", "listing page")))
+             r.get("image", ""), now, now, r.get("snippet", ""), r.get("found_via", ""), r.get("evidence", "listing page"), data_flags(r)))
         return True
     prev = old["price"] if r.get("price") and old["price"] and r["price"] != old["price"] else None
-    con.execute("UPDATE listings SET last_seen=?, dup_key=?, price=COALESCE(?,price), price_prev=COALESCE(?,price_prev),"
+    con.execute("UPDATE listings SET data_flags=?, last_seen=?, dup_key=?, price=COALESCE(?,price), price_prev=COALESCE(?,price_prev),"
                 " phone=CASE WHEN ?!='' THEN ? ELSE phone END, poster=CASE WHEN ?!='' THEN ? ELSE poster END WHERE id=?",
-                (now, dk, r.get("price"), prev, r.get("phone", ""), r.get("phone", ""), r.get("poster", ""), r.get("poster", ""), lid))
+                (data_flags(r), now, dk, r.get("price"), prev, r.get("phone", ""), r.get("phone", ""), r.get("poster", ""), r.get("poster", ""), lid))
     return False
 
 

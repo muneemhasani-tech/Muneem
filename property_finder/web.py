@@ -22,12 +22,12 @@ def to_csv(rows: list[dict]) -> str:
     """Column names match lead-verifier's input, so exports go straight into `lead-verifier run`."""
     buf = io.StringIO()
     wr = csv.writer(buf, lineterminator="\n")
-    wr.writerow(CSV_COLS + ["Area", "Type", "Price", "SizeSqft", "Beds", "Owner", "GrossYieldPct", "NetYieldPct", "TotalReturnPct", "Status", "Evidence", "FoundVia", "Snippet"])
+    wr.writerow(CSV_COLS + ["Area", "Type", "Price", "SizeSqft", "Beds", "Owner", "GrossYieldPct", "NetYieldPct", "TotalReturnPct", "Status", "Evidence", "FoundVia", "Snippet", "DataFlags"])
     for r in rows:
         note = f"{r['title'][:90]} | {r['status']} | {r['notes']}".strip(" |")
         wr.writerow([r["poster"], r["phone"], "", r["url"], r["source"], note, r["area"], r["ptype"], r["price"], r["size_sqft"],
                      r["beds"], {1: "owner", 0: "agent"}.get(r["is_owner"], ""), r["gross"], r["net"], r["total"], r["status"],
-                     r.get("evidence") or "listing page", r.get("found_via") or "", r.get("snippet") or ""])
+                     r.get("evidence") or "listing page", r.get("found_via") or "", r.get("snippet") or "", r.get("data_flags") or ""])
     return buf.getvalue()
 
 

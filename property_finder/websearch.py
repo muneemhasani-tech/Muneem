@@ -104,7 +104,8 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
         return None
     text = f"{hit['title']} {hit['snippet']}"
     path = urllib.parse.urlparse(hit["url"]).path.lower()
-    if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)):
+    if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)
+                or re.search(r"^(projects?|residential|commercial)\b.*\b(projects?|masterpieces)\b|full of quality", hit["title"], re.I)):
         return None  # a company page, not a project
     dev = spec["id"].startswith("dev_")  # developers sell by definition; their pages seldom say "for sale"
     if (not dev and not SALE.search(text)) or WANTED.search(text):
@@ -117,12 +118,10 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     f = parse.facts(text)
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
     ptype = parse._ptype(text) or "apartment"
+    if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):
+        ptype = "commercial" if re.search(r"commercial|office", hit["title"] + hit["url"], re.I) else "apartment"
     size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
-    lo, hi = (200, 20000) if ptype == "apartment" else (360, 400000)
-    if size and not lo <= size <= hi:
-        size = None  # a stray number from the snippet, not a size
-    if f["price"] and f["price"] < 500_000:
-        f["price"] = None  # BDT price under 5 lakh is a mis-read (rent, a floor number, a phone digit)
+    # No value is dropped for looking odd: sellers hide details on purpose. store.data_flags marks them to clear.
     return {**f, "title": re.sub(r"\s*[|\-–]\s*Facebook\s*$", "", hit["title"])[:200], "url": hit["url"],
             "source": spec["id"], "area": area, "purpose": "rent" if RENT.search(hit["title"]) else "sale",
             "ptype": ptype, "image": "", "size_sqft": size,
