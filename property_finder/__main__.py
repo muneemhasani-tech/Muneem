@@ -1,4 +1,5 @@
-"""python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL"""
+"""python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
+   | reset-password EMAIL | build-html OUT.html"""
 import getpass
 import sys
 
@@ -47,6 +48,32 @@ elif cmd in ("approve", "revoke"):
     con, u = need(args[1] if len(args) > 1 else "")
     auth.set_status(con, u["id"], "approved" if cmd == "approve" else "revoked", "cli")
     print(f"{u['email']}: {'approved' if cmd == 'approve' else 'revoked, sessions ended'}.")
+elif cmd == "reset-password":
+    con, u = need(args[1] if len(args) > 1 else "")
+    pw = getpass.getpass(f"New password for {u['email']} (10+ characters): ")
+    if pw != getpass.getpass("Repeat password: "):
+        sys.exit("Passwords do not match.")
+    try:
+        auth.set_password(con, u["email"], pw)
+    except auth.AuthError as e:
+        sys.exit(str(e))
+    print(f"Password changed for {u['email']}. Their old sessions and any lockout are cleared.")
+elif cmd == "build-html":
+    from pathlib import Path
+
+    from . import vault
+    out = Path(args[1] if len(args) > 1 else "index.html")
+    email = input("Admin email: ").strip()
+    name = input("Admin name: ").strip()
+    pw = getpass.getpass("Admin password (12+ characters): ")
+    if pw != getpass.getpass("Repeat password: "):
+        sys.exit("Passwords do not match.")
+    try:
+        info = vault.build(store.connect(), out, email, name, pw)
+    except ValueError as e:
+        sys.exit(str(e))
+    print(f"Wrote {out} with {info['listings']} listings ({info['bytes'] // 1024} KB). Upload it to your hosting as index.html.\n"
+          "Forgot the admin password? Run this command again: it makes a new file with a new admin password. Members must be re-added.")
 else:
     port = int(args[1]) if len(args) > 1 else 8770
     con = store.connect()

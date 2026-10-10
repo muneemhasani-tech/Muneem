@@ -98,3 +98,18 @@ def test_passwords_are_hashed(server):
     con = store.connect()
     row = con.execute("SELECT pw_hash FROM users WHERE email='boss@mra.test'").fetchone()
     assert "correct horse" not in row[0] and len(row[0]) == 64
+
+
+def test_reset_password_ends_sessions_and_lockout(server):
+    st, _, admin = sign_in(server, "boss@mra.test", "correct horse battery")
+    assert st == 200
+    for _ in range(5):
+        sign_in(server, "boss@mra.test", "wrong wrong wrong")
+    con = store.connect()
+    auth.set_password(con, "boss@mra.test", "a brand new passphrase")
+    con.close()
+    assert call(server, "GET", "/api/listings", cookie=admin)[0] == 401          # old session ended
+    assert sign_in(server, "boss@mra.test", "correct horse battery")[0] == 400   # old password dead
+    assert sign_in(server, "boss@mra.test", "a brand new passphrase")[0] == 200  # lockout cleared
+    with pytest.raises(auth.AuthError):
+        auth.set_password(store.connect(), "ghost@x.test", "a brand new passphrase")

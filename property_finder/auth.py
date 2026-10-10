@@ -136,3 +136,16 @@ def set_status(con, user_id: int, status: str, by: str) -> None:
 def find(con, email: str) -> dict | None:
     row = con.execute("SELECT * FROM users WHERE email=?", ((email or "").strip().lower(),)).fetchone()
     return public(row) if row else None
+
+
+def set_password(con, email: str, pw: str) -> None:
+    """Admin-side reset: new password, every old session ended, failed-attempt lockout cleared."""
+    row = con.execute("SELECT id FROM users WHERE email=?", ((email or "").strip().lower(),)).fetchone()
+    if not row:
+        raise AuthError("No account for that email.")
+    _check_pw(pw)
+    salt = secrets.token_bytes(16)
+    con.execute("UPDATE users SET pw_hash=?, salt=? WHERE id=?", (_hash(pw, salt), salt.hex(), row["id"]))
+    con.execute("DELETE FROM sessions WHERE user_id=?", (row["id"],))
+    con.execute("DELETE FROM attempts WHERE k=?", ("e:" + email.strip().lower(),))
+    con.commit()

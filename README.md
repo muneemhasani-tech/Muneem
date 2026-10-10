@@ -151,7 +151,13 @@ python -m property_finder revoke rina@x.com     # ends that person's sessions at
 
 People open the site and choose *Request access* (name, email, phone, how they know MRA, password). Nothing is visible to them until an admin approves, so call the phone number first. Members can browse listings, export CSV and update lead status and notes. Only admins can run searches, edit return assumptions, store the search API key, and approve or revoke people.
 
-To serve other people, run it on a machine they can reach and put it behind HTTPS (Caddy or nginx), then start it with `PF_SECURE_COOKIES=1` (and `PF_TRUST_PROXY=1` behind a proxy so attempt limits use the real address). Without HTTPS, passwords cross the network in clear text.
+Forgot a password? `python -m property_finder reset-password EMAIL` sets a new one, signs that person out everywhere and clears any lockout.
+
+### One-file version for cPanel
+
+`python -m property_finder build-html index.html` writes a single `index.html` you upload to ordinary hosting (needs `pip install cryptography` on the computer that builds it). It has no server, so protection comes from encryption: the listings, phone numbers and URLs are AES-256-GCM encrypted inside the file, and each member's email and password unlock their own copy of the key (PBKDF2, 600,000 rounds). The admin adds members, resets their passwords and removes them inside the page, then presses *Download updated file* and uploads it to replace the old one. Use https, and give every member a long password: anyone can download the file and guess passwords offline, so the passwords are the whole lock. Run the command again to start over if the admin password is lost (members must be re-added).
+
+To serve other people from the app instead, run it on a machine they can reach and put it behind HTTPS (Caddy or nginx), then start it with `PF_SECURE_COOKIES=1` (and `PF_TRUST_PROXY=1` behind a proxy so attempt limits use the real address). Without HTTPS, passwords cross the network in clear text.
 
 One local dashboard that finds **properties for sale** across ~20 Bangladeshi sources for **Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A**, ranks them by projected return, and keeps them as a lead list. Standard library only, no install.
 
