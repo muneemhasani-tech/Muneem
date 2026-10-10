@@ -1,3 +1,4 @@
+import pytest
 import json
 import threading
 import urllib.request
@@ -47,17 +48,28 @@ def test_store_dedupe_and_price_drop(tmp_path):
 
 
 def test_web_roundtrip(tmp_path, monkeypatch):
+    import http.cookiejar
+    from property_finder import auth
     monkeypatch.setattr(store, "DB", tmp_path / "w.db")
     monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "w.db",))
+    con = store.connect()
+    auth.create_user(con, "a@mra.test", "Admin", "long enough pw", role="admin", status="approved", by="test")
+    con.close()
     srv = web.serve(0, open_browser=False)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{srv.server_port}"
-    assert json.load(urllib.request.urlopen(base + "/api/config"))["areas"]["bashundhara"]
-    assert json.load(urllib.request.urlopen(base + "/api/listings"))["rows"] == []
-    assert b"/static/logo.png" in urllib.request.urlopen(base + "/").read()
+    with pytest.raises(urllib.error.HTTPError):  # signed out: no data
+        urllib.request.urlopen(base + "/api/config")
+    assert b"Request access" in urllib.request.urlopen(base + "/").read()
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    op.open(urllib.request.Request(base + "/api/auth/login", json.dumps({"email": "a@mra.test", "password": "long enough pw"}).encode(),
+                                   {"Content-Type": "application/json"}))
+    assert json.load(op.open(base + "/api/config"))["areas"]["bashundhara"]
+    assert json.load(op.open(base + "/api/listings"))["rows"] == []
+    assert b"/static/logo-navy.png" in op.open(base + "/").read()
     assert urllib.request.urlopen(base + "/static/logo.png").read()[:4] == b"\x89PNG"
-    assert json.load(urllib.request.urlopen(base + "/api/assumptions"))["growth_pct"] == 6
-    assert urllib.request.urlopen(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
+    assert json.load(op.open(base + "/api/assumptions"))["growth_pct"] == 6
+    assert op.open(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
     srv.shutdown()
 
 

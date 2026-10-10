@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MRA Property Finder: sign in</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap">
+<style>
+/* Layout: the website's white pill bar over a navy gradient, one sign-in card below it. */
+:root{--navy:#0b163e;--navy2:#1b2a63;--ink:#101a3a;--mute:#4d5878;--line:#d5d9e6;--bg:#f6f7fa;--card:#fff;--gold:#c8922a;--neg:#a3281f;--pos:#176a47;
+--serif:'Source Serif 4',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;--disp:'Outfit',var(--sans);color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:.97rem/1.55 var(--sans);min-height:100vh}
+.top{background:linear-gradient(180deg,#5d6577 0,#2a3350 38%,#0b163e 100%);border-bottom:3px solid var(--gold);padding:16px 16px 56px}
+.in{max-width:560px;margin:0 auto}
+.pill{background:#fff;border-radius:26px;padding:12px 24px;display:flex;align-items:center;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.pill img{height:56px;width:auto;display:block}
+h1{font:700 clamp(2rem,8vw,3rem)/1.1 var(--disp);color:#fff;text-align:center;margin:48px 0 14px;letter-spacing:-.02em;text-wrap:balance}
+.lede{color:#c9ced9;text-align:center;margin:0 auto;max-width:38ch}
+main{max-width:560px;margin:-28px auto 48px;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:0 8px 24px rgba(11,22,62,.1)}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tabs button{flex:1;padding:11px;border:1px solid var(--navy);background:var(--card);color:var(--navy);border-radius:6px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--navy);color:#fff}
+form{display:flex;flex-direction:column;gap:14px}
+label{display:flex;flex-direction:column;gap:5px;font-size:.82rem;color:var(--mute)}
+input,textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:12px 14px;min-width:0}
+button.go{background:var(--navy);color:#fff;border:0;border-radius:6px;padding:13px;font:inherit;font-weight:600;cursor:pointer}
+button.go:disabled{opacity:.6}
+:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.msg{min-height:1.4em;font-size:.9rem}.msg.bad{color:var(--neg)}.msg.ok{color:var(--pos)}
+.fine{color:var(--mute);font-size:.82rem;margin:0}
+[hidden]{display:none!important}
+</style></head><body>
+<div class="top"><div class="in">
+ <div class="pill"><img src="/static/logo-navy.png" alt="MRA Real Estate"></div>
+ <h1>Property Finder for MRA members</h1>
+ <p class="lede">Listings, owner phone numbers, sizes and prices across Dhaka. Open to MRA staff and people MRA has verified.</p>
+</div></div>
+<main><div class="card">
+ <div class="tabs" role="group" aria-label="Choose"><button id="tIn" aria-pressed="true">Sign in</button><button id="tReq" aria-pressed="false">Request access</button></div>
+ <form id="fIn"><label>Email<input id="iEmail" type="email" autocomplete="username" required></label>
+  <label>Password<input id="iPw" type="password" autocomplete="current-password" required></label>
+  <button class="go" id="bIn">Sign in</button><div class="msg" id="mIn" role="status"></div></form>
+ <form id="fReq" hidden><label>Full name<input id="rName" autocomplete="name" required></label>
+  <label>Email<input id="rEmail" type="email" autocomplete="email" required></label>
+  <label>Phone (MRA calls this number to verify you)<input id="rPhone" type="tel" autocomplete="tel" required></label>
+  <label>How do you know MRA?<textarea id="rNote" rows="2" placeholder="Staff, partner broker, client of..."></textarea></label>
+  <label>Choose a password (10+ characters)<input id="rPw" type="password" autocomplete="new-password" minlength="10" required></label>
+  <button class="go" id="bReq">Send request</button><div class="msg" id="mReq" role="status"></div>
+  <p class="fine">You can sign in once an MRA admin approves your request. No data is shown before that.</p></form>
+</div></main>
+<script>
+const $=id=>document.getElementById(id);
+const post=async(u,b)=>{const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});return{ok:r.ok,d:await r.json().catch(()=>({}))}};
+function tab(inn){$('fIn').hidden=!inn;$('fReq').hidden=inn;$('tIn').setAttribute('aria-pressed',inn);$('tReq').setAttribute('aria-pressed',!inn)}
+$('tIn').onclick=()=>tab(true);$('tReq').onclick=()=>tab(false);
+$('fIn').onsubmit=async e=>{e.preventDefault();$('bIn').disabled=true;$('mIn').className='msg';$('mIn').textContent='Signing in...';
+ const r=await post('/api/auth/login',{email:$('iEmail').value,password:$('iPw').value});$('bIn').disabled=false;
+ if(r.ok)location.reload();else{$('mIn').className='msg bad';$('mIn').textContent=r.d.error||'Could not sign in.'}};
+$('fReq').onsubmit=async e=>{e.preventDefault();$('bReq').disabled=true;
+ const r=await post('/api/auth/signup',{name:$('rName').value,email:$('rEmail').value,phone:$('rPhone').value,note:$('rNote').value,password:$('rPw').value});$('bReq').disabled=false;
+ $('mReq').className='msg '+(r.ok?'ok':'bad');$('mReq').textContent=r.ok?r.d.message:(r.d.error||'Could not send the request.');if(r.ok)$('fReq').reset()};
+</script></body></html>

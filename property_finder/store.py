@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS rent_obs(url TEXT PRIMARY KEY, source TEXT, area TEXT
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS crawled(url TEXT PRIMARY KEY, lastmod TEXT, seen REAL);
 CREATE TABLE IF NOT EXISTS web_queries(q TEXT, ts REAL, month TEXT, results INT);
+CREATE TABLE IF NOT EXISTS users(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, name TEXT, phone TEXT, note TEXT, pw_hash TEXT, salt TEXT,
+  role TEXT DEFAULT 'member', status TEXT DEFAULT 'pending', created REAL, decided_by TEXT, decided_at REAL);
+CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY, user_id INT, created REAL, expires REAL);
+CREATE TABLE IF NOT EXISTS attempts(k TEXT, ts REAL);
 CREATE INDEX IF NOT EXISTS ix_area ON listings(area, purpose);
 CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 """
