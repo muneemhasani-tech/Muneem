@@ -131,3 +131,48 @@ checker raises a clear error.
 pip install -e '.[dev]' && pytest
 ```
 HTTP is mocked with `respx`; no test touches the network.
+
+---
+
+# Property Finder (dashboard)
+
+## Members-only access
+
+The dashboard serves nothing until a person signs in with an approved account. Passwords are stored as salted PBKDF2 hashes, sessions are random tokens in an HttpOnly cookie, wrong-password attempts are rate limited, and every `/api` route (listings, phone numbers, URLs, CSV export) answers 401 without a session.
+
+```
+python -m property_finder admin                 # once: create the first admin (email, name, password)
+python -m property_finder serve                 # this computer only: http://127.0.0.1:8770
+python -m property_finder serve 8770 --host 0.0.0.0   # let others reach it (see HTTPS below)
+python -m property_finder users                 # who asked for access
+python -m property_finder approve rina@x.com    # or approve in the dashboard under Members
+python -m property_finder revoke rina@x.com     # ends that person's sessions at once
+```
+
+People open the site and choose *Request access* (name, email, phone, how they know MRA, password). Nothing is visible to them until an admin approves, so call the phone number first. Members can browse listings, export CSV and update lead status and notes. Only admins can run searches, edit return assumptions, store the search API key, and approve or revoke people.
+
+Forgot a password? `python -m property_finder reset-password EMAIL` sets a new one, signs that person out everywhere and clears any lockout.
+
+### One-file version for cPanel
+
+`python -m property_finder build-html index.html` writes a single `index.html` you upload to ordinary hosting (needs `pip install cryptography` on the computer that builds it). It has no server, so protection comes from encryption: the listings, phone numbers and URLs are AES-256-GCM encrypted inside the file, and each member's email and password unlock their own copy of the key (PBKDF2, 600,000 rounds). The admin adds members, resets their passwords and removes them inside the page, then presses *Download updated file* and uploads it to replace the old one. Use https, and give every member a long password: anyone can download the file and guess passwords offline, so the passwords are the whole lock. Run the command again to start over if the admin password is lost (members must be re-added).
+
+To serve other people from the app instead, run it on a machine they can reach and put it behind HTTPS (Caddy or nginx), then start it with `PF_SECURE_COOKIES=1` (and `PF_TRUST_PROXY=1` behind a proxy so attempt limits use the real address). Without HTTPS, passwords cross the network in clear text.
+
+One local dashboard that finds **properties for sale** across ~20 Bangladeshi sources for **Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A**, ranks them by projected return, and keeps them as a lead list. Standard library only, no install.
+
+```bash
+python3 -m property_finder            # opens http://127.0.0.1:8770
+python3 -m property_finder probe      # tests all 20 sources: robots.txt verdict, reachability, anti-bot walls, listings recognised
+```
+
+- **Sale only.** Rent ads are never listed or exported. Apartment rent pages are crawled in the background only to measure rent per sqft per area (needs 5+ ads per area), which feeds the ROI projection. Until then the editable placeholder rents under *Return assumptions* are used.
+- **ROI on every listing:** rental yield (gross and net), and total return over 5 years = net rental income + price growth. Land shows growth only. Assumptions (rent per sqft by area, empty months, running costs %, growth %) are saved in the local database.
+- **Sources (verified live, Oct 2026):** Bproperty (via its sitemap, ~5,400 listing pages in our areas), bdHousing, Aabason, Homefair BD (their own listing pages), Property Finder BD and Concord Property Solutions (via sitemaps). Bikroy (Cloudflare refuses cloud servers) and Bdstall (robots.txt bans AI crawlers) are included but only work when run from your own computer. **Web search** replaces the old one-click links: 12 query templates per area (Facebook groups in English and Bangla, plot posts, Marketplace, Facebook pages, Navana, Shanta, Rangs, Bashundhara, Assure, open web in English and Bangla, see `web_queries` in `sources.json`) run through an official search API (Serper.dev for Google results, or Brave Search). Facebook and Google pages are never fetched; the listing is built from the engine's title and snippet, and other result pages are opened only when their robots.txt allows. Each such listing records the query that found it, the snippet, and its evidence level. Set `SERPER_API_KEY` or `BRAVE_API_KEY`, or paste a key under *Web search* in the dashboard. A full run is 12 queries x 6 areas = 72 searches; repeats within 20 hours are skipped and a monthly budget caps spend. Queries use no `site:` operators (Serper's free plan rejects them); each template instead carries a host filter applied to the results. Developer queries skip about/blog/home pages, and sizes or prices that look absurd are kept and marked Clear with seller (sellers often hide real figures so buyers must call). Removed: BDHouse24, ToLet, Bhumi, Property.com.bd, BanglaProperty, DhakaProperty (domains do not exist), Lamudi and RealEstate.com.bd (unreachable), Flatbazar (an Indian site), Basha Lagbe (robots.txt forbids crawling).
+- **Area rule:** a listing is kept only if its own text (English or Bangla) names one of the six areas.
+- **Lead tools:** duplicate flag ("on N sites"), owner-only filter, price-drop flag, price per sqft by area, lead status and notes, WhatsApp links, **Export CSV** (columns match `lead-verifier run`, plus yield and return columns).
+- **Crawling manners:** identifies itself as `MRA-PropertyFinder`, reads each site's `robots.txt` before every request and skips what it forbids (when an AI agent such as Claude runs it, rules aimed at AI crawlers are obeyed too) (or any site whose robots.txt it cannot read), honours `Crawl-delay`, waits ~1.5 s between requests per site, never tries to get around a block. Robots.txt is not a site's terms of service, so check those too.
+- Add or fix a site by editing `property_finder/sources.json` (URL template only, no code). Text size: `--sec` at the top of `static/index.html` scales secondary text (1 = normal).
+- Data lives in `data/property/listings.db` (git-ignored; contains phone numbers).
+
+**Not yet verified against live sites** (the build sandbox blocks them): run `probe` first. Sites showing `BLOCKED`, `DEAD` or `NO LISTINGS RECOGNISED` need their URL or parser adjusted.
