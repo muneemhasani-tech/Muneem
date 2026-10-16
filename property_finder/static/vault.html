@@ -1,0 +1,261 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}.wa{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:10}.wa:hover{background:#1ebe5b}
+</style></head><body>
+<title>MRA Property Finder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:wght@600;700&display=swap">
+<style>
+/* Layout: navy header band with the logo, then a plain white working area. Search, assumptions, ranked investment listings. Gold appears once: a thin rule under the header. */
+:root{--sec:1;--navy:#0b163e;--navy2:#1b2a63;--ink:#101a3a;--mute:#56607f;--line:#d5d9e6;--bg:#f6f7fa;--card:#fff;--gold:#c8922a;--pos:#176a47;--serif:'Source Serif 4',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:calc(.94rem*var(--sec))/1.55 var(--sans)}
+.top{background:var(--navy);border-bottom:3px solid var(--gold);padding:24px 20px}
+.top .in,.main{max-width:1080px;margin:0 auto}
+.top .in{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+.top img{width:84px;height:auto;display:block}
+.top h1{font:700 1.5rem var(--serif);color:#fff;margin:0;letter-spacing:.01em}
+.top p{margin:2px 0 0;color:#b6bfe0;font-size:calc(.9rem*var(--sec))}
+.main{padding:40px 20px 56px;display:flex;flex-direction:column;gap:40px}
+.note{border:1px solid var(--line);background:var(--card);padding:10px 14px;color:var(--mute);font-size:calc(.88rem*var(--sec))}
+section{display:flex;flex-direction:column;gap:24px}
+h2{font:700 1.25rem var(--serif);margin:0;color:var(--navy)}
+.lbl{font-size:calc(.72rem*var(--sec));letter-spacing:.12em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.group{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+button,input,select{font:inherit}
+.chip{padding:10px 20px;border:1px solid var(--navy);background:var(--card);color:var(--navy);cursor:pointer;border-radius:3px}
+.chip[aria-pressed=true]{background:var(--navy);color:#fff}
+input,select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:10px 12px;min-width:0}
+input[type=text]{flex:1 1 260px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:calc(.78rem*var(--sec));color:var(--mute)}
+.go{background:var(--navy);color:#fff;border:0;border-radius:3px;padding:12px 28px;font-weight:600;cursor:pointer}
+.go:hover:not(:disabled){background:var(--navy2)}.go:disabled{opacity:.6;cursor:default}
+.ghost{background:var(--card);color:var(--navy);border:1px solid var(--navy);border-radius:3px;padding:9px 18px;cursor:pointer;text-decoration:none;display:inline-block;font-weight:500}
+.ghost:hover{background:var(--navy);color:#fff}
+:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
+.bar{height:3px;background:var(--line)}.bar i{display:block;height:100%;width:0;background:var(--navy);transition:width .3s}
+.prog{color:var(--mute);font-size:calc(.9rem*var(--sec));min-height:1.5em}
+details{border:1px solid var(--line);background:var(--card);padding:16px 20px}summary{cursor:pointer;font-weight:600;color:var(--navy)}summary span{font-weight:400;color:var(--mute)}
+.assume{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;margin-top:20px}
+.assume input{width:100%}
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px 24px;margin-top:20px}
+.src b{display:block;font-weight:500}.src span{font-size:calc(.82rem*var(--sec));color:var(--mute)}.src.ok span{color:var(--pos)}.src.bad span{color:#a3281f}
+.snap{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.snap div{background:var(--card);padding:16px 18px}
+.snap .a{color:var(--mute);font-size:calc(.8rem*var(--sec))}.snap .n{font:700 1.4rem var(--serif);color:var(--navy)}.snap .m{color:var(--mute);font-size:calc(.82rem*var(--sec))}
+.head,.item{display:grid;grid-template-columns:minmax(0,2.4fr) 1fr 1fr 1fr;gap:16px 28px}
+.head{padding:0 0 10px;border-bottom:2px solid var(--navy)}
+.list{background:var(--card);border:1px solid var(--line);padding:0 24px}
+.list .head{padding-top:16px}
+.item{padding:24px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}
+.item h3{font:600 1.05rem/1.35 var(--serif);margin:0 0 4px;color:var(--navy)}
+.meta{color:var(--mute);font-size:calc(.88rem*var(--sec))}
+.b{display:inline-block;font-size:calc(.72rem*var(--sec));font-weight:600;letter-spacing:.04em;padding:2px 8px;border:1px solid var(--navy);color:var(--navy);margin:10px 8px 0 0;border-radius:2px}
+.b.q{border-color:var(--line);color:var(--mute);font-weight:500}
+.num{font:600 calc(1.15rem*var(--sec)) var(--sans);font-variant-numeric:tabular-nums}.num small{display:block;font-weight:400;font-size:calc(.8rem*var(--sec));color:var(--mute)}
+.num.roi{color:var(--pos)}
+.acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.acts select{padding:7px 10px;font-size:calc(.88rem*var(--sec))}
+.empty{padding:36px 0;color:var(--mute)}
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;border-top:1px solid var(--line);padding-top:20px;color:var(--mute);font-size:calc(.88rem*var(--sec))}
+@media(max-width:760px){.head{display:none}.item{grid-template-columns:1fr 1fr}.item>div:first-child{grid-column:1/-1}.list{padding:0 16px}}
+
+.top{background:linear-gradient(180deg,#5d6577 0,#2a3350 38%,#0b163e 100%);padding:16px 16px 40px}
+.top .in{display:block;max-width:1080px}
+.pill{background:#fff;border-radius:26px;padding:14px 16px 14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 14px rgba(0,0,0,.12)}
+.pill img{width:auto;height:64px;display:block}
+.burger{width:54px;height:54px;border:0;border-radius:15px;background:#0b163e;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;cursor:pointer}
+.burger i{display:block;width:20px;height:2px;background:#fff}
+.menu{background:#fff;border-radius:18px;margin-top:10px;padding:8px;display:flex;flex-direction:column;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+.menu a{padding:12px 16px;color:#0b163e;text-decoration:none;font-weight:600;border-radius:10px}.menu a:hover{background:#eef0f7}
+.hero{text-align:center;padding:72px 0 56px}
+.big{font:700 clamp(2.4rem,9vw,4.6rem)/1.08 'Outfit','IBM Plex Sans',system-ui,sans-serif;letter-spacing:-.02em;color:#fff;margin:0 auto;max-width:15ch;text-wrap:balance}
+.lede{font:500 calc(1.1rem*var(--sec))/1.6 'Outfit','IBM Plex Sans',system-ui,sans-serif;color:#c9ced9;margin:28px auto 0;max-width:36ch}
+.rule{border:0;border-top:1px solid rgba(255,255,255,.35);margin:0 0 32px}
+.top .lede{margin:28px auto 0;max-width:40ch;text-align:center;color:#c9ced9}
+.ptitle h1{font:700 1.5rem var(--serif);color:#fff;margin:0}.ptitle p{margin:2px 0 0;color:#b6bfe0}
+
+.lockcard{max-width:520px;margin:0 auto;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 24px rgba(11,22,62,.1)}
+.lockcard form{display:flex;flex-direction:column;gap:14px}
+.msg{min-height:1.4em;font-size:.9rem;color:#a3281f}.msg.ok{color:var(--pos)}
+.menu button{padding:12px 16px;color:#0b163e;font:600 1rem var(--sans);border-radius:10px;background:none;border:0;text-align:left;cursor:pointer}.menu button:hover{background:#eef0f7}
+.mem{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 20px;padding:16px 0;border-bottom:1px solid var(--line);align-items:center}.mem:last-child{border-bottom:0}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 10px;border-radius:99px;border:1px solid var(--pos);color:var(--pos);margin-left:8px}
+@media(max-width:600px){.mem{grid-template-columns:1fr}}
+</style>
+
+<div class="top">
+ <div class="in">
+  <nav class="pill" aria-label="Main">
+   <img src="__LOGO_NAVY__" alt="MRA Real Estate">
+   <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Menu"><i></i><i></i><i></i></button>
+  </nav>
+  <div class="menu" id="menu" hidden><a href="#s1" class="nm">Search</a><a href="#s2" class="nm">Market snapshot</a><a href="#s3" class="nm">Properties for sale</a><a href="#sm" id="mMem" hidden>Members</a><a href="https://mrarealestatebd.com" target="_blank" rel="noopener">mrarealestatebd.com</a><button id="out" hidden>Sign out</button></div>
+  <div class="hero">
+   <h2 class="big" id="big">Property Finder for MRA members</h2>
+   <p class="lede" id="lede">Sign in to see listings, owner phone numbers, sizes and prices across Dhaka. Open to MRA staff and people MRA has verified.</p>
+  </div>
+  <hr class="rule">
+  <div class="ptitle"><h1>Property Finder</h1><p>Members only. Search, filter and contact sellers in one place.</p></div>
+ </div>
+</div>
+
+<div class="main" id="lock"><div class="lockcard">
+ <h2>Sign in</h2>
+ <p class="meta">Use the email and password MRA gave you. The listings are encrypted in this page and open only with a valid login.</p>
+ <form id="fIn"><label class="f">Email<input id="iEmail" type="email" autocomplete="username" required></label>
+  <label class="f">Password<input id="iPw" type="password" autocomplete="current-password" required></label>
+  <button class="go" id="bIn">Sign in</button><div class="msg" id="mIn" role="status"></div></form>
+ <p class="meta">No account yet? Message MRA on <a href="https://wa.me/8801619669879" target="_blank" rel="noopener">WhatsApp</a>. Access is given after MRA verifies you.</p>
+</div></div>
+<div class="main" id="app" hidden>
+ <div class="note" id="note"></div>
+
+ <section aria-labelledby="s1">
+  <h2 id="s1">Search</h2>
+  <div class="group"><span class="lbl">Areas</span><div class="row" id="areas"></div></div>
+  <div class="row">
+   <label class="f">Property type<select id="ptype"><option value="">All types</option><option value="apt">Apartment</option><option value="house">House</option><option value="land">Land</option><option value="commercial">Commercial</option></select></label>
+   <label class="f">Budget up to<select id="fmax"><option value="0">Any budget</option><option value="10000000">৳1 Cr</option><option value="30000000">৳3 Cr</option><option value="60000000">৳6 Cr</option></select></label>
+   <label class="f">Minimum 5-year return<select id="fmin"><option value="0">Any</option><option value="20">20%</option><option value="30">30%</option><option value="40">40%</option></select></label>
+   <label class="f">Poster<select id="fown"><option value="">Owners and agents</option><option value="1">Owners only</option></select></label>
+  </div>
+  <div class="row"><input type="text" id="q" placeholder="Add a keyword, such as duplex or lake view" aria-label="Keyword"><button class="go" id="go">Search all sites</button></div>
+  <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+  <div class="prog" id="prog" role="status">Ready when you are.</div>
+  <details><summary>Return assumptions <span>(used for every projection)</span></summary>
+   <div class="assume">
+    <label class="f">Gulshan rent, ৳ per sqft/mo<input type="number" id="r_gulshan" value="55"></label>
+    <label class="f">Banani rent, ৳ per sqft/mo<input type="number" id="r_banani" value="50"></label>
+    <label class="f">Dhanmondi rent, ৳ per sqft/mo<input type="number" id="r_dhanmondi" value="45"></label>
+    <label class="f">Bashundhara rent, ৳ per sqft/mo<input type="number" id="r_bashundhara" value="35"></label>
+    <label class="f">Uttara rent, ৳ per sqft/mo<input type="number" id="r_uttara" value="32"></label>
+    <label class="f">Purbachal rent, ৳ per sqft/mo<input type="number" id="r_purbachal" value="28"></label>
+    <label class="f">Empty months a year<input type="number" id="vac" value="1"></label>
+    <label class="f">Running costs, % of rent<input type="number" id="cost" value="15"></label>
+    <label class="f">Price growth a year, %<input type="number" id="gr" value="6"></label>
+   </div></details>
+  <details><summary>Source health <span id="srcSum"></span></summary>
+   <div class="srcs" id="srcs"></div><div class="row" id="links" style="margin-top:20px"></div></details>
+ </section>
+
+ <section aria-labelledby="s2">
+  <h2 id="s2">Market snapshot</h2>
+  <div class="snap" id="snap"></div>
+ </section>
+
+ <section aria-labelledby="s3">
+  <h2 id="s3">Properties for sale</h2>
+  <div class="row"><select id="fsort" aria-label="Sort"><option value="roi">Highest 5-year return</option><option value="yield">Highest rental yield</option><option value="cheap">Lowest price</option><option value="drop">Biggest price drop</option></select>
+   <select id="fstatus" aria-label="Lead status"><option value="">Any lead status</option><option>new</option><option>contacted</option><option>replied</option><option>viewing</option><option>won</option><option>lost</option></select>
+   <button class="ghost" id="csv" style="margin-left:auto">Export to CSV</button></div>
+  <div class="list"><div class="head lbl"><span>Property</span><span>Price</span><span>Rental yield</span><span>5-year return</span></div><div id="rows"></div></div>
+  <div class="prog" id="count"></div><div class="row"><button class="ghost" id="more" hidden>Show more</button></div>
+ </section>
+
+ <section aria-labelledby="sm" id="secM" hidden><h2 id="sm">Members</h2>
+  <p class="meta" style="margin:0">Add the people you have verified. Give each person their own password. After any change, press Download updated file and upload it to your hosting to replace the old page. Removing someone only stops new logins: a person who already opened the old file may still have what they saw.</p>
+  <div class="list" style="padding:0 24px" id="mems"></div>
+  <form id="fAdd" class="row"><label class="f">Name<input id="aName" required></label><label class="f">Email<input id="aEmail" type="email" required></label>
+   <label class="f">Password (12+ characters)<input id="aPw" required minlength="12"></label><button class="ghost" type="button" id="aGen">Suggest password</button><button class="go" id="aSave">Add member</button></form>
+  <div class="row"><button class="go" id="dl" disabled>Download updated file</button><span class="prog" id="mMsg" role="status"></span></div>
+ </section>
+ <footer><span>+880 1619-669879</span><span>MRA Real Estate</span><span>mrarealestatebd.com</span></footer>
+</div>
+
+<a class="wa" href="https://wa.me/8801619669879" target="_blank" rel="noopener" aria-label="Chat with MRA Real Estate on WhatsApp"><svg width="30" height="30" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.8-.7-1.4-1.6-1.6-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.9 1.2 2.9.8 3.4.8.5-.1 1.7-.7 1.9-1.400.2-.7.2-1.200.2-1.300-.1-.2-.3-.2-.6-.4zM12 2a10 10 0 0 0-8.6 15L2 22l5.200-1.400A10 10 0 1 0 12 2zm0 18.200c-1.500 0-2.900-.4-4.100-1.200l-.3-.2-3 .8.8-2.900-.2-.3A8.200 8.200 0 1 1 12 20.200z"/></svg></a>
+<script type="application/json" id="vault">__VAULT__</script>
+<script>
+const AREAS={gulshan:'Gulshan',banani:'Banani',purbachal:'Purbachal',uttara:'Uttara',dhanmondi:'Dhanmondi',bashundhara:'Bashundhara'};
+let SRC=[],L=[];
+const waNum=p=>{p=p.replace(/\D/g,'');return p.startsWith('880')?p:'880'+p.replace(/^0/,'')};const ST={},sel=new Set(Object.keys(AREAS));const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bdt=n=>n>=1e7?(n/1e7).toFixed(2)+' Cr':n>=1e5?(n/1e5).toFixed(1)+' Lakh':Math.round(n).toLocaleString('en-US');
+function roi(r){if(!r.price)return{rent:0,gross:0,netY:0,five:0,none:1};const g=(+$('gr').value||0)/100,v=+$('vac').value||0,c=(+$('cost').value||0)/100,rent=r.type==='land'||!r.size?0:r.size*(+$('r_'+r.area).value||0);
+ const net=rent*(12-v)*(1-c),gross=rent*12/r.price*100,netY=net/r.price*100,five=(net*5/r.price+(Math.pow(1+g,5)-1))*100;return{rent,gross,netY,five,odd:rent*12/r.price>.25}}
+for(const[k,v]of Object.entries(AREAS)){const b=document.createElement('button');b.className='chip';b.textContent=v;b.setAttribute('aria-pressed','true');b.onclick=()=>{sel.has(k)?sel.delete(k):sel.add(k);b.setAttribute('aria-pressed',sel.has(k));render()};$('areas').append(b)}
+function srcs(){$('srcs').innerHTML=SRC.map(s=>`<div class="src ${s[1]?'ok':'bad'}"><b>${s[0]}</b><span>${s[1]?s[1]+' listings found':'Blocks cloud servers, run it from your own computer'}</span></div>`).join('')}
+function pick(){const q=$('q').value.toLowerCase(),t=$('ptype').value,mx=+$('fmax').value,mn=+$('fmin').value,ow=$('fown').value,sf=$('fstatus').value;
+ return L.map(r=>({...r,...roi(r)})).filter(r=>sel.has(r.area)&&(!t||r.type===t)&&(!mx||r.price<=mx)&&(!mn||(!r.none&&!r.odd&&r.five>=mn))&&(!ow||r.owner===1)&&(!q||r.title.toLowerCase().includes(q))&&(!sf||(ST[r.id]||'new')===sf))}
+function render(){const l=pick(),so=$('fsort').value;
+ l.sort({roi:(a,b)=>(b.odd||b.none?-1:b.five)-(a.odd||a.none?-1:a.five),yield:(a,b)=>(b.odd||b.none?-1:b.gross)-(a.odd||a.none?-1:a.gross),cheap:(a,b)=>(a.price||1e18)-(b.price||1e18),drop:(a,b)=>0}[so]);
+ $('count').textContent=`Showing ${Math.min(l.length,lim)} of ${l.length} matching listings (${L.length} collected). Projections use the assumptions above and are estimates, not guarantees.`;$('more').hidden=l.length<=lim;
+ $('rows').innerHTML=l.length?l.slice(0,lim).map(r=>{const s=ST[r.id]||'new';return `<article class="item"><div><h3><a href="${esc(r.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration-color:var(--line);text-underline-offset:3px">${esc(r.title)}</a></h3>
+ <div class="meta">${AREAS[r.area]} · ${r.size?r.size.toLocaleString('en-US')+' sqft':'size not given'}${r.beds?` · ${r.beds} bed`:''}${r.baths?` · ${r.baths} bath`:''} · via ${r.src}</div>
+ <div>${r.flags?`<span class="b" title="${esc(r.flags)}" style="color:#8a4b00;border-color:#8a4b00">CLEAR WITH SELLER</span>`:''}${r.owner===1?'<span class="b">OWNER</span>':''}${r.prev?'<span class="b">PRICE DROPPED</span>':''}${r.also?`<span class="b q">Listed on more than one site</span>`:''}<span class="b q">${esc(r.evid)}</span></div>${r.flags?`<div class="meta" style="margin-top:8px;color:#8a4b00">${esc(r.flags)}</div>`:''}${r.snip?`<div class="meta" style="margin-top:6px">${esc(r.snip)}</div>`:''}</div>
+ <div class="num">${r.price?'৳'+bdt(r.price):'Not given'}<small>${r.price&&r.size?'৳'+Math.round(r.price/r.size).toLocaleString('en-US')+' per sqft':'Ask the seller'}</small></div>
+ <div class="num">${r.rent&&!r.odd?r.gross.toFixed(1)+'%':'None'}<small>${r.none?'Needs a price':r.odd?'Price needs clearing':r.rent?`about ৳${bdt(r.rent)} a month projected`:r.type==='land'?'Land earns no rent':'Needs a size'}</small></div>
+ <div class="num roi">${r.none||r.odd?'None':r.five.toFixed(0)+'%'}<small>${r.none||r.odd?'Not projected':r.rent?`${r.netY.toFixed(1)}% net yield + growth`:'Growth only'}</small></div>
+ <div class="acts">${r.phone?`<span>${r.poster?esc(r.poster)+' · ':''}${esc(r.phone)}</span><a class="ghost" href="https://wa.me/${waNum(r.phone)}" target="_blank" rel="noopener">WhatsApp</a>`:'<span class="meta">Open the listing to see the contact number</span><a class="ghost" href="${esc(r.url)}" target="_blank" rel="noopener">Open listing</a>'}
+ <select aria-label="Lead status" onchange="ST[${r.id}]=this.value;render()">${['new','contacted','replied','viewing','won','lost'].map(o=>`<option${o===s?' selected':''}>${o}</option>`).join('')}</select></div></article>`}).join(''):'<div class="empty">No properties match. Pick more areas or loosen the filters.</div>';
+ snap(l)}
+function snap(l){const g={};l.forEach(r=>(g[r.area]??=[]).push(r));
+ $('snap').innerHTML=Object.entries(g).map(([a,x])=>{const pz=x.filter(r=>r.price&&r.size&&r.price/r.size>=1000&&r.price/r.size<=400000),avg=pz.length?pz.reduce((s,r)=>s+r.price/r.size,0)/pz.length:0,y=x.filter(r=>r.rent&&!r.odd&&!r.none);return `<div><div class="a">${AREAS[a]}</div><div class="n">৳${Math.round(avg).toLocaleString('en-US')} / sqft</div><div class="m">${x.length} for sale${y.length?` · avg yield ${(y.reduce((s,r)=>s+r.gross,0)/y.length).toFixed(1)}%`:''}</div></div>`}).join('')||'<div><div class="m">Choose an area to see prices.</div></div>'}
+let busy=false,lim=150;
+$('go').onclick=()=>{$('prog').textContent='Live searching runs in the Property Finder app on your computer. This page shows the results of the 5 to 6 October 2026 run.'};
+$('more').onclick=()=>{lim+=200;render()};
+$('burger').onclick=()=>{const m=$('menu');m.hidden=!m.hidden;$('burger').setAttribute('aria-expanded',String(!m.hidden))};
+document.querySelectorAll('#menu a.nm,#menu a#mMem').forEach(a=>a.addEventListener('click',()=>{$('menu').hidden=true;$('burger').setAttribute('aria-expanded','false')}));
+document.querySelectorAll('#app input,#app select').forEach(e=>e.addEventListener('input',()=>{lim=150;render()}));
+
+/* ---- sign-in: the listings are AES-GCM encrypted in #vault; a member's email and password unlock their own copy of the key ---- */
+const VAULT=JSON.parse(document.getElementById('vault').textContent);
+const te=new TextEncoder(),td=new TextDecoder();
+const unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const enb=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
+const idOf=async e=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode('pf-id:'+e.trim().toLowerCase())))].map(b=>b.toString(16).padStart(2,'0')).join('');
+async function kek(pw,salt){const b=await crypto.subtle.importKey('raw',te.encode(pw),'PBKDF2',false,['deriveKey']);
+ return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:VAULT.iter,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+const aes=async(k,use)=>crypto.subtle.importKey('raw',unb(k),'AES-GCM',false,[use]);
+async function wrap(info,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+ const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},await kek(pw,salt),te.encode(JSON.stringify(info)));
+ return{id:await idOf(info.email),salt:enb(salt),iv:enb(iv),ct:enb(new Uint8Array(ct))}}
+let ME=null,DIR=[],dirty=false;
+async function unlock(email,pw){
+ const id=await idOf(email);const mem=VAULT.members.find(x=>x.id===id);
+ if(!mem){await kek(pw,new Uint8Array(16));throw new Error('bad')}
+ const info=JSON.parse(td.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(mem.iv)},await kek(pw,unb(mem.salt)),unb(mem.ct))));
+ const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(VAULT.iv)},await aes(info.k,'decrypt'),unb(VAULT.data));
+ const txt=await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'))).text();
+ if(info.role==='admin')DIR=JSON.parse(td.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(VAULT.div)},await aes(info.ka,'decrypt'),unb(VAULT.dir))));
+ return{info,data:JSON.parse(txt)}}
+function boot(data){
+ const names={};L=data.rows.map((r,i)=>({id:i,src:r[0],title:r[1],area:r[2],type:r[3],price:r[4],size:r[5],beds:r[6],baths:r[7],phone:r[8],poster:r[9],owner:r[10],also:r[11],url:r[12],flags:r[13],evid:r[14],snip:r[15],prev:null}));
+ L.forEach(r=>names[r.src]=(names[r.src]||0)+1);SRC=Object.entries(names).sort((a,b)=>b[1]-a[1]).concat([['Bikroy',0],['Bdstall',0]]);
+ $('big').textContent=`${L.length} Dhaka properties for sale, ranked by return.`;
+ $('lede').textContent='Compare listings in Gulshan, Banani, Purbachal, Uttara, Dhanmondi and Bashundhara from property portals, developers and Facebook. See projected rental yield, owner phone numbers and which prices to confirm with the seller.';
+ $('note').textContent=`Collected ${data.stamp} from live sources. Rent and growth assumptions are placeholders: replace them with MRA's own figures. Prices, sizes or numbers marked Clear with seller were hidden or unrealistic in the ad and need confirming with the seller.`;
+ $('srcSum').textContent=`(${SRC.length} sources, collected ${data.stamp})`;
+ srcs();render()}
+$('fIn').onsubmit=async e=>{e.preventDefault();const b=$('bIn'),m=$('mIn');b.disabled=true;m.className='msg';m.textContent='Checking...';
+ try{const r=await unlock($('iEmail').value,$('iPw').value);ME=r.info;boot(r.data);$('lock').hidden=true;$('app').hidden=false;$('out').hidden=false;$('iPw').value='';
+  document.querySelectorAll('.nm').forEach(a=>a.hidden=false);if(ME.role==='admin'){$('mMem').hidden=false;$('secM').hidden=false;members()}window.scrollTo(0,0)}
+ catch(err){m.textContent=err&&err.message==='bad'||err&&err.name==='OperationError'?'Email or password is not right.':'This browser cannot open the page. Use a current Chrome, Safari, Edge or Firefox over https.'}
+ b.disabled=false};
+document.querySelectorAll('.nm').forEach(a=>a.hidden=true);
+$('out').onclick=()=>location.reload();
+$('csv').onclick=()=>{const q=v=>`"${String(v??'').replace(/"/g,'""')}"`;const rows=pick();
+ const head=['Area','Type','Title','Price_BDT','Size_sqft','PricePerSqft_BDT','Beds','Baths','Phone','Poster','Source','URL','Evidence','DataToClear','GrossYieldPct','TotalReturnPct','Snippet'];
+ const body=rows.map(r=>[AREAS[r.area],r.type,r.title,r.price,r.size,r.price&&r.size?Math.round(r.price/r.size):'',r.beds,r.baths,r.phone,r.poster,r.src,r.url,r.evid,r.flags,r.rent&&!r.odd?r.gross.toFixed(1):'',r.none||r.odd?'':r.five.toFixed(0),r.snip].map(q).join(','));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+[head.join(','),...body].join('\n')],{type:'text/csv'}));a.download='mra-property-leads.csv';document.body.append(a);a.click();a.remove()};
+/* ---- admin: members live inside the encrypted directory; changes are saved by downloading the updated page ---- */
+const member=(m,pw)=>wrap({email:m.email,name:m.name,role:m.role,k:ME.k,...(m.role==='admin'?{ka:ME.ka}:{})},pw);
+async function saveDir(){const iv=crypto.getRandomValues(new Uint8Array(12));VAULT.div=enb(iv);
+ VAULT.dir=enb(new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},await aes(ME.ka,'encrypt'),te.encode(JSON.stringify(DIR)))));dirty=true;$('dl').disabled=false;members()}
+function members(){$('mems').innerHTML=DIR.map((m,i)=>`<div class="mem"><div><b>${esc(m.name)}</b><span class="tag">${m.role}</span><div class="meta">${esc(m.email)} · added ${esc(m.added)}</div></div>
+ <div class="acts"><button class="ghost" data-pw="${i}">${m.email===ME.email?'Change my password':'Reset password'}</button>${m.email===ME.email?'':`<button class="ghost" data-rm="${i}">Remove</button>`}</div></div>`).join('');
+ document.querySelectorAll('[data-pw]').forEach(b=>b.onclick=async()=>{const m=DIR[+b.dataset.pw];const pw=genpw();$('mMsg').className='prog';
+  VAULT.members=VAULT.members.filter(x=>x.id!==undefined);const w=await member(m,pw);VAULT.members=VAULT.members.filter(x=>x.id!==w.id).concat([w]);await saveDir();
+  $('mMsg').textContent=`New password for ${m.email}: ${pw}  (copy it now, it is not shown again). Then download the updated file.`});
+ document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{const m=DIR[+b.dataset.rm];const id=await idOf(m.email);VAULT.members=VAULT.members.filter(x=>x.id!==id);DIR=DIR.filter(x=>x.email!==m.email);await saveDir();$('mMsg').textContent=`${m.email} removed. Download the updated file and upload it to replace the old one.`})}
+const genpw=()=>{const a='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(16));return[...r].map(x=>a[x%a.length]).join('')};
+$('aGen').onclick=()=>{$('aPw').value=genpw()};
+$('fAdd').onsubmit=async e=>{e.preventDefault();const email=$('aEmail').value.trim().toLowerCase();
+ if(DIR.some(m=>m.email===email)){$('mMsg').textContent='That email is already a member. Use Reset password.';return}
+ const m={email,name:$('aName').value.trim(),role:'member',added:new Date().toISOString().slice(0,10)},pw=$('aPw').value;
+ VAULT.members.push(await member(m,pw));DIR.push(m);await saveDir();$('mMsg').textContent=`${email} added. Send them this password privately: ${pw}. Then download the updated file.`;$('fAdd').reset()};
+$('dl').onclick=async()=>{let src;try{src=await (await fetch(location.href.split('#')[0],{cache:'no-store'})).text()}catch(e){$('mMsg').textContent='Could not read this page to save it. Open it from your website (https), not from a file.';return}
+ const out=src.replace(/(<script type="application\/json" id="vault">)[\s\S]*?(<\/script>)/,(m,a,b)=>a+JSON.stringify(VAULT)+b);
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/html'}));a.download='index.html';document.body.append(a);a.click();a.remove();$('mMsg').textContent='Downloaded. Upload it to your hosting and replace the old file.'};
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
+</script>
+
+</body></html>

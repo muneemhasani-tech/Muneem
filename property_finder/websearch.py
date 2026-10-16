@@ -101,13 +101,13 @@ NOT_A_LISTING = re.compile(
     r"pages|tags?|blog|news|search)(?:/|$)|bikroy\.com/(?:bn|en)/(?!ad/)[^/]+/[^/]*for-(?:sale|rent)|[?&]q=", re.I)
 
 
-FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan-?e-?iqbal|new town,? kol", re.I)
+FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*iqbal|new town,? kol", re.I)
 FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|zameen\.com|magicbricks|99acres|housing\.com|nobroker|graana|olx\.com\.pk")
 GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartments?|dhaka|bangladesh|buy|residential|commercial|ready|all|in)[-_]?)+$", re.I)
 CATEGORY_TITLE = re.compile(r"^\s*\d+\+|^\s*(?:flats|apartments|properties|plots|houses|lands)\b|price list|দাম ২০", re.I)
 
 
-def is_listing(url: str, title: str = "") -> bool:
+def is_listing(url: str, title: str = "", dev: bool = False) -> bool:
     """One property in Bangladesh: not a category page, an area guide, a whole group or a foreign site."""
     u = urllib.parse.urlparse(url)
     host, path = u.netloc.lower().removeprefix("www."), u.path.rstrip("/")
@@ -120,26 +120,44 @@ def is_listing(url: str, title: str = "") -> bool:
     last = path.rsplit("/", 1)[-1]
     if GENERIC_SLUG.match(last):
         return False
+    if dev:  # developer project pages often have short names (/projects/Diorama)
+        return bool(last)
     return len(last) >= 12 or bool(re.search(r"\d", last))  # a real listing has a long or numbered slug
 
 
 def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None:
     from .scrape import _area_in  # same area rule as every other source
     hit = {**hit, "title": parse.norm(hit["title"]), "snippet": parse.norm(hit["snippet"])}
-    text = f"{hit['title']} {hit['snippet']}"
-    if not is_listing(hit["url"], hit["title"]) or FOREIGN.search(text):
+    host = urllib.parse.urlparse(hit["url"]).netloc.lower()
+    if spec.get("host") and not re.search(spec["host"], host):  # results are filtered by site here, not with site:
         return None
-    if not SALE.search(text) or WANTED.search(text):
+    if spec.get("exclude") and re.search(spec["exclude"], host):
+        return None
+    text = f"{hit['title']} {hit['snippet']}"
+    if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_")) or FOREIGN.search(text):
+        return None
+    path = urllib.parse.urlparse(hit["url"]).path.lower()
+    if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)
+                or re.search(r"^(projects?|residential|commercial)\b.*\b(projects?|masterpieces)\b|full of quality", hit["title"], re.I)):
+        return None  # a company page, not a project
+    dev = spec["id"].startswith("dev_")  # developers sell by definition; their pages seldom say "for sale"
+    if (not dev and not SALE.search(text)) or WANTED.search(text):
         return None
     area = _area_in(text, None)
     if not area:
         return None
+    if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
+        return None
     f = parse.facts(text)
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
+    ptype = parse._ptype(text) or "apartment"
+    if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):
+        ptype = "commercial" if re.search(r"commercial|office", hit["title"] + hit["url"], re.I) else "apartment"
+    size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
+    # No value is dropped for looking odd: sellers hide details on purpose. store.data_flags marks them to clear.
     return {**f, "title": re.sub(r"\s*[|\-–]\s*Facebook\s*$", "", hit["title"])[:200], "url": hit["url"],
             "source": spec["id"], "area": area, "purpose": "rent" if RENT.search(hit["title"]) else "sale",
-            "ptype": parse._ptype(text) or "apartment", "image": "",
-            "size_sqft": f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None),
+            "ptype": ptype, "image": "", "size_sqft": size,
             "snippet": hit["snippet"][:600], "found_via": f"{spec['engine_label']}: {query}", "evidence": "search result"}
 
 
@@ -169,7 +187,7 @@ def search_web(areas: list[str], max_queries: int | None = None, enrich: int = 1
         con.execute("INSERT INTO web_queries(q, ts, month, results, hits) VALUES(?,?,?,?,?)",
                     (q, time.time(), time.strftime("%Y-%m"), len(hits), json.dumps(hits, ensure_ascii=False)))
         if code != 200:
-            res[spec["id"]].update(status=code, error={401: "API key rejected", 403: "API key rejected", 429: "search API rate limit"}.get(code, f"search API error {code}"))
+            res[spec["id"]].update(status=code, error={400: "query rejected by the search plan (free Serper allows 10 results per search)", 401: "API key rejected", 403: "API key rejected", 429: "search API rate limit"}.get(code, f"search API error {code}"))
             continue
         for h in hits:
             r = to_listing(h, {**spec, "engine_label": "Google (Serper)" if prov == "serper" else "Brave Search"}, q, area)

@@ -1,3 +1,4 @@
+import pytest
 import json
 import threading
 import urllib.request
@@ -47,17 +48,28 @@ def test_store_dedupe_and_price_drop(tmp_path):
 
 
 def test_web_roundtrip(tmp_path, monkeypatch):
+    import http.cookiejar
+    from property_finder import auth
     monkeypatch.setattr(store, "DB", tmp_path / "w.db")
     monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "w.db",))
+    con = store.connect()
+    auth.create_user(con, "a@mra.test", "Admin", "long enough pw", role="admin", status="approved", by="test")
+    con.close()
     srv = web.serve(0, open_browser=False)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{srv.server_port}"
-    assert json.load(urllib.request.urlopen(base + "/api/config"))["areas"]["bashundhara"]
-    assert json.load(urllib.request.urlopen(base + "/api/listings"))["rows"] == []
-    assert b"/static/logo.png" in urllib.request.urlopen(base + "/").read()
+    with pytest.raises(urllib.error.HTTPError):  # signed out: no data
+        urllib.request.urlopen(base + "/api/config")
+    assert b"Request access" in urllib.request.urlopen(base + "/").read()
+    op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    op.open(urllib.request.Request(base + "/api/auth/login", json.dumps({"email": "a@mra.test", "password": "long enough pw"}).encode(),
+                                   {"Content-Type": "application/json"}))
+    assert json.load(op.open(base + "/api/config"))["areas"]["bashundhara"]
+    assert json.load(op.open(base + "/api/listings"))["rows"] == []
+    assert b"/static/logo-navy.png" in op.open(base + "/").read()
     assert urllib.request.urlopen(base + "/static/logo.png").read()[:4] == b"\x89PNG"
-    assert json.load(urllib.request.urlopen(base + "/api/assumptions"))["growth_pct"] == 6
-    assert urllib.request.urlopen(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
+    assert json.load(op.open(base + "/api/assumptions"))["growth_pct"] == 6
+    assert op.open(base + "/api/export.csv").read().decode("utf-8-sig").startswith("Name,Phone")
     srv.shutdown()
 
 
@@ -90,8 +102,8 @@ def test_robots_gate(monkeypatch):
 
 
 def test_probe_blocked_robots(monkeypatch, tmp_path):
-    for k in ("SERPER_API_KEY", "BRAVE_API_KEY"):
-        monkeypatch.delenv(k, raising=False)
+    monkeypatch.delenv("SERPER_API_KEY", raising=False)
+    monkeypatch.delenv("BRAVE_API_KEY", raising=False)
     monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, "User-agent: *\nDisallow: /\n") if u.endswith("robots.txt") else (200, ""))
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
     scrape._ROBOTS.clear()
@@ -200,3 +212,29 @@ def test_search_result_filter():
     assert not is_listing("https://www.assuregroupbd.com/property-for-sale")
     assert not is_listing("https://x.com/flats-in-gulshan-123", "18+ Flats for Sale in Gulshan")
     assert not is_listing("https://www.bproperty.com/property/x-1")                     # already crawled directly
+
+
+def test_web_hit_filters():
+    from property_finder import websearch as w
+    fb = {"id": "fb_groups", "host": r"(^|\.)facebook\.com$", "engine_label": "x"}
+    hit = {"title": "Flat for sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/2", "snippet": "3 bed 2456 sqft, price 3 crore"}
+    assert w.to_listing(hit, fb, "q", "gulshan")["size_sqft"] == 2456
+    assert w.to_listing({**hit, "url": "https://bikroy.com/x"}, fb, "q", "gulshan") is None  # wrong host
+    assert w.to_listing({**hit, "title": "Flat for sale in Gulshan e Iqbal"}, fb, "q", "gulshan") is None
+    dev = {"id": "dev_rangs", "host": r"rangsproperties\.com$", "engine_label": "x"}
+    page = {"title": "Diorama in Gulshan", "snippet": "Project", "url": "https://rangsproperties.com/projects/Diorama"}
+    assert w.to_listing(page, dev, "q", "gulshan")  # no "for sale" needed for a developer
+    assert w.to_listing({**page, "url": "https://rangsproperties.com/about-us"}, dev, "q", "gulshan") is None
+
+
+def test_absurd_values_are_kept_and_flagged(tmp_path):
+    con = store.connect(tmp_path / "f.db")
+    r = {"source": "s", "url": "https://x/1", "title": "t", "purpose": "sale", "ptype": "apartment", "area": "gulshan",
+         "price": 1250.0, "size_sqft": 2.0}
+    assert store.upsert(con, r)
+    row = con.execute("SELECT price, size_sqft, data_flags FROM listings").fetchone()
+    assert row["price"] == 1250 and row["size_sqft"] == 2  # shown as found
+    assert "price 1,250 BDT looks absurd" in row["data_flags"] and "size 2 sqft looks absurd" in row["data_flags"]
+    r2 = dict(r, url="https://x/2", price=None, size_sqft=None)
+    store.upsert(con, r2)
+    assert "price missing" in con.execute("SELECT data_flags FROM listings WHERE url='https://x/2'").fetchone()[0]
