@@ -143,6 +143,11 @@
    "q": "site:facebook.com \"{area}\" \"apartment for sale\" sqft"
   },
   {
+   "id": "bikroy_ads",
+   "name": "Bikroy ads",
+   "q": "site:bikroy.com/en/ad \"{area}\" sale"
+  },
+  {
    "id": "dev_navana",
    "name": "Navana Real Estate",
    "q": "site:navana-realestate.com {area}"

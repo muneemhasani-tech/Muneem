@@ -74,7 +74,7 @@ def _http(url: str, data: bytes | None, headers: dict) -> tuple[int, dict]:
 def run_query(prov: str, key: str, q: str) -> tuple[int, list[dict]]:
     """[{title, url, snippet, date}] from the engine."""
     if prov == "serper":
-        st, d = _http("https://google.serper.dev/search", json.dumps({"q": q, "gl": "bd", "num": 20}).encode(),
+        st, d = _http("https://google.serper.dev/search", json.dumps({"q": q, "gl": "bd", "num": 10}).encode(),  # free accounts allow 10 per query
                       {"X-API-KEY": key, "Content-Type": "application/json"})
         items = d.get("organic", [])
         return st, [{"title": i.get("title", ""), "url": i.get("link", ""), "snippet": i.get("snippet", ""),
@@ -95,9 +95,40 @@ def expand(areas: list[str]) -> list[tuple[dict, str, str]]:
     return out
 
 
+CRAWLED = re.compile(r"(?:^|\.)(bproperty\.com|bdhousing\.com|aabason\.com|homefairbd\.com|propertyfinderbd\.com|concordcps\.com)$")
+NOT_A_LISTING = re.compile(
+    r"youtube\.com|youtu\.be|wikipedia\.org|/(?:areas?|locations?|service-area|types?|phases?|category|categories|"
+    r"pages|tags?|blog|news|search)(?:/|$)|bikroy\.com/(?:bn|en)/(?!ad/)[^/]+/[^/]*for-(?:sale|rent)|[?&]q=", re.I)
+
+
+FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan-?e-?iqbal|new town,? kol", re.I)
+FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|zameen\.com|magicbricks|99acres|housing\.com|nobroker|graana|olx\.com\.pk")
+GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartments?|dhaka|bangladesh|buy|residential|commercial|ready|all|in)[-_]?)+$", re.I)
+CATEGORY_TITLE = re.compile(r"^\s*\d+\+|^\s*(?:flats|apartments|properties|plots|houses|lands)\b|price list|দাম ২০", re.I)
+
+
+def is_listing(url: str, title: str = "") -> bool:
+    """One property in Bangladesh: not a category page, an area guide, a whole group or a foreign site."""
+    u = urllib.parse.urlparse(url)
+    host, path = u.netloc.lower().removeprefix("www."), u.path.rstrip("/")
+    if CRAWLED.search(host) or FOREIGN_HOSTS.search(host) or NOT_A_LISTING.search(url) or CATEGORY_TITLE.search(title):
+        return False
+    if "facebook.com" in host:  # a post, a permalink or a Marketplace item; never a bare group or page
+        return bool(re.search(r"/posts/|/permalink/|/marketplace/item/|story_fbid|/photos?/", url))
+    if "bikroy.com" in host:
+        return "/ad/" in path
+    last = path.rsplit("/", 1)[-1]
+    if GENERIC_SLUG.match(last):
+        return False
+    return len(last) >= 12 or bool(re.search(r"\d", last))  # a real listing has a long or numbered slug
+
+
 def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None:
     from .scrape import _area_in  # same area rule as every other source
+    hit = {**hit, "title": parse.norm(hit["title"]), "snippet": parse.norm(hit["snippet"])}
     text = f"{hit['title']} {hit['snippet']}"
+    if not is_listing(hit["url"], hit["title"]) or FOREIGN.search(text):
+        return None
     if not SALE.search(text) or WANTED.search(text):
         return None
     area = _area_in(text, None)
@@ -135,7 +166,8 @@ def search_web(areas: list[str], max_queries: int | None = None, enrich: int = 1
             continue
         left -= 1
         code, hits = run_query(prov, key, q)
-        con.execute("INSERT INTO web_queries(q, ts, month, results) VALUES(?,?,?,?)", (q, time.time(), time.strftime("%Y-%m"), len(hits)))
+        con.execute("INSERT INTO web_queries(q, ts, month, results, hits) VALUES(?,?,?,?,?)",
+                    (q, time.time(), time.strftime("%Y-%m"), len(hits), json.dumps(hits, ensure_ascii=False)))
         if code != 200:
             res[spec["id"]].update(status=code, error={401: "API key rejected", 403: "API key rejected", 429: "search API rate limit"}.get(code, f"search API error {code}"))
             continue
@@ -154,6 +186,8 @@ def search_web(areas: list[str], max_queries: int | None = None, enrich: int = 1
                     r.update({k: d[k] for k in ("price", "size_sqft", "beds", "baths") if d.get(k)})
                     r["phone"] = r.get("phone") or d.get("phone", "")
                     r["evidence"] = "search result + listing page"
+            if con.execute("SELECT 1 FROM listings WHERE url=?", (r["url"],)).fetchone():
+                continue  # the same post found by another query
             res[spec["id"]]["found"] += 1
             if r["purpose"] == "rent":
                 store.add_rent(con, r)
@@ -164,3 +198,24 @@ def search_web(areas: list[str], max_queries: int | None = None, enrich: int = 1
     con.commit()
     con.close()
     return list(res.values())
+
+
+def reprocess() -> int:
+    """Re-read every cached search result with the current rules. Costs no searches."""
+    con = store.connect()
+    con.execute("DELETE FROM listings WHERE evidence LIKE 'search%'")
+    specs = {}
+    for spec, area, q in expand(list(AREA_BN)):
+        specs[q] = (spec, area)
+    n = 0
+    for q, hits in con.execute("SELECT q, hits FROM web_queries WHERE hits IS NOT NULL ORDER BY ts").fetchall():
+        if q not in specs:
+            continue
+        spec, area = specs[q]
+        for h in json.loads(hits):
+            r = to_listing(h, {**spec, "engine_label": "Google (Serper)"}, q, area)
+            if r and not con.execute("SELECT 1 FROM listings WHERE url=?", (r["url"],)).fetchone():
+                n += store.upsert(con, r) if r["purpose"] == "sale" else 0
+    con.commit()
+    con.close()
+    return n

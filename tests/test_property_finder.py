@@ -90,6 +90,8 @@ def test_robots_gate(monkeypatch):
 
 
 def test_probe_blocked_robots(monkeypatch, tmp_path):
+    for k in ("SERPER_API_KEY", "BRAVE_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
     monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, "User-agent: *\nDisallow: /\n") if u.endswith("robots.txt") else (200, ""))
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
     scrape._ROBOTS.clear()
@@ -179,3 +181,22 @@ def test_web_search_results_become_listings(tmp_path, monkeypatch):
     assert websearch.search_web(["gulshan"])[0]["new"] == 0 and len(calls) == 1  # same query not repeated within 20h
     monkeypatch.delenv("SERPER_API_KEY")
     assert "API key" in websearch.search_web(["gulshan"])[0]["error"]
+
+
+def test_bangla_and_fancy_text():
+    assert parse.facts("𝟐𝟒𝟐𝟎 𝐒𝐅𝐓 দাম ২ কোটি ৫০ লাখ")["price"] == 2.5e7
+    assert parse.facts("𝟐𝟒𝟐𝟎 𝐒𝐅𝐓")["size_sqft"] == 2420
+    assert parse.facts("৳ ৩.৫ কোটি")["price"] == 3.5e7
+
+
+def test_search_result_filter():
+    from property_finder.websearch import is_listing
+    assert is_listing("https://www.facebook.com/groups/1/posts/2/")
+    assert is_listing("https://www.facebook.com/marketplace/item/123/")
+    assert not is_listing("https://www.facebook.com/groups/1/")                       # a whole group
+    assert is_listing("https://bikroy.com/en/ad/3-bed-flat-for-sale-gulshan-for-sale-dhaka")
+    assert not is_listing("https://bikroy.com/bn/gulshan/houses-apartments-for-sale")  # category page
+    assert not is_listing("https://www.zameen.com/Flats_Apartments/Karachi_Gulshan_e_Iqbal-1.html")
+    assert not is_listing("https://www.assuregroupbd.com/property-for-sale")
+    assert not is_listing("https://x.com/flats-in-gulshan-123", "18+ Flats for Sale in Gulshan")
+    assert not is_listing("https://www.bproperty.com/property/x-1")                     # already crawled directly

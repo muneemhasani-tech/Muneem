@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS listings(
 CREATE TABLE IF NOT EXISTS rent_obs(url TEXT PRIMARY KEY, source TEXT, area TEXT, rent REAL, size_sqft REAL, seen REAL);
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS crawled(url TEXT PRIMARY KEY, lastmod TEXT, seen REAL);
-CREATE TABLE IF NOT EXISTS web_queries(q TEXT, ts REAL, month TEXT, results INT);
+CREATE TABLE IF NOT EXISTS web_queries(q TEXT, ts REAL, month TEXT, results INT, hits TEXT);
 CREATE INDEX IF NOT EXISTS ix_area ON listings(area, purpose);
 CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 """
@@ -33,6 +33,8 @@ def connect(path: Path | str = DB) -> sqlite3.Connection:
     for col in ("snippet", "found_via", "evidence"):  # added later; older databases get them on open
         if col not in have:
             con.execute(f"ALTER TABLE listings ADD COLUMN {col} TEXT DEFAULT ''")
+    if "hits" not in {r[1] for r in con.execute("PRAGMA table_info(web_queries)")}:
+        con.execute("ALTER TABLE web_queries ADD COLUMN hits TEXT")
     return con
 
 
@@ -51,6 +53,9 @@ def upsert(con: sqlite3.Connection, r: dict) -> bool:
     now = time.time()
     if r.get("price"):
         r["price"] = float(round(r["price"]))
+        ppsf = r["price"] / r["size_sqft"] if r.get("size_sqft") else None
+        if ppsf and r.get("ptype") != "land" and not 2000 <= ppsf <= 150000:
+            r["price"] = None  # impossible for Dhaka (typo, per-sqft or total-project price): leave it for a human
     lid = hashlib.sha1((r["source"] + "|" + r["url"].split("?")[0]).encode()).hexdigest()[:16]
     old = con.execute("SELECT price FROM listings WHERE id=?", (lid,)).fetchone()
     dk = dup_key(r)

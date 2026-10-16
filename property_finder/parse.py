@@ -3,15 +3,22 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 PHONE = re.compile(r"(?<!\d)(?:\+?88)?[\s-]?(01[3-9][\s-]?\d{2}[\s-]?\d{6})(?!\d)")
-PRICE = re.compile(r"(?:৳|tk\.?|bdt|taka)\s*([\d,]+(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|k)?|([\d,]+(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs)\b|([\d,]{6,})\s*(?:tk|bdt|taka)", re.I)
-SIZE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(?:sq\.?\s?-?ft|sqft|sft|square\s*feet)", re.I)
+PRICE = re.compile(r"(?:৳|tk\.?|bdt|taka)\s*(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|কোটি|লাখ|লক্ষ|k)?|(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|কোটি|লাখ|লক্ষ)(?:\b|\s|$)|([\d,]{6,})\s*(?:tk|bdt|taka)", re.I)
+SIZE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(?:sq\.?\s?-?ft|sqft|sft|square\s*feet)", re.I)
 BEDS = re.compile(r"(\d{1,2})\s*(?:bed(?:room)?s?|br\b)", re.I)
 BATHS = re.compile(r"(\d{1,2})\s*(?:bath(?:room)?s?)", re.I)
-MULT = {"crore": 1e7, "cr": 1e7, "lakh": 1e5, "lakhs": 1e5, "lac": 1e5, "k": 1e3}
+MULT = {"crore": 1e7, "cr": 1e7, "lakh": 1e5, "lakhs": 1e5, "lac": 1e5, "k": 1e3, "কোটি": 1e7, "লাখ": 1e5, "লক্ষ": 1e5}
+BN_DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
+
+
+def norm(text: str) -> str:
+    """Facebook 'bold' letters (𝟐𝟒𝟐𝟎 𝐒𝐅𝐓) and Bangla digits (২৪২০) become plain 2420 SFT."""
+    return unicodedata.normalize("NFKC", text or "").translate(BN_DIGITS)
 
 
 def clean_phone(s: str) -> str:
@@ -19,7 +26,13 @@ def clean_phone(s: str) -> str:
     return "0" + re.sub(r"[\s-]", "", m.group(1))[1:] if m else ""
 
 
+CR_LAKH = re.compile(r"(\d+(?:\.\d+)?)\s*(?:crore|cr|কোটি)\s*(\d+(?:\.\d+)?)\s*(?:lakh|lac|lakhs|লাখ|লক্ষ)", re.I)
+
+
 def parse_price(text: str) -> float | None:
+    m = CR_LAKH.search(text or "")  # "2 crore 50 lakh"
+    if m:
+        return float(m.group(1)) * 1e7 + float(m.group(2)) * 1e5
     for m in PRICE.finditer(text or ""):
         num, unit = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4)) if m.group(3) else (m.group(5), None)
         try:
@@ -31,10 +44,11 @@ def parse_price(text: str) -> float | None:
     return None
 
 
-PPSF = re.compile(r"per\s*(?:sft|sqft|sq\.?\s*ft)[^\d]{0,12}([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*(?:tk|bdt|taka|৳)?\s*(?:/|per)\s*(?:sft|sqft|sq\.?\s*ft)", re.I)
+PPSF = re.compile(r"per\s*(?:sft|sqft|sq\.?\s*ft)[^\d]{0,12}(\d[\d,]*(?:\.\d+)?)|(\d[\d,]*(?:\.\d+)?)\s*(?:tk|bdt|taka|৳)?\s*(?:/|per)\s*(?:sft|sqft|sq\.?\s*ft)", re.I)
 
 
 def facts(text: str) -> dict:
+    text = norm(text)
     size, beds, baths = SIZE.search(text), BEDS.search(text), BATHS.search(text)
     low = text.lower()
     price = parse_price(text)
