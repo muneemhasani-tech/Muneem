@@ -15,8 +15,9 @@ Routine name: "MRA Property Hunt" (ID shown in the Routines list)
 What it does:
 1. Clones this repo and finds yesterday's CSV in Google Drive ("MRA Property Hunt — YYYY-MM-DD.csv").
 2. Runs `python3 -m property_finder hunt --web-areas 2 --seen yesterday.csv --out out`:
-   * Crawls every source that allows it: Bproperty (sitemap), bdHousing, Aabason, Homefair BD,
-     Property Finder BD, Concord Property Solutions (robots.txt checked before every request)
+   * Crawls every source that allows it: bdHousing, Aabason, Homefair BD, Property Finder BD,
+     Concord Property Solutions (robots.txt checked before every request; Bproperty is skipped in the
+     cloud because its robots.txt bans AI crawlers)
    * Web search (Serper, Google results) for 2 of the 6 areas per day, rotating, so every area is
      covered every 3 days: Facebook groups (English + Bangla), plot posts, Marketplace, Facebook pages,
      Bikroy ads, Navana, Shanta, Rangs, Bashundhara, Assure, open web (English + Bangla)
@@ -24,7 +25,7 @@ What it does:
 3. Writes two Message drafts (WhatsApp, English + Bangla) for each of "Today's 3 to call":
    * Message A — approach the owner as MRA, offering to market the property and bring buyers
    * Message B — approach as a buyer's agent, only for a listing that matches a real MRA client
-4. Saves the digest to Google Drive as "MRA Property Hunt — YYYY-MM-DD" and the full list as
+4. Saves to the Google Drive folder "MRA Property Hunt": the digest as "MRA Property Hunt — YYYY-MM-DD" and the full list as
    "MRA Property Hunt — YYYY-MM-DD.csv" (this CSV is tomorrow's "seen" list)
 5. Emails the owner: Today's 3 to call (with drafts), best projected returns, price drops,
    new Facebook/web leads, link to the Drive files
@@ -52,7 +53,7 @@ next 4 PM   → reads yesterday's CSV (what is new) and the owner's replies (who
 ```mermaid
 flowchart TD
     A([4:00 PM Dhaka<br/>cloud routine starts]) --> B[Clone repo<br/>fetch yesterday's CSV from Drive]
-    B --> C[Crawl portals that allow it<br/>Bproperty, bdHousing, Aabason, Homefair,<br/>Property Finder BD, Concord<br/>robots.txt checked before every page]
+    B --> C[Crawl portals that allow it<br/>bdHousing, Aabason, Homefair,<br/>Property Finder BD, Concord<br/>robots.txt checked before every page]
     B --> D[Web search for 2 of 6 areas<br/>13 queries each: Facebook groups, Marketplace,<br/>Bikroy, developers, open web, Bangla]
     C --> E[Mark NEW<br/>not in yesterday's CSV]
     D --> E
@@ -73,8 +74,10 @@ Nothing else runs, and the routine never contacts anyone.
 * Web search: 13 queries × 2 areas = 26 Serper searches a day, about 800 a month. The free Serper
   credit (2,500) lasts about 3 months; then a paid Serper plan is needed, or set `--web-areas 1`
   (13 a day) or `--no-web` (crawl only, free).
-* Crawling is free. Bikroy and Bdstall only work from the owner's own computer (Cloudflare blocks
-  cloud servers; Bdstall's robots.txt bans AI crawlers), so the cloud run skips them.
+* Crawling is free. Bproperty, Bikroy and Bdstall only work from the owner's own computer: Bproperty's
+  and Bdstall's robots.txt ban AI crawlers (ClaudeBot, anthropic-ai), which the tool obeys whenever an AI
+  agent runs it, and Cloudflare blocks cloud servers on Bikroy. So the cloud run skips them; running
+  `python -m property_finder hunt` on the owner's computer (or opening the dashboard there) covers them.
 * Projected returns use the rent assumptions; placeholders until MRA's figures are entered.
 
 ## GOOGLE DRIVE NAMING CONVENTION
