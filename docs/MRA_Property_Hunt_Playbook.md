@@ -47,6 +47,28 @@ if MRA has better figures.
 7 PM owner  → contact today's 3 → one-line reply per lead
 next 4 PM   → reads yesterday's CSV (what is new) and the owner's replies (who to skip)
 
+## FLOW CHART (the whole day)
+
+```mermaid
+flowchart TD
+    A([4:00 PM Dhaka<br/>cloud routine starts]) --> B[Clone repo<br/>fetch yesterday's CSV from Drive]
+    B --> C[Crawl portals that allow it<br/>Bproperty, bdHousing, Aabason, Homefair,<br/>Property Finder BD, Concord<br/>robots.txt checked before every page]
+    B --> D[Web search for 2 of 6 areas<br/>13 queries each: Facebook groups, Marketplace,<br/>Bikroy, developers, open web, Bangla]
+    C --> E[Mark NEW<br/>not in yesterday's CSV]
+    D --> E
+    E --> F[Flag hidden or absurd price and size<br/>Clear with seller, never dropped]
+    F --> G[Rank by projected return<br/>pick Today's 3 to call, owners first]
+    G --> H[Draft WhatsApp messages<br/>English and Bangla]
+    H --> I[Save digest and CSV to Drive<br/>CSV becomes tomorrow's seen list]
+    I --> J([Email and phone push to owner])
+    J --> K{{7:00 PM: the ONE daily task<br/>call or WhatsApp the 3<br/>reply with one line per lead}}
+    K --> L([Next 4:00 PM run reads replies<br/>and skips not interested])
+    I -. Fridays only .-> M[Weekly roll-up<br/>from the last 7 digests]
+```
+
+Task budget: one cloud run and one owner task each day (a second 10-minute task on Fridays).
+Nothing else runs, and the routine never contacts anyone.
+
 ## COSTS AND LIMITS
 * Web search: 13 queries × 2 areas = 26 Serper searches a day, about 800 a month. The free Serper
   credit (2,500) lasts about 3 months; then a paid Serper plan is needed, or set `--web-areas 1`
