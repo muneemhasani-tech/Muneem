@@ -1,5 +1,6 @@
 """python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
-   | reset-password EMAIL | build-html OUT.html"""
+   | reset-password EMAIL | build-html OUT.html
+   | hunt [--web-areas N] [--seen YESTERDAY.csv] [--out DIR] [--no-web]   (unattended daily run)"""
 import getpass
 import sys
 
@@ -28,6 +29,14 @@ if cmd == "probe":
         print(f"{r['name']:<40} robots: {r['robots'] or '-':<34} HTTP {str(r['status']) or '-':<4} listings: {r['listings']:<3} {r['verdict']}")
     ok = sum(r["verdict"].startswith("CRAWLABLE") for r in rows)
     print(f"\n{ok} of {sum(not r['name'].startswith('Search:') for r in rows)} auto sites crawlable; {len(rows)} sources total.")
+elif cmd == "hunt":
+    from . import hunt
+
+    def opt(name, default=None):
+        return args[args.index(name) + 1] if name in args else default
+    info = hunt.run(web_areas=int(opt("--web-areas", 2)), seen=opt("--seen"), out=opt("--out", "."),
+                    do_web="--no-web" not in args)
+    print(f"{info['new']} new of {info['listings']} listings\ndigest: {info['digest']}\ncsv: {info['csv']}")
 elif cmd == "admin":
     email = input("Admin email: ").strip()
     name = input("Admin name: ").strip()

@@ -238,3 +238,23 @@ def test_absurd_values_are_kept_and_flagged(tmp_path):
     r2 = dict(r, url="https://x/2", price=None, size_sqft=None)
     store.upsert(con, r2)
     assert "price missing" in con.execute("SELECT data_flags FROM listings WHERE url='https://x/2'").fetchone()[0]
+
+
+def test_hunt_rotation_and_digest(tmp_path):
+    import datetime as dt
+    from property_finder import hunt
+    days = [hunt.todays_web_areas(2, dt.date(2026, 11, d)) for d in (17, 18, 19)]
+    assert sorted(a for d in days for a in d) == sorted(hunt.AREAS)  # every area once in three days
+    con = store.connect(tmp_path / "h.db")
+    store.upsert(con, dict(source="a", url="https://a/1", title="3 bed flat Gulshan", purpose="sale", ptype="apartment",
+                           area="gulshan", price=3.2e7, size_sqft=1850, beds=3, phone="01711223344", is_owner=1))
+    con.commit()
+    rows = store.query(con)
+    for r in rows:
+        r["is_new"] = True
+    md = hunt.digest(rows, [{"source": "a", "found": 1, "error": ""}], ["gulshan"], "2026-11-17", True,
+                     {"used_this_month": 26})
+    assert "**1 new**" in md and "01711223344" in md and "| Gulshan | 1 | 1 |" in md
+    seen = tmp_path / "y.csv"
+    seen.write_text("Name,Phone,Email,Website\n,,,https://a/1\n", encoding="utf-8")
+    assert hunt.read_seen(str(seen)) == {"https://a/1"}
