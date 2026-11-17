@@ -1,90 +1,69 @@
-# MRA Property Hunt — Daily Automated Listing Pipeline
+# MRA Property Scout — Lean Daily Pipeline
 Process documentation — copy into any new session for context
 
 ## WHAT THIS IS
-A daily automation that hunts new for-sale listings in Gulshan, Banani, Purbachal, Uttara, Dhanmondi and
-Bashundhara R/A with the Property Finder tool (`property_finder/` in this repo), ranks them by projected
-return, and hands the owner one short list to act on. The owner's part is limited to **one task a day**
-(plus one short extra on Fridays).
+One cloud agent, once a day, runs about 20 targeted Google searches for property for sale in Gulshan,
+Banani, Purbachal, Uttara, Dhanmondi and Bashundhara R/A, keeps only listings it has never seen before,
+and emails the owner. The owner does one task a day.
 
-## HOW IT WORKS
+No site is crawled. Listings come from Google's own title and snippet, through the Serper API, so sites
+that block crawlers (Bproperty, Bikroy, Bdstall, Facebook) are still covered.
 
-### LAYER 1 — Cloud Agent: Daily Property Hunt (4:00 PM Dhaka = 10:00 UTC, every day)
-Platform: Claude Code Routines (cloud-scheduled agent, fresh session each run)
-Routine name: "MRA Property Hunt" (ID shown in the Routines list)
-What it does:
-1. Clones this repo and finds yesterday's CSV in Google Drive ("MRA Property Hunt — YYYY-MM-DD.csv").
-2. Runs `python3 -m property_finder hunt --web-areas 2 --seen yesterday.csv --out out`:
-   * Crawls every source that allows it: bdHousing, Aabason, Homefair BD, Property Finder BD,
-     Concord Property Solutions (robots.txt checked before every request; Bproperty is skipped in the
-     cloud because its robots.txt bans AI crawlers)
-   * Web search (Serper, Google results) for 2 of the 6 areas per day, rotating, so every area is
-     covered every 3 days: Facebook groups (English + Bangla), plot posts, Marketplace, Facebook pages,
-     Bikroy ads, Navana, Shanta, Rangs, Bashundhara, Assure, open web (English + Bangla)
-   * Marks a listing NEW when it was not in yesterday's CSV
-3. Writes two Message drafts (WhatsApp, English + Bangla) for each of "Today's 3 to call":
-   * Message A — approach the owner as MRA, offering to market the property and bring buyers
-   * Message B — approach as a buyer's agent, only for a listing that matches a real MRA client
-4. Saves to the Google Drive folder "MRA Property Hunt": the digest as "MRA Property Hunt — YYYY-MM-DD" and the full list as
-   "MRA Property Hunt — YYYY-MM-DD.csv" (this CSV is tomorrow's "seen" list)
-5. Emails the owner: Today's 3 to call (with drafts), best projected returns, price drops,
-   new Facebook/web leads, link to the Drive files
-6. Fridays only: adds a weekly roll-up from the last 7 Drive digests (new listings per area,
-   price per sqft movement, which sources found the most)
+## THE SEARCHES (property_finder/scout.json, edit freely)
+Every day, for each of the 6 areas (12 searches, past week only, so results are fresh):
+* `site:facebook.com/groups "Gulshan" flat sale`
+* `site:facebook.com/groups গুলশান ফ্ল্যাট OR প্লট বিক্রি`
 
-It never contacts anyone. Only the owner sends messages.
+Plus 8 from a rotating pool, a different slice each day (about 260 combinations, so it takes about a month
+to repeat):
+* `site:bproperty.com/property "Gulshan" duplex sale`
+* `site:bikroy.com "Banani" used flat sale`
+* `site:bdhousing.com/details "Purbachal" plot sale`
+* `site:bdstall.com "Dhanmondi" ready flat sale`
+* `site:facebook.com/groups "Gulshan" "10 katha"` (3, 5, 10, 20 katha; past month)
+* `site:facebook.com/marketplace "Uttara" apartment for sale` (past month)
+* `site:facebook.com "Bashundhara" flat sale sqft` (Facebook pages; past week)
+* `"Purbachal" "5 katha" plot sale -site:facebook.com` (open web; past month)
 
-### LAYER 2 — Owner (7:00 PM Dhaka, about 20 minutes): the ONE daily task
-1. Open the "MRA Property Hunt — YYYY-MM-DD" email.
-2. Call or WhatsApp the 3 people under "Today's 3 to call", using the drafts.
-3. Reply to the email with one line per lead: `called / no answer / interested / not interested`.
-   (Tomorrow's run reads the replies and drops "not interested" leads from the call list.)
+## NO REPEATS
+`master.csv` in Google Drive holds every listing ever found. A result is new only if neither its URL nor
+any fingerprint is already there:
+* phone + area + size
+* area + size + price
+* the first 120 letters of the post text (catches the same ad reposted in many Facebook groups)
 
-Fridays, extra 10 minutes: read the weekly roll-up and update the rent assumptions in the dashboard
-if MRA has better figures.
+Results that are not one property are dropped: category pages, whole groups, "wanted" posts, YouTube,
+Pakistan/India sites (Gulshan-e-Iqbal, Kolkata's Purbachal), and anything outside the six areas.
 
-## DATA FLOW
-4 PM cloud  → crawl + 2-area web search → digest + CSV to Drive → email to owner
-7 PM owner  → contact today's 3 → one-line reply per lead
-next 4 PM   → reads yesterday's CSV (what is new) and the owner's replies (who to skip)
-
-## FLOW CHART (the whole day)
+## THE DAY
 
 ```mermaid
 flowchart TD
-    A([4:00 PM Dhaka<br/>cloud routine starts]) --> B[Clone repo<br/>fetch yesterday's CSV from Drive]
-    B --> C[Crawl portals that allow it<br/>bdHousing, Aabason, Homefair,<br/>Property Finder BD, Concord<br/>robots.txt checked before every page]
-    B --> D[Web search for 2 of 6 areas<br/>13 queries each: Facebook groups, Marketplace,<br/>Bikroy, developers, open web, Bangla]
-    C --> E[Mark NEW<br/>not in yesterday's CSV]
-    D --> E
-    E --> F[Flag hidden or absurd price and size<br/>Clear with seller, never dropped]
-    F --> G[Rank by projected return<br/>pick Today's 3 to call, owners first]
-    G --> H[Draft WhatsApp messages<br/>English and Bangla]
-    H --> I[Save digest and CSV to Drive<br/>CSV becomes tomorrow's seen list]
-    I --> J([Email and phone push to owner])
-    J --> K{{7:00 PM: the ONE daily task<br/>call or WhatsApp the 3<br/>reply with one line per lead}}
-    K --> L([Next 4:00 PM run reads replies<br/>and skips not interested])
-    I -. Fridays only .-> M[Weekly roll-up<br/>from the last 7 digests]
+    A([3:59 PM Dhaka: cloud routine]) --> B[Download master.csv from Drive]
+    B --> C[python -m property_finder scout --master master.csv]
+    C --> D[About 20 Google searches<br/>12 Facebook group searches + 8 rotating site: searches]
+    D --> E[Keep only new: URL and fingerprints not in master]
+    E --> F[Upload leads-DATE.csv and the new master.csv to Drive]
+    F --> G([Email digest + push: Today's 3 to call, with WhatsApp drafts])
+    G --> H{{7:00 PM: owner's ONE task<br/>call or WhatsApp the 3<br/>reply one line per lead}}
+    H --> A
 ```
 
-Task budget: one cloud run and one owner task each day (a second 10-minute task on Fridays).
-Nothing else runs, and the routine never contacts anyone.
+Owner, 7 PM, about 20 minutes: open the email, contact the 3, reply with one line per lead
+(called / no answer / interested / not interested / sold). The next run leaves out anyone marked
+not interested or sold.
 
-## COSTS AND LIMITS
-* Web search: 13 queries × 2 areas = 26 Serper searches a day, about 800 a month. The free Serper
-  credit (2,500) lasts about 3 months; then a paid Serper plan is needed, or set `--web-areas 1`
-  (13 a day) or `--no-web` (crawl only, free).
-* Crawling is free. Bproperty, Bikroy and Bdstall only work from the owner's own computer: Bproperty's
-  and Bdstall's robots.txt ban AI crawlers (ClaudeBot, anthropic-ai), which the tool obeys whenever an AI
-  agent runs it, and Cloudflare blocks cloud servers on Bikroy. So the cloud run skips them; running
-  `python -m property_finder hunt` on the owner's computer (or opening the dashboard there) covers them.
-* Projected returns use the rent assumptions; placeholders until MRA's figures are entered.
+## COST
+About 20 Serper searches a day, about 600 a month: the free 2,500 lasts about 4 months, then Serper's
+paid plan. Change `extra_per_day` in scout.json to spend more or less.
 
-## GOOGLE DRIVE NAMING CONVENTION
-"MRA Property Hunt — YYYY-MM-DD"       digest (Google Doc)
-"MRA Property Hunt — YYYY-MM-DD.csv"   full listing export, tomorrow's "seen" list
-Never overwrite an earlier day's file.
+## DRIVE (folder "MRA Property Hunt")
+* `master.csv`: every listing ever found (the memory; replaced each day, older copy renamed `master_prev_DATE.csv`)
+* `leads-YYYY-MM-DD.csv`: that day's new listings only
+* `MRA Property Scout — YYYY-MM-DD`: that day's digest (Google Doc)
 
 ## RUN BY HAND
-`python3 -m property_finder hunt --web-areas 2 --seen yesterday.csv --out reports`
-Prints the number of new listings and the paths of the digest and CSV.
+`SERPER_API_KEY=... python3 -m property_finder scout --master master.csv --out out`
+
+The full dashboard (`python -m property_finder`) and the crawler-based `hunt` command are still in the
+repo for deeper research on the owner's own computer, but the daily process uses only `scout`.
