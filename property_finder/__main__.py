@@ -1,7 +1,6 @@
 """python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
    | reset-password EMAIL | build-html OUT.html
-   | scout [--master master.csv] [--out DIR] [--extra N]   (lean daily run: targeted Google searches only)
-   | hunt [--web-areas N] [--seen YESTERDAY.csv] [--out DIR] [--no-web]   (unattended daily run)"""
+   | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)"""
 import getpass
 import sys
 
@@ -33,17 +32,10 @@ if cmd == "probe":
 elif cmd == "scout":
     from . import scout
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
-    info = scout.run(master=opt("--master"), out=opt("--out", "out"), extra=int(opt("--extra")) if opt("--extra") else None)
+    info = scout.run(master=opt("--master"), out=opt("--out", "out"), seen=opt("--seen"),
+                     extra=int(opt("--extra")) if opt("--extra") else None)
     print(f"{info['new']} new, {info['duplicates']} repeats skipped, {info['searches']} searches\n"
-          f"leads: {info['leads']}\nmaster: {info['master']}\ndigest: {info['digest']}")
-elif cmd == "hunt":
-    from . import hunt
-
-    def opt(name, default=None):
-        return args[args.index(name) + 1] if name in args else default
-    info = hunt.run(web_areas=int(opt("--web-areas", 2)), seen=opt("--seen"), out=opt("--out", "."),
-                    do_web="--no-web" not in args)
-    print(f"{info['new']} new of {info['listings']} listings\ndigest: {info['digest']}\ncsv: {info['csv']}")
+          f"leads: {info['leads']}\ndigest: {info['digest']}\nseen: {info['seen']}")
 elif cmd == "admin":
     email = input("Admin email: ").strip()
     name = input("Admin name: ").strip()

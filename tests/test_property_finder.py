@@ -240,26 +240,6 @@ def test_absurd_values_are_kept_and_flagged(tmp_path):
     assert "price missing" in con.execute("SELECT data_flags FROM listings WHERE url='https://x/2'").fetchone()[0]
 
 
-def test_hunt_rotation_and_digest(tmp_path):
-    import datetime as dt
-    from property_finder import hunt
-    days = [hunt.todays_web_areas(2, dt.date(2026, 11, d)) for d in (17, 18, 19)]
-    assert sorted(a for d in days for a in d) == sorted(hunt.AREAS)  # every area once in three days
-    con = store.connect(tmp_path / "h.db")
-    store.upsert(con, dict(source="a", url="https://a/1", title="3 bed flat Gulshan", purpose="sale", ptype="apartment",
-                           area="gulshan", price=3.2e7, size_sqft=1850, beds=3, phone="01711223344", is_owner=1))
-    con.commit()
-    rows = store.query(con)
-    for r in rows:
-        r["is_new"] = True
-    md = hunt.digest(rows, [{"source": "a", "found": 1, "error": ""}], ["gulshan"], "2026-11-17", True,
-                     {"used_this_month": 26})
-    assert "**1 new**" in md and "01711223344" in md and "| Gulshan | 1 | 1 |" in md
-    seen = tmp_path / "y.csv"
-    seen.write_text("Name,Phone,Email,Website\n,,,https://a/1\n", encoding="utf-8")
-    assert hunt.read_seen(str(seen)) == {"https://a/1"}
-
-
 def test_job_survives_a_crashing_source(tmp_path, monkeypatch):
     monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "j.db",))
     monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
@@ -274,19 +254,6 @@ def test_job_survives_a_crashing_source(tmp_path, monkeypatch):
         pass
     s = job.snapshot()
     assert not s["running"] and "crashed: database is locked" in s["results"][0]["error"]
-
-
-def test_call_list_prefers_different_direct_numbers():
-    from property_finder import hunt
-    base = dict(url="https://x/{}", title="t", area="gulshan", ptype="apartment", total=40, data_flags="", is_owner=None)
-    rows = [dict(base, url=f"https://x/{i}", phone="01969953555", total=60) for i in range(5)]  # agency hotline
-    rows += [dict(base, url="https://x/a", phone="01711111111", total=45),
-             dict(base, url="https://x/b", phone="01722222222", total=44),
-             dict(base, url="https://x/c-rent", phone="01733333333", total=99),           # a rent ad in a sale list
-             dict(base, url="https://x/d", phone="01744444444", total=99, data_flags="price 1,000 BDT looks absurd")]
-    hunt.mark_agencies(rows)
-    calls = hunt.pick_calls(rows)
-    assert [c["phone"] for c in calls] == ["01711111111", "01722222222", "01969953555"]
 
 
 def test_scout_plan_dedupe_and_filters(tmp_path, monkeypatch):
@@ -306,5 +273,23 @@ def test_scout_plan_dedupe_and_filters(tmp_path, monkeypatch):
     monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (200, hits))
     r1 = scout.run(None, out=str(tmp_path / "d1"), extra=0, day=dt.date(2026, 11, 18))
     assert r1["new"] == 1 and r1["duplicates"] >= 1                          # the repost is caught
-    r2 = scout.run(r1["master"], out=str(tmp_path / "d2"), extra=0, day=dt.date(2026, 11, 19))
+    r2 = scout.run(None, out=str(tmp_path / "d2"), extra=0, day=dt.date(2026, 11, 19), seen=r1["seen"])
     assert r2["new"] == 0                                                     # nothing repeats the next day
+
+
+def test_scout_seen_file_calls_and_drafts(tmp_path):
+    import datetime as dt
+    from property_finder import scout
+    day = dt.date(2026, 11, 20)
+    p = tmp_path / "seen.tsv"
+    p.write_text("aaaaaaaa\t2026-11-19\nbbbbbbbb\t2026-09-01\n", encoding="utf-8")
+    _, keep = scout.read_seen(str(p), day)
+    assert list(keep) == ["aaaaaaaa"]                                   # old hashes are forgotten, so the file stays small
+    row = lambda **k: {"title": "Flat sale", "snippet": "", "area": "gulshan", "type": "apartment", "phone": "", "price_bdt": 3e7,
+                       "size_sqft": 1800, "gross_yield_pct": "", **k}
+    rows = [row(phone="017", snippet="owner direct"), row(phone="017"), row(phone="018"), row()]
+    calls = scout.top_calls(rows)
+    assert [r["phone"] for r in calls] == ["017", "018", ""] and calls[0]["snippet"] == "owner direct"   # one call per number
+    en, bn = scout.drafts(calls[0])
+    assert "MRA Real Estate" in en and "গুলশান" in bn and "Flat sale" in en
+    assert scout.flag(row(price_bdt="", size_sqft="")) == "price missing - ask seller; size missing - ask seller"

@@ -1,13 +1,14 @@
 """The lean daily process: targeted Google searches only, new listings only.
 
-    python -m property_finder scout --master master.csv --out out
+    python -m property_finder scout --seen seen.tsv --out out
 
 One run = about 20 searches (2 per area every day for Facebook groups, plus a rotating slice of
 site:bproperty.com / site:bikroy.com / bdHousing / Bdstall / plot / Marketplace searches). Results are
 read from Google's title and snippet, so no site is crawled. A listing is new only if neither its URL
 nor its fingerprint (phone, size + price, or the post's text) is in the master list; reposts of the same
-ad in other Facebook groups count as duplicates. Writes leads-DATE.csv (today's new only), the updated
-master CSV and a short digest.
+ad in other Facebook groups count as duplicates. Writes leads-DATE.csv (today's new only), a short digest
+with today's 3 calls and ready WhatsApp drafts, and seen.tsv: the only memory a cloud run needs, small enough
+to carry between days (hashes of the last 14 days). `--master master.csv` still works for a full history.
 """
 from __future__ import annotations
 
@@ -20,7 +21,7 @@ import random
 import re
 from pathlib import Path
 
-from . import parse, roi, websearch
+from . import parse, roi, scrape, store, websearch
 from .scrape import AREAS
 
 CONF = json.loads((Path(__file__).parent / "scout.json").read_text(encoding="utf-8"))
@@ -60,6 +61,28 @@ def fingerprints(r: dict) -> list[str]:
     return fps
 
 
+SEEN_DAYS = 14
+
+
+def _h(x: str) -> str:
+    return hashlib.sha1(x.encode()).hexdigest()[:8]
+
+
+def read_seen(path: str | None, day: dt.date) -> tuple[set[str], dict[str, str]]:
+    """Hashes of listings found in the last SEEN_DAYS days: {hash} and {hash: date} to write back."""
+    keep = {}
+    if path and Path(path).exists():
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            k, _, d = line.partition("\t")
+            if k and d and (day - dt.date.fromisoformat(d)).days <= SEEN_DAYS:
+                keep[k] = d
+    return set(keep), keep
+
+
+def write_seen(path: Path, keep: dict[str, str]) -> None:
+    path.write_text("".join(f"{k}\t{d}\n" for k, d in sorted(keep.items())), encoding="utf-8")
+
+
 def read_master(path: str | None) -> tuple[list[dict], set[str], set[str]]:
     if not path or not Path(path).exists():
         return [], set(), set()
@@ -68,9 +91,11 @@ def read_master(path: str | None) -> tuple[list[dict], set[str], set[str]]:
     return rows, {r["url"] for r in rows}, {fp for r in rows for fp in (r.get("fingerprints") or "").split("|") if fp}
 
 
-def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.date | None = None) -> dict:
+def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.date | None = None, seen: str | None = None,
+        enrich_top: int = 3) -> dict:
     day = day or dt.date.today()
     old, seen_urls, seen_fps = read_master(master)
+    seen_h, seen_keep = read_seen(seen, day)
     prov, key = websearch.provider_from_env()
     if not key:
         raise SystemExit("Set SERPER_API_KEY (or BRAVE_API_KEY) first.")
@@ -83,11 +108,14 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
             if not r or r["purpose"] != "sale":
                 continue
             fps = fingerprints(r)
-            if r["url"] in seen_urls or any(fp in seen_fps for fp in fps):
+            hs = [_h("u" + r["url"])] + [_h(fp) for fp in fps]
+            if r["url"] in seen_urls or any(fp in seen_fps for fp in fps) or any(x in seen_h for x in hs):
                 dups += 1
                 continue
             seen_urls.add(r["url"])
             seen_fps.update(fps)
+            seen_h.update(hs)
+            seen_keep.update({x: day.isoformat() for x in hs})
             p = roi.project(r, roi.DEFAULTS, {})
             new.append({"date": day.isoformat(), "area": r["area"], "type": r["ptype"], "title": r["title"],
                         "price_bdt": int(r["price"]) if r.get("price") else "", "size_sqft": int(r["size_sqft"]) if r.get("size_sqft") else "",
@@ -98,11 +126,68 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
         log.append((spec["label"], spec["q"], code, len(hits), kept))
     outdir = Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
-    paths = {"leads": outdir / f"leads-{day}.csv", "master": outdir / "master.csv", "digest": outdir / f"digest-{day}.md"}
+    paths = {"leads": outdir / f"leads-{day}.csv", "master": outdir / "master.csv", "digest": outdir / f"digest-{day}.md",
+             "seen": outdir / "seen.tsv"}
+    for r in top_calls(new)[:enrich_top]:
+        fill_from_page(r)
     write_csv(paths["leads"], new)
-    write_csv(paths["master"], old + new)
+    if master:
+        write_csv(paths["master"], old + new)  # optional full history; the seen file is all a daily run needs
+    write_seen(paths["seen"], seen_keep)
     paths["digest"].write_text(digest(day, new, dups, log, len(old) + len(new)), encoding="utf-8")
     return {"new": len(new), "duplicates": dups, "searches": len(log), **{k: str(v) for k, v in paths.items()}}
+
+
+OWNER = re.compile(r"\bowner\b|direct|no broker|without broker|মালিক", re.I)
+
+
+def top_calls(new: list[dict], n: int = 3) -> list[dict]:
+    """Whom to call first: a number to ring, owner wording, a stated price and size. One call per number: one agent can own dozens of ads."""
+    def score(r):
+        return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + bool(r["price_bdt"]) + bool(r["size_sqft"])
+    out, used = [], set()
+    for r in sorted(new, key=lambda r: (-score(r), -float(r["gross_yield_pct"] or 0))):
+        if r["phone"] and r["phone"] in used:
+            continue
+        used.add(r["phone"])
+        out.append(r)
+        if len(out) == n:
+            break
+    return out
+
+
+def fill_from_page(r: dict) -> None:
+    """Open the listing page, only where the site's robots.txt allows it, for a phone or price the snippet lacked."""
+    if re.search(r"facebook\.com|google\.|bproperty\.com|bikroy\.com", r["url"]):
+        return  # these block crawlers: Google's snippet is all we use
+    try:
+        if not scrape.may_fetch(r["url"])[0]:
+            return
+        import time
+        time.sleep(max(1.5, scrape.crawl_delay(r["url"])))
+        st, page = scrape.fetch(r["url"])
+        d = parse.detail_record(page, r["url"]) if st == 200 else None
+    except Exception:  # noqa: BLE001
+        return
+    if d:
+        r["phone"] = r["phone"] or d.get("phone", "")
+        r["price_bdt"] = r["price_bdt"] or (int(d["price"]) if d.get("price") else "")
+        r["size_sqft"] = r["size_sqft"] or (int(d["size_sqft"]) if d.get("size_sqft") else "")
+
+
+def flag(r: dict) -> str:
+    return store.data_flags({"price": float(r["price_bdt"] or 0) or None, "size_sqft": float(r["size_sqft"] or 0) or None,
+                             "ptype": r["type"]})
+
+
+def drafts(r: dict) -> tuple[str, str]:
+    """Two ready WhatsApp messages (English, Bangla). The owner sends them; nothing is sent automatically."""
+    what, area = r["title"][:70], r["area"].capitalize()
+    bn = websearch.AREA_BN.get(r["area"], area)
+    return (f'Assalamu alaikum. I am from MRA Real Estate. I saw your listing "{what}" in {area}. Is it still available? We work with '
+            f"verified buyers. Could you confirm the final price, size and floor, and whether the papers are ready to view?",
+            f'আসসালামু আলাইকুম। আমি MRA Real Estate থেকে বলছি। {bn}-এ আপনার "{what}" বিজ্ঞাপনটি দেখেছি। এটি কি এখনও খালি আছে? '
+            f"আমাদের যাচাইকৃত ক্রেতা আছে। চূড়ান্ত দাম, সাইজ ও ফ্লোর জানাবেন কি? কাগজপত্র দেখার জন্য প্রস্তুত কি?")
 
 
 def write_csv(path: Path, rows: list[dict]) -> None:
@@ -125,14 +210,16 @@ def _line(r: dict) -> str:
 def digest(day, new, dups, log, total) -> str:
     b = io.StringIO()
     w = b.write
-    w(f"# MRA Property Scout — {day}\n\n**{len(new)} new** listings ({dups} repeats skipped) from {len(log)} Google searches. Master list: {total}.\n\n")
-    calls, used = [], set()
-    for r in sorted([r for r in new if r["phone"]], key=lambda r: (not r["price_bdt"], -float(r["gross_yield_pct"] or 0))):
-        if r["phone"] not in used:
-            calls.append(r)
-            used.add(r["phone"])
+    w(f"# MRA Property Scout — {day}\n\n**{len(new)} new** listings ({dups} repeats skipped) from {len(log)} Google searches.\n\n")
+    calls = top_calls(new)
     w("## Today's 3 to call\n")
-    w("".join(_line(r) + "\n" for r in calls[:3]) or "- No new listing with a phone number today; open the posts below.\n")
+    for i, r in enumerate(calls, 1):
+        en, bn = drafts(r)
+        w(f"{i}. {_line(r)[2:]}\n")
+        w((f"   - Clear with seller: {flag(r)}\n" if flag(r) else "") + (f"   - No number shown: open the post and message there\n" if not r["phone"] else ""))
+        w(f"   > {en}\n   >\n   > {bn}\n")
+    if not calls:
+        w("- No new listing today. Tomorrow's searches use a different slice.\n")
     w("\n## New by area\n\n| Area | New | With phone | Median ৳/sqft |\n|---|---|---|---|\n")
     for a in AREAS:
         ar = [r for r in new if r["area"] == a]
