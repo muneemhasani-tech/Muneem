@@ -31,7 +31,8 @@ CREATE INDEX IF NOT EXISTS ix_dup ON listings(dup_key);
 
 def connect(path: Path | str = DB) -> sqlite3.Connection:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(str(path), check_same_thread=False)
+    con = sqlite3.connect(str(path), check_same_thread=False, timeout=60)  # crawler threads write in parallel
+    con.execute("PRAGMA journal_mode=WAL")
     con.row_factory = sqlite3.Row
     con.executescript(SCHEMA)
     have = {r[1] for r in con.execute("PRAGMA table_info(listings)")}

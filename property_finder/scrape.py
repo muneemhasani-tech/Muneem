@@ -213,6 +213,7 @@ def search_sitemap(src: dict, area: str, details: int) -> dict:
         time.sleep(max(1.5, crawl_delay(url)))
         st, page = fetch(url)
         con.execute("INSERT OR REPLACE INTO crawled(url,lastmod,seen) VALUES(?,?,?)", (url, lastmod, time.time()))
+        con.commit()  # never hold the write lock across the next fetch and pause
         r = parse.detail_record(page, url) if st == 200 else None
         if not r or not r["purpose"]:
             continue
@@ -321,17 +322,22 @@ class Job:
                     self.state["done"] += 1
                 return
             with by_src[src["id"]]:  # one request at a time per site, with a pause
-                r = (search_sitemap(src, a, details) if p == "sitemap" else search_list(src, details) if p == "list"
-                     else search_source(src, a, p, ty, q, details))
+                try:
+                    r = (search_sitemap(src, a, details) if p == "sitemap" else search_list(src, details) if p == "list"
+                         else search_source(src, a, p, ty, q, details))
+                except Exception as exc:  # noqa: BLE001  one broken source must not stop the run
+                    r = {"source": src["id"], "url": "", "status": 0, "found": 0, "new": 0, "error": f"crashed: {exc}"[:200]}
                 time.sleep(1.5)
             with self.lock:
                 self.state["results"].append({**r, "area": a, "purpose": p, "ptype": ty, "benchmark": p == "rent"})
                 self.state["done"] += 1
 
-        with ThreadPoolExecutor(max_workers=8) as ex:
-            list(ex.map(one, tasks))
-        with self.lock:
-            self.state["running"] = False
+        try:
+            with ThreadPoolExecutor(max_workers=8) as ex:
+                list(ex.map(one, tasks))
+        finally:  # never leave the job "running" forever (a scheduled run would wait for ever)
+            with self.lock:
+                self.state["running"] = False
 
     def snapshot(self) -> dict:
         with self.lock:
