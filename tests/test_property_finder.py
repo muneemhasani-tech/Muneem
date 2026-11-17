@@ -287,3 +287,24 @@ def test_call_list_prefers_different_direct_numbers():
     hunt.mark_agencies(rows)
     calls = hunt.pick_calls(rows)
     assert [c["phone"] for c in calls] == ["01711111111", "01722222222", "01969953555"]
+
+
+def test_scout_plan_dedupe_and_filters(tmp_path, monkeypatch):
+    import datetime as dt
+    from property_finder import scout, websearch as w
+    a, b = scout.plan(dt.date(2026, 11, 18)), scout.plan(dt.date(2026, 11, 19))
+    assert len(a) == 12 + scout.CONF["extra_per_day"]
+    assert not {x["q"] for x in a[12:]} & {x["q"] for x in b[12:]}          # a different rotating slice each day
+    assert w.is_listing("https://www.bdhousing.com/details/245411/2390-sqft-used-apartment-banani", "2390 sqft", portals_ok=True)  # not "housing.com"
+    assert w.is_listing("https://bikroy.com/gulshan/houses-apartments-for-sale/3bdrm-apartment-in-gulshan", portals_ok=True)
+    assert not w.is_listing("https://bikroy.com/gulshan/houses-apartments-for-sale", portals_ok=True)
+    hits = [{"title": "Flat sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/2/",
+             "snippet": "Ready flat for sale at North Gulshan, 2650 sft, 4th floor, 3 bed, price 3.5 crore, call 01711348757 now please"},
+            {"title": "Flat sale Gulshan North", "url": "https://www.facebook.com/groups/9/posts/8/",       # same ad, another group
+             "snippet": "Ready flat for sale at North Gulshan, 2650 sft, 4th floor, 3 bed, price 3.5 crore, call 01711348757 now please"}]
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (200, hits))
+    r1 = scout.run(None, out=str(tmp_path / "d1"), extra=0, day=dt.date(2026, 11, 18))
+    assert r1["new"] == 1 and r1["duplicates"] >= 1                          # the repost is caught
+    r2 = scout.run(r1["master"], out=str(tmp_path / "d2"), extra=0, day=dt.date(2026, 11, 19))
+    assert r2["new"] == 0                                                     # nothing repeats the next day

@@ -1,0 +1,72 @@
+{
+ "_about": "Daily targeted Google searches (via Serper). 'daily' runs every day for every area; 'pool' is rotated, a fresh slice each day. {area}, {area_bn}, {variant}, {katha} are filled in. tbs: qdr:d day, qdr:w week, qdr:m month, empty = any time.",
+ "extra_per_day": 8,
+ "daily": [
+  {
+   "label": "Facebook groups",
+   "q": "site:facebook.com/groups \"{area}\" flat sale",
+   "tbs": "qdr:w"
+  },
+  {
+   "label": "Facebook groups (Bangla)",
+   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট OR প্লট বিক্রি",
+   "tbs": "qdr:w"
+  }
+ ],
+ "pool": [
+  {
+   "label": "Bproperty",
+   "q": "site:bproperty.com/property \"{area}\" {variant}",
+   "tbs": ""
+  },
+  {
+   "label": "Bikroy",
+   "q": "site:bikroy.com \"{area}\" {variant}",
+   "tbs": ""
+  },
+  {
+   "label": "bdHousing",
+   "q": "site:bdhousing.com/details \"{area}\" {variant}",
+   "tbs": ""
+  },
+  {
+   "label": "Bdstall",
+   "q": "site:bdstall.com \"{area}\" {variant}",
+   "tbs": ""
+  },
+  {
+   "label": "Facebook groups: plots",
+   "q": "site:facebook.com/groups \"{area}\" \"{katha} katha\"",
+   "tbs": "qdr:m"
+  },
+  {
+   "label": "Facebook Marketplace",
+   "q": "site:facebook.com/marketplace \"{area}\" {variant}",
+   "tbs": "qdr:m"
+  },
+  {
+   "label": "Facebook pages",
+   "q": "site:facebook.com \"{area}\" {variant} sqft",
+   "tbs": "qdr:w"
+  },
+  {
+   "label": "Open web: plots",
+   "q": "\"{area}\" \"{katha} katha\" plot sale -site:facebook.com",
+   "tbs": "qdr:m"
+  }
+ ],
+ "variants": [
+  "flat sale",
+  "apartment for sale",
+  "duplex sale",
+  "ready flat sale",
+  "plot sale",
+  "used flat sale"
+ ],
+ "katha": [
+  3,
+  5,
+  10,
+  20
+ ]
+}

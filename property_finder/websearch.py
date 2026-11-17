@@ -71,17 +71,27 @@ def _http(url: str, data: bytes | None, headers: dict) -> tuple[int, dict]:
         return 0, {}
 
 
-def run_query(prov: str, key: str, q: str) -> tuple[int, list[dict]]:
-    """[{title, url, snippet, date}] from the engine."""
+def provider_from_env() -> tuple[str, str]:
+    for name, env in (("serper", "SERPER_API_KEY"), ("brave", "BRAVE_API_KEY")):
+        if os.environ.get(env):
+            return name, os.environ[env]
+    return "", ""
+
+
+def run_query(prov: str, key: str, q: str, tbs: str = "") -> tuple[int, list[dict]]:
+    """[{title, url, snippet, date}] from the engine. tbs: Google time filter (qdr:d, qdr:w, qdr:m)."""
     if prov == "serper":
-        st, d = _http("https://google.serper.dev/search", json.dumps({"q": q, "gl": "bd", "num": 10}).encode(),  # free accounts allow 10 per query
+        body = {"q": q, "gl": "bd", "num": 10}
+        if tbs:
+            body["tbs"] = tbs
+        st, d = _http("https://google.serper.dev/search", json.dumps(body).encode(),  # free accounts allow 10 per query
                       {"X-API-KEY": key, "Content-Type": "application/json"})
         items = d.get("organic", [])
         return st, [{"title": i.get("title", ""), "url": i.get("link", ""), "snippet": i.get("snippet", ""),
                      "date": i.get("date", "")} for i in items]
     st, d = _http("https://api.search.brave.com/res/v1/web/search?" + urllib.parse.urlencode({"q": q, "count": 20, "country": "BD"}),
                   None, {"X-Subscription-Token": key, "Accept": "application/json"})
-    items = (d.get("web") or {}).get("results", [])
+    items = (d.get("web") or {}).get("results", [])  # Brave has no exact equivalent of tbs; it is ignored
     return st, [{"title": i.get("title", ""), "url": i.get("url", ""), "snippet": re.sub(r"<[^>]+>", "", i.get("description", "")),
                  "date": i.get("age", "")} for i in items]
 
@@ -102,21 +112,22 @@ NOT_A_LISTING = re.compile(
 
 
 FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*iqbal|new town,? kol", re.I)
-FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|zameen\.com|magicbricks|99acres|housing\.com|nobroker|graana|olx\.com\.pk")
+FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|(?:^|\.)(?:zameen\.com|magicbricks\.com|99acres\.com|housing\.com|nobroker\.in|graana\.com|olx\.com\.pk)$")
 GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartments?|dhaka|bangladesh|buy|residential|commercial|ready|all|in)[-_]?)+$", re.I)
 CATEGORY_TITLE = re.compile(r"^\s*\d+\+|^\s*(?:flats|apartments|properties|plots|houses|lands)\b|price list|দাম ২০", re.I)
 
 
-def is_listing(url: str, title: str = "", dev: bool = False) -> bool:
+def is_listing(url: str, title: str = "", dev: bool = False, portals_ok: bool = False) -> bool:
     """One property in Bangladesh: not a category page, an area guide, a whole group or a foreign site."""
     u = urllib.parse.urlparse(url)
     host, path = u.netloc.lower().removeprefix("www."), u.path.rstrip("/")
-    if CRAWLED.search(host) or FOREIGN_HOSTS.search(host) or NOT_A_LISTING.search(url) or CATEGORY_TITLE.search(title):
+    if (CRAWLED.search(host) and not portals_ok) or FOREIGN_HOSTS.search(host) or NOT_A_LISTING.search(url) or CATEGORY_TITLE.search(title):
         return False
     if "facebook.com" in host:  # a post, a permalink or a Marketplace item; never a bare group or page
         return bool(re.search(r"/posts/|/permalink/|/marketplace/item/|story_fbid|/photos?/", url))
-    if "bikroy.com" in host:
-        return "/ad/" in path
+    if "bikroy.com" in host:  # Google indexes ads as /<area>/<category>/<ad-slug>; shorter paths are category pages
+        segs = [x for x in path.split("/") if x]
+        return "/ad/" in path or (len(segs) >= 3 and len(segs[-1]) >= 20 and segs[-1] not in ("furnished",))
     last = path.rsplit("/", 1)[-1]
     if GENERIC_SLUG.match(last):
         return False
@@ -134,7 +145,7 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     if spec.get("exclude") and re.search(spec["exclude"], host):
         return None
     text = f"{hit['title']} {hit['snippet']}"
-    if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_")) or FOREIGN.search(text):
+    if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_"), spec.get("portals_ok", False)) or FOREIGN.search(text):
         return None
     path = urllib.parse.urlparse(hit["url"]).path.lower()
     if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)
@@ -143,7 +154,7 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     dev = spec["id"].startswith("dev_")  # developers sell by definition; their pages seldom say "for sale"
     if (not dev and not SALE.search(text)) or WANTED.search(text):
         return None
-    area = _area_in(text, None)
+    area = _area_in(hit["title"], None) or _area_in(text, None)  # the title names the property; snippets often mention nearby areas
     if not area:
         return None
     if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
