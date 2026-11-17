@@ -258,3 +258,19 @@ def test_hunt_rotation_and_digest(tmp_path):
     seen = tmp_path / "y.csv"
     seen.write_text("Name,Phone,Email,Website\n,,,https://a/1\n", encoding="utf-8")
     assert hunt.read_seen(str(seen)) == {"https://a/1"}
+
+
+def test_job_survives_a_crashing_source(tmp_path, monkeypatch):
+    monkeypatch.setattr(store.connect, "__defaults__", (tmp_path / "j.db",))
+    monkeypatch.setattr(scrape.time, "sleep", lambda s: None)
+    def boom(*a, **k):
+        raise RuntimeError("database is locked")
+    monkeypatch.setattr(scrape, "search_list", boom)
+    job = scrape.Job()
+    job.start(["gulshan"], ["apartment"], ["aabason"], web=False, benchmark=False)
+    import time as _t
+    end = _t.monotonic() + 10  # sleep is patched out, so wait on the clock
+    while job.snapshot()["running"] and _t.monotonic() < end:
+        pass
+    s = job.snapshot()
+    assert not s["running"] and "crashed: database is locked" in s["results"][0]["error"]
