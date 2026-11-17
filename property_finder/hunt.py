@@ -8,6 +8,7 @@ from __future__ import annotations
 import csv
 import datetime as dt
 import io
+import re
 import time
 from pathlib import Path
 
@@ -44,6 +45,7 @@ def run(web_areas: int = 2, seen: str | None = None, out: str = ".", details: in
         results += websearch.search_web(areas_today, max_queries=len(websearch.QUERIES) * len(areas_today))
     con = store.connect()
     rows = store.query(con, limit=5000)
+    mark_agencies(rows)
     seen_urls = read_seen(seen)
     for r in rows:
         r["is_new"] = (r["url"] not in seen_urls) if seen_urls else r["first_seen"] >= t0 - 1
@@ -55,6 +57,36 @@ def run(web_areas: int = 2, seen: str | None = None, out: str = ".", details: in
     csv_path.write_text(web.to_csv(rows), encoding="utf-8-sig")
     con.close()
     return {"digest": str(md), "csv": str(csv_path), "listings": len(rows), "new": sum(r["is_new"] for r in rows)}
+
+
+def mark_agencies(rows: list[dict], threshold: int = 4) -> None:
+    """A number on many listings is an agency or developer hotline, not an owner."""
+    from collections import Counter
+    count = Counter(r["phone"] for r in rows if r.get("phone"))
+    for r in rows:
+        r["agency_phone"] = bool(r.get("phone")) and count[r["phone"]] >= threshold
+        if r["agency_phone"]:
+            r["is_owner"] = 0
+
+
+def clean(r) -> bool:
+    """Usable for ranking and averages: no price, size or rent mix-up flagged."""
+    flags = r.get("data_flags") or ""
+    return not re.search(r"absurd|implausibly", flags) and not re.search(r"(?:^|[-/])rent(?:[-/]|$)", r["url"].lower())
+
+
+def pick_calls(new: list[dict], n: int = 3) -> list[dict]:
+    """Today's calls: different people, owners and direct numbers before agency hotlines, best return first."""
+    pool = sorted([r for r in new if r.get("phone") and clean(r)],
+                  key=lambda r: (r.get("agency_phone", False), r.get("is_owner") != 1, -(r.get("total") or 0)))
+    out, used = [], set()
+    for r in pool:
+        if r["phone"] not in used:
+            out.append(r)
+            used.add(r["phone"])
+        if len(out) == n:
+            break
+    return out
 
 
 def _money(n) -> str:
@@ -84,20 +116,20 @@ def digest(rows, results, areas_today, day, had_seen, ws) -> str:
         w(f"Web search today: {', '.join(a.capitalize() for a in areas_today)} "
           f"({ws['used_this_month']} searches used this month).\n")
     w("\n## Today's 3 to call\n")
-    callable_ = sorted([r for r in new if r.get("phone")], key=lambda r: (r.get("is_owner") != 1, -(r.get("total") or 0)))
-    for r in callable_[:3]:
+    callable_ = pick_calls(new)
+    for r in callable_:
         w(_line(r) + "\n")
     if not callable_:
         w("- No new listing with a phone number today. Start with the top of the next list and open the listing.\n")
     w("\n## Best projected returns (new, priced)\n")
-    for r in sorted([r for r in new if r.get("total") is not None and r.get("gross")], key=lambda r: -r["total"])[:10]:
+    for r in sorted([r for r in new if r.get("total") is not None and r.get("gross") and clean(r)], key=lambda r: -r["total"])[:10]:
         w(_line(r) + "\n")
     drops = [r for r in rows if r.get("dropped")]
     if drops:
         w("\n## Price drops\n")
         for r in drops[:10]:
             w(_line(r) + f" (was {_money(r['price_prev'])})\n")
-    owners = [r for r in new if r.get("is_owner") == 1]
+    owners = [r for r in new if r.get("is_owner") == 1 and clean(r)]
     w(f"\n## Owner-posted (new): {len(owners)}\n")
     for r in owners[:10]:
         w(_line(r) + "\n")
@@ -105,12 +137,15 @@ def digest(rows, results, areas_today, day, had_seen, ws) -> str:
     w(f"\n## From Facebook and web search (new): {len(social)}\n")
     for r in social[:15]:
         w(_line(r) + (f"\n  > {r['snippet'][:220]}" if r.get("snippet") else "") + "\n")
-    w("\n## Per area\n\n| Area | New | All | Avg ৳/sqft |\n|---|---|---|---|\n")
+    w("\n## Per area\n\n| Area | New | All | Median ৳/sqft (apartments) |\n|---|---|---|---|\n")
     for a in AREAS:
         ar = [r for r in rows if r["area"] == a]
-        pp = [r["ppsf"] for r in ar if r.get("ppsf")]
-        w(f"| {a.capitalize()} | {sum(r['is_new'] for r in ar)} | {len(ar)} | {round(sum(pp) / len(pp)):,} |\n" if pp else
-          f"| {a.capitalize()} | {sum(r['is_new'] for r in ar)} | {len(ar)} | - |\n")
+        pp = sorted(r["ppsf"] for r in ar if r.get("ppsf") and clean(r) and r.get("ptype") in ("apartment", None))
+        med = f"{pp[len(pp) // 2]:,}" if pp else "-"
+        w(f"| {a.capitalize()} | {sum(r['is_new'] for r in ar)} | {len(ar)} | {med} |\n")
+    flagged = sum(1 for r in new if not clean(r))
+    if flagged:
+        w(f"\n{flagged} new listings have an odd price, size or rent mix-up flagged; they are in the CSV (DataFlags column) but left out of the rankings above.\n")
     w("\n## Source health\n\n| Source | Found | Note |\n|---|---|---|\n")
     agg: dict[str, dict] = {}
     for r in results:

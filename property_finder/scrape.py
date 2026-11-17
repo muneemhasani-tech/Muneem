@@ -213,6 +213,7 @@ def search_sitemap(src: dict, area: str, details: int) -> dict:
         time.sleep(max(1.5, crawl_delay(url)))
         st, page = fetch(url)
         con.execute("INSERT OR REPLACE INTO crawled(url,lastmod,seen) VALUES(?,?,?)", (url, lastmod, time.time()))
+        con.commit()  # never hold the write lock across the next fetch and pause
         r = parse.detail_record(page, url) if st == 200 else None
         if not r or not r["purpose"]:
             continue

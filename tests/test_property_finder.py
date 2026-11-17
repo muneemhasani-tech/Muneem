@@ -274,3 +274,16 @@ def test_job_survives_a_crashing_source(tmp_path, monkeypatch):
         pass
     s = job.snapshot()
     assert not s["running"] and "crashed: database is locked" in s["results"][0]["error"]
+
+
+def test_call_list_prefers_different_direct_numbers():
+    from property_finder import hunt
+    base = dict(url="https://x/{}", title="t", area="gulshan", ptype="apartment", total=40, data_flags="", is_owner=None)
+    rows = [dict(base, url=f"https://x/{i}", phone="01969953555", total=60) for i in range(5)]  # agency hotline
+    rows += [dict(base, url="https://x/a", phone="01711111111", total=45),
+             dict(base, url="https://x/b", phone="01722222222", total=44),
+             dict(base, url="https://x/c-rent", phone="01733333333", total=99),           # a rent ad in a sale list
+             dict(base, url="https://x/d", phone="01744444444", total=99, data_flags="price 1,000 BDT looks absurd")]
+    hunt.mark_agencies(rows)
+    calls = hunt.pick_calls(rows)
+    assert [c["phone"] for c in calls] == ["01711111111", "01722222222", "01969953555"]
