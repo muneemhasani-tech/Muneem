@@ -293,3 +293,13 @@ def test_scout_seen_file_calls_and_drafts(tmp_path):
     en, bn = scout.drafts(calls[0])
     assert "MRA Real Estate" in en and "গুলশান" in bn and "Flat sale" in en
     assert scout.flag(row(price_bdt="", size_sqft="")) == "price missing - ask seller; size missing - ask seller"
+
+
+def test_scout_fresh_mode_asks_google_for_the_last_day(tmp_path, monkeypatch):
+    import datetime as dt
+    from property_finder import scout, websearch as w
+    seen = []
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (seen.append(tbs), (200, []))[1])
+    scout.run(None, out=str(tmp_path), extra=4, day=dt.date(2026, 11, 18), fresh=True)
+    assert seen and set(seen) == {"qdr:d"}

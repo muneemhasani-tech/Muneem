@@ -32,7 +32,7 @@ if cmd == "probe":
 elif cmd == "scout":
     from . import scout
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
-    info = scout.run(master=opt("--master"), out=opt("--out", "out"), seen=opt("--seen"),
+    info = scout.run(master=opt("--master"), out=opt("--out", "out"), seen=opt("--seen"), fresh="--fresh" in args,
                      extra=int(opt("--extra")) if opt("--extra") else None)
     print(f"{info['new']} new, {info['duplicates']} repeats skipped, {info['searches']} searches\n"
           f"leads: {info['leads']}\ndigest: {info['digest']}\nseen: {info['seen']}")
