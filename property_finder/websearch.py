@@ -111,7 +111,8 @@ NOT_A_LISTING = re.compile(
     r"pages|tags?|blog|news|search)(?:/|$)|bikroy\.com/(?:bn|en)/(?!ad/)[^/]+/[^/]*for-(?:sale|rent)|[?&]q=", re.I)
 
 
-FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*iqbal|new town,? kol", re.I)
+FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*(?:iqbal|maymar)|maymar|rajarhat|new town,? kol|\bbhk\b|\bmumbai\b|\bdelhi\b|\bkarachi\b", re.I)
+PROPERTY_WORD = re.compile(r"flat|apartment|plot|land|katha|kata\b|sq\.? ?ft|sqft|\bsft\b|duplex|house|building|penthouse|ফ্ল্যাট|প্লট|জমি|কাঠা|বাড়ি|ভবন|বিক্রি|বিক্রয়", re.I)
 FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|(?:^|\.)(?:zameen\.com|magicbricks\.com|99acres\.com|housing\.com|nobroker\.in|graana\.com|olx\.com\.pk)$")
 GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartments?|dhaka|bangladesh|buy|residential|commercial|ready|all|in)[-_]?)+$", re.I)
 CATEGORY_TITLE = re.compile(r"^\s*\d+\+|^\s*(?:flats|apartments|properties|plots|houses|lands)\b|price list|দাম ২০", re.I)
@@ -145,7 +146,7 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     if spec.get("exclude") and re.search(spec["exclude"], host):
         return None
     text = f"{hit['title']} {hit['snippet']}"
-    if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_"), spec.get("portals_ok", False)) or FOREIGN.search(text):
+    if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_"), spec.get("portals_ok", False)) or FOREIGN.search(text) or (not PROPERTY_WORD.search(text) and not spec["id"].startswith("dev_")):
         return None
     path = urllib.parse.urlparse(hit["url"]).path.lower()
     if spec["id"].startswith("dev_") and (path in ("", "/") or re.search(r"/(about|blog|news|career|contact|csr|gallery)", path)

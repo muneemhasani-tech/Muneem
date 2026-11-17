@@ -145,7 +145,7 @@ OWNER = re.compile(r"\bowner\b|direct|no broker|without broker|মালিক",
 def top_calls(new: list[dict], n: int = 3) -> list[dict]:
     """Whom to call first: a number to ring, owner wording, a stated price and size. One call per number: one agent can own dozens of ads."""
     def score(r):
-        return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + bool(r["price_bdt"]) + bool(r["size_sqft"])
+        return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + 2 * bool(r["price_bdt"]) + bool(r["size_sqft"])
     out, used = [], set()
     for r in sorted(new, key=lambda r: (-score(r), -float(r["gross_yield_pct"] or 0))):
         if r["phone"] and r["phone"] in used:

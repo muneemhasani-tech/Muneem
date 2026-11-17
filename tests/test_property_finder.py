@@ -303,3 +303,16 @@ def test_scout_fresh_mode_asks_google_for_the_last_day(tmp_path, monkeypatch):
     monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (seen.append(tbs), (200, []))[1])
     scout.run(None, out=str(tmp_path), extra=4, day=dt.date(2026, 11, 18), fresh=True)
     assert seen and set(seen) == {"qdr:d"}
+
+
+def test_scout_rejects_foreign_and_non_property_results():
+    from property_finder import websearch as w
+    spec = {"id": "Facebook groups", "engine_label": "Google", "portals_ok": True}
+    bad = [("Flat Available For Sale Gulshan-e-Maymar Sector X-4", "flat sale karachi"),
+           ("2 BHK Semi-Furnished Flat for Sale in Purbachal, Rajarhat", "flat sale"),
+           ("Price Not Fixt Basey Pore Ache Ami New Monitor Kinsi", "monitor Gulshan sale")]
+    for t, sn in bad:
+        assert w.to_listing({"title": t, "url": "https://www.facebook.com/groups/1/posts/2/", "snippet": sn}, spec, "q", "gulshan") is None
+    ok = w.to_listing({"title": "Flat sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/3/",
+                       "snippet": "Ready flat for sale at Gulshan, 2650 sft, price 3.5 crore"}, spec, "q", "gulshan")
+    assert ok and ok["price"] == 35_000_000

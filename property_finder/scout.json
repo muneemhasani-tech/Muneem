@@ -40,8 +40,8 @@
    "tbs": "qdr:m"
   },
   {
-   "label": "Facebook Marketplace",
-   "q": "site:facebook.com/marketplace \"{area}\" {variant}",
+   "label": "Facebook groups: prices",
+   "q": "site:facebook.com/groups \"{area}\" {variant} price call",
    "tbs": "qdr:m"
   },
   {
