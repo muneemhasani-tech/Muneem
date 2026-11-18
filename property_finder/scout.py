@@ -93,7 +93,7 @@ def read_master(path: str | None) -> tuple[list[dict], set[str], set[str]]:
 
 def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.date | None = None, seen: str | None = None,
         enrich_top: int = 3, fresh: bool = False) -> dict:
-    """fresh=True: no memory needed. Every search asks Google for the last 24 hours only, so what comes back is new."""
+    """fresh=True: no memory needed. Facebook searches ask Google for the last 24 hours only (that filter works there; portals are rarely indexed that fast, so they keep their own rotating keywords and pages)."""
     day = day or dt.date.today()
     old, seen_urls, seen_fps = read_master(master)
     seen_h, seen_keep = read_seen(seen, day)
@@ -102,7 +102,7 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
         raise SystemExit("Set SERPER_API_KEY (or BRAVE_API_KEY) first.")
     new, dups, log = [], 0, []
     for spec in plan(day, extra):
-        code, hits = websearch.run_query(prov, key, spec["q"], "qdr:d" if fresh else (spec.get("tbs") or ""))
+        code, hits = websearch.run_query(prov, key, spec["q"], "qdr:d" if fresh and spec["label"].startswith("Facebook") else (spec.get("tbs") or ""))
         kept = 0
         for h in hits if code == 200 else []:
             r = websearch.to_listing(h, {"id": spec["label"], "engine_label": "Google", "portals_ok": True}, spec["q"], spec["area"])

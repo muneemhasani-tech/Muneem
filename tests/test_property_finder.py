@@ -302,7 +302,8 @@ def test_scout_fresh_mode_asks_google_for_the_last_day(tmp_path, monkeypatch):
     monkeypatch.setenv("SERPER_API_KEY", "k")
     monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (seen.append(tbs), (200, []))[1])
     scout.run(None, out=str(tmp_path), extra=4, day=dt.date(2026, 11, 18), fresh=True)
-    assert seen and set(seen) == {"qdr:d"}
+    assert "qdr:d" in seen and "" in seen  # Facebook searches ask for the last day; portal searches are not forced to
+    assert seen.count("qdr:d") < len(seen)
 
 
 def test_scout_rejects_foreign_and_non_property_results():
