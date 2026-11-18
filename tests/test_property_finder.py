@@ -317,3 +317,17 @@ def test_scout_rejects_foreign_and_non_property_results():
     ok = w.to_listing({"title": "Flat sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/3/",
                        "snippet": "Ready flat for sale at Gulshan, 2650 sft, price 3.5 crore"}, spec, "q", "gulshan")
     assert ok and ok["price"] == 35_000_000
+
+
+def test_scout_seen_file_holds_no_phone_derived_hash(tmp_path, monkeypatch):
+    import datetime as dt
+    from property_finder import scout, websearch as w
+    hit = {"title": "Flat sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/2/",
+           "snippet": "Ready flat for sale at Gulshan, 2650 sft, price 3.5 crore, call 01711348757 now please"}
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (200, [hit]))
+    r = scout.run(None, out=str(tmp_path), extra=0, day=dt.date(2026, 11, 18), seen=None)
+    keys = {line.split("\t")[0] for line in open(r["seen"]).read().splitlines()}
+    assert scout._h("u" + hit["url"]) in keys and len(keys) >= 2
+    phone_fp = scout._h("p:01711348757:gulshan:2650")
+    assert phone_fp not in keys

@@ -116,7 +116,8 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
             seen_urls.add(r["url"])
             seen_fps.update(fps)
             seen_h.update(hs)
-            seen_keep.update({x: day.isoformat() for x in hs})
+            # the memory file may be published, so it never holds a phone-derived hash (the p: fingerprint is used within a run only)
+            seen_keep.update({_h(f): day.isoformat() for f in ["u" + r["url"]] + [fp for fp in fps if not fp.startswith("p:")]})
             p = roi.project(r, roi.DEFAULTS, {})
             new.append({"date": day.isoformat(), "area": r["area"], "type": r["ptype"], "title": r["title"],
                         "price_bdt": int(r["price"]) if r.get("price") else "", "size_sqft": int(r["size_sqft"]) if r.get("size_sqft") else "",
