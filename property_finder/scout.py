@@ -166,7 +166,8 @@ OWNER = re.compile(r"\bowner\b|direct|no broker|without broker|মালিক",
 def top_calls(new: list[dict], n: int = 3) -> list[dict]:
     """Whom to call first: a number to ring, owner wording, a stated price and size. One call per number: one agent can own dozens of ads."""
     def score(r):
-        return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + 2 * bool(r["price_bdt"]) + bool(r["size_sqft"])
+        priced = bool(r["price_bdt"]) and 500_000 <= float(r["price_bdt"]) <= 5e9  # an absurd price must not win a call slot
+        return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + 2 * priced + bool(r["size_sqft"])
     out, used = [], set()
     for r in sorted(new, key=lambda r: (-score(r), -float(r["gross_yield_pct"] or 0))):
         if r["phone"] and r["phone"] in used:
@@ -193,7 +194,9 @@ def fill_from_page(r: dict) -> None:
         return
     if d:
         r["phone"] = r["phone"] or d.get("phone", "")
-        r["price_bdt"] = r["price_bdt"] or (int(d["price"]) if d.get("price") else "")
+        # a page price under 5 lakh or over 500 crore is a placeholder ("call for price", 5,000), not a price
+        if not r["price_bdt"] and d.get("price") and 500_000 <= d["price"] <= 5e9:
+            r["price_bdt"] = int(d["price"])
         r["size_sqft"] = r["size_sqft"] or (int(d["size_sqft"]) if d.get("size_sqft") else "")
 
 

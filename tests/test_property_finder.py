@@ -354,3 +354,11 @@ def test_scout_writes_a_small_stats_file_for_the_manager(tmp_path, monkeypatch):
     st = _j.loads(open(r["stats"]).read())
     assert st["new"] == 1 and st["with_phone"] == 1 and st["with_price"] == 1 and st["memory_used"] is False
     assert st["zero_result_searches"] and not st["errored_searches"] and len(open(r["stats"]).read()) < 4000
+
+
+def test_scout_absurd_price_does_not_win_a_call_slot():
+    from property_finder import scout
+    row = lambda **k: {"title": "Flat sale", "snippet": "", "area": "gulshan", "type": "apartment", "phone": "", "price_bdt": "",
+                       "size_sqft": 1800, "gross_yield_pct": "", **k}
+    calls = scout.top_calls([row(phone="011", price_bdt=5000), row(phone="012", price_bdt=25_000_000)], n=1)
+    assert calls[0]["phone"] == "012"
