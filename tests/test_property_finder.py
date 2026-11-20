@@ -260,8 +260,8 @@ def test_scout_plan_dedupe_and_filters(tmp_path, monkeypatch):
     import datetime as dt
     from property_finder import scout, websearch as w
     a, b = scout.plan(dt.date(2026, 11, 18)), scout.plan(dt.date(2026, 11, 19))
-    assert len(a) == 12 + scout.CONF["extra_per_day"]
-    assert not {x["q"] for x in a[12:]} & {x["q"] for x in b[12:]}          # a different rotating slice each day
+    assert len(a) == 12 + len(scout.CONF["portal_daily"]) + scout.CONF["extra_per_day"]
+    assert not {x["q"] for x in a[16:]} & {x["q"] for x in b[16:]}          # a different rotating slice each day
     assert w.is_listing("https://www.bdhousing.com/details/245411/2390-sqft-used-apartment-banani", "2390 sqft", portals_ok=True)  # not "housing.com"
     assert w.is_listing("https://bikroy.com/gulshan/houses-apartments-for-sale/3bdrm-apartment-in-gulshan", portals_ok=True)
     assert not w.is_listing("https://bikroy.com/gulshan/houses-apartments-for-sale", portals_ok=True)
@@ -331,3 +331,12 @@ def test_scout_seen_file_holds_no_phone_derived_hash(tmp_path, monkeypatch):
     assert scout._h("u" + hit["url"]) in keys and len(keys) >= 2
     phone_fp = scout._h("p:01711348757:gulshan:2650")
     assert phone_fp not in keys
+
+
+def test_scout_every_portal_is_searched_every_day():
+    import datetime as dt
+    from property_finder import scout
+    for n in range(14):
+        labels = {x["label"] for x in scout.plan(dt.date(2026, 11, 1) + dt.timedelta(days=n))}
+        assert {"Bproperty", "Bikroy", "bdHousing", "Bdstall"} <= labels, n
+    assert len(scout.plan(dt.date(2026, 11, 20))) == 12 + 4 + scout.CONF["extra_per_day"] == 20

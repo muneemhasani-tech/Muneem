@@ -45,6 +45,12 @@ def plan(day: dt.date, extra: int | None = None) -> list[dict]:
                 pool.append({**p, "area": a, "q": fill(p["q"], a)})
     random.Random(7).shuffle(pool)  # fixed order, so consecutive days take consecutive, different slices
     start = (day.toordinal() * extra) % len(pool)
+    areas = list(AREAS)
+    ordinal = day.toordinal()
+    for i, p in enumerate(CONF.get("portal_daily", [])):  # every portal, every day; area and keyword move with the date
+        a = areas[(ordinal + i) % len(areas)]
+        v = CONF["variants"][(ordinal * 3 + i) % len(CONF["variants"])]
+        out.append({**p, "area": a, "q": fill(p["q"], a, v=v)})
     return out + [pool[(start + i) % len(pool)] for i in range(min(extra, len(pool)))]
 
 
@@ -131,6 +137,9 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     paths = {"leads": outdir / f"leads-{day}.csv", "master": outdir / "master.csv", "digest": outdir / f"digest-{day}.md",
              "seen": outdir / "seen.tsv"}
     for r in top_calls(new)[:enrich_top]:
+        fill_from_page(r)
+    # portals often keep the price off Google's snippet: read up to 8 allowed listing pages (robots.txt checked) for it
+    for r in [r for r in new if not r["price_bdt"] and not re.search(r"facebook\.com|google\.|bproperty\.com|bikroy\.com", r["url"])][:8]:
         fill_from_page(r)
     write_csv(paths["leads"], new)
     if master:
