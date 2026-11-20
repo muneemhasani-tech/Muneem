@@ -1,15 +1,15 @@
 {
- "_about": "Daily targeted Google searches (via Serper). 'daily' runs every day for every area; 'pool' is rotated, a fresh slice each day. {area}, {area_bn}, {variant}, {katha} are filled in. tbs: qdr:d day, qdr:w week, qdr:m month, empty = any time. 'portal_daily' = one search per portal EVERY day (area and keyword rotate with the date), so no portal is ever missing from a day's run.",
+ "_about": "Daily targeted Google searches (via Serper). 'daily' runs every day for every area; 'pool' is rotated, a fresh slice each day. {area}, {area_bn}, {variant}, {katha} are filled in. tbs: qdr:d day, qdr:w week, qdr:m month, empty = any time. 'portal_daily' = one search per portal EVERY day (area and keyword rotate with the date), so no portal is ever missing from a day's run. Daily Facebook searches carry price words so most posts found state a price (tested 20 Nov: 8 of 16 priced vs 1 of 18 without).",
  "extra_per_day": 4,
  "daily": [
   {
    "label": "Facebook groups",
-   "q": "site:facebook.com/groups \"{area}\" flat sale",
+   "q": "site:facebook.com/groups \"{area}\" flat sale (price OR crore OR lakh OR tk)",
    "tbs": "qdr:w"
   },
   {
    "label": "Facebook groups (Bangla)",
-   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট OR প্লট বিক্রি",
+   "q": "site:facebook.com/groups {area_bn} ফ্ল্যাট OR প্লট বিক্রি (দাম OR কোটি OR লাখ OR টাকা)",
    "tbs": "qdr:w"
   }
  ],

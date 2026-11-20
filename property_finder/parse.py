@@ -8,11 +8,11 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 PHONE = re.compile(r"(?<!\d)(?:\+?88)?[\s-]?(01[3-9][\s-]?\d{2}[\s-]?\d{6})(?!\d)")
-PRICE = re.compile(r"(?:৳|tk\.?|bdt|taka)\s*(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|কোটি|লাখ|লক্ষ|k)?|(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|কোটি|লাখ|লক্ষ)(?:\b|\s|$)|([\d,]{6,})\s*(?:tk|bdt|taka)", re.I)
+PRICE = re.compile(r"(?:৳|tk\.?|bdt|taka)\s*(\d[\d,]*(?:\.\d+)?)\s*(crore|cr|lakh|lac|lakhs|কোটি|লাখ|লক্ষ|k)?|(\d[\d,]*(?:\.\d+)?)\s*(crore|core|koti|cr|lakh|lac|lakhs|কোটি|কটি|লাখ|লক্ষ)(?:\b|\s|$)|([\d,]{6,})\s*(?:tk|bdt|taka)", re.I)
 SIZE = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(?:sq\.?\s?-?ft|sqft|sft|square\s*feet)", re.I)
 BEDS = re.compile(r"(\d{1,2})\s*(?:bed(?:room)?s?|br\b)", re.I)
 BATHS = re.compile(r"(\d{1,2})\s*(?:bath(?:room)?s?)", re.I)
-MULT = {"crore": 1e7, "cr": 1e7, "lakh": 1e5, "lakhs": 1e5, "lac": 1e5, "k": 1e3, "কোটি": 1e7, "লাখ": 1e5, "লক্ষ": 1e5}
+MULT = {"core": 1e7, "koti": 1e7, "কটি": 1e7, "crore": 1e7, "cr": 1e7, "lakh": 1e5, "lakhs": 1e5, "lac": 1e5, "k": 1e3, "কোটি": 1e7, "লাখ": 1e5, "লক্ষ": 1e5}
 BN_DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
 
 
@@ -26,13 +26,32 @@ def clean_phone(s: str) -> str:
     return "0" + re.sub(r"[\s-]", "", m.group(1))[1:] if m else ""
 
 
-CR_LAKH = re.compile(r"(\d+(?:\.\d+)?)\s*(?:crore|cr|কোটি)\s*(\d+(?:\.\d+)?)\s*(?:lakh|lac|lakhs|লাখ|লক্ষ)", re.I)
+CR_LAKH = re.compile(r"(\d+(?:\.\d+)?)\s*(?:crore|core|koti|cr|কোটি|কটি)\s*(\d+(?:\.\d+)?)\s*(?:lakh|lac|lakhs|লাখ|লক্ষ)", re.I)
+
+
+# "Price: 2.00.00.000/-", "দাম 1,20,00,000", "asking price 2.5 crore": a price word, then a number
+KEY_PRICE = re.compile(r"(?:price|দাম|মূল্য|asking)\s*[:\-–=]*\s*(?:tk\.?|৳|bdt|taka|টাকা)?\s*(\d{1,3}(?:[.,]\d{2,3})+|\d+(?:\.\d+)?)\s*(crore|core|koti|cr|lakh|lac|lakhs|কোটি|কটি|লাখ|লক্ষ)?", re.I)
+
+
+def _price_num(s: str) -> float:
+    if re.fullmatch(r"\d{1,3}(?:\.\d{2})+\.\d{3}", s):  # South Asian grouping written with dots: 2.00.00.000
+        s = s.replace(".", "")
+    return float(s.replace(",", ""))
 
 
 def parse_price(text: str) -> float | None:
     m = CR_LAKH.search(text or "")  # "2 crore 50 lakh"
     if m:
         return float(m.group(1)) * 1e7 + float(m.group(2)) * 1e5
+    for m in KEY_PRICE.finditer(text or ""):
+        if re.fullmatch(r"0\d{9,}", m.group(1)):
+            continue  # a phone number after "price:", not a price
+        try:
+            v = _price_num(m.group(1)) * MULT.get((m.group(2) or "").lower(), 1)
+        except ValueError:
+            continue
+        if v >= 1e5:
+            return v
     for m in PRICE.finditer(text or ""):
         num, unit = (m.group(1), m.group(2)) if m.group(1) else (m.group(3), m.group(4)) if m.group(3) else (m.group(5), None)
         try:

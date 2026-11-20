@@ -161,10 +161,18 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
         return None
     f = parse.facts(text)
+    tp = parse.parse_price(hit["title"])  # the title describes this property; a snippet can quote a neighbouring ad
+    if not tp:
+        bare = re.search(r"(?<![\d+])([1-9]\d{6,9})(?!\d)", hit["title"])  # "3 Katha Plot Sale Purbachal | 26000000"
+        tp = float(bare.group(1)) if bare and 5e5 <= float(bare.group(1)) <= 5e9 else None
+    if tp:
+        f["price"] = tp
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
     ptype = parse._ptype(text) or "apartment"
     if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):
         ptype = "commercial" if re.search(r"commercial|office", hit["title"] + hit["url"], re.I) else "apartment"
+    if f["price"] and katha and re.search(r"(?:per|/)\s*(?:katha|kata|kotha|কাঠা)", text, re.I) and f["price"] < 5e7:
+        f["price"] *= float(katha.group(1))  # "BDT 90,00,000 per katha" for a 10 katha plot
     size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
     # No value is dropped for looking odd: sellers hide details on purpose. store.data_flags marks them to clear.
     return {**f, "title": re.sub(r"\s*[|\-–]\s*Facebook\s*$", "", hit["title"])[:200], "url": hit["url"],

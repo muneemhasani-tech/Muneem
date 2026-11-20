@@ -362,3 +362,29 @@ def test_scout_absurd_price_does_not_win_a_call_slot():
                        "size_sqft": 1800, "gross_yield_pct": "", **k}
     calls = scout.top_calls([row(phone="011", price_bdt=5000), row(phone="012", price_bdt=25_000_000)], n=1)
     assert calls[0]["phone"] == "012"
+
+
+def test_price_word_formats():
+    from property_finder import parse
+    assert parse.parse_price("Total Price- 2.00.00.000/-") == 2e7
+    assert parse.parse_price(parse.norm("দাম 1,20,00,000 টাকা")) == 1.2e7
+    assert parse.parse_price("asking price 2.5 crore") == 2.5e7
+    assert parse.parse_price("Price: 01711348757") is None  # a phone, not a price
+
+
+def test_title_price_beats_snippet():
+    from property_finder import websearch
+    hit = {"title": "3 Katha Plot Sale Purbachal Sector-2 | 26000000", "url": "https://www.bproperty.com/property/3-katha-plot-sale-purbachal",
+           "snippet": "Purbachal; 3 Katha Plot Sale Purbachal Sector-2. Residential Sale. Flat with in Baridhara Diplomatic. BDT 10,000."}
+    r = websearch.to_listing(hit, {"id": "Bproperty", "engine_label": "Google", "portals_ok": True}, "q", "purbachal")
+    assert r and r["price"] == 26_000_000
+
+
+def test_crore_typos_and_per_katha():
+    from property_finder import parse, websearch
+    assert parse.parse_price("Price:- 1 Core 60 Lakh") == 1.6e7
+    assert parse.parse_price(parse.norm("1কটি 25লক্ষ টাকায়")) == 1.25e7
+    hit = {"title": "North facing 10 katha sale at Rajuk Purbachal sector 5", "url": "https://www.bproperty.com/property/north-facing-10-katha",
+           "snippet": "Sector #05, Rajuk Purbachal, Dhaka. BDT 90,00,000 per katha."}
+    r = websearch.to_listing(hit, {"id": "Bproperty", "engine_label": "Google", "portals_ok": True}, "q", "purbachal")
+    assert r and r["price"] == 9e7

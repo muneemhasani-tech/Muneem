@@ -153,7 +153,7 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     paths["stats"] = outdir / f"stats-{day}.json"
     paths["stats"].write_text(json.dumps({
         "date": str(day), "new": len(new), "repeats_skipped": dups, "searches": len(log),
-        "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if r["price_bdt"]),
+        "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if r["price_bdt"] and 500_000 <= float(r["price_bdt"]) <= 5e9),
         "by_site": by_site, "memory_used": bool(seen),
         "zero_result_searches": [q for _, q, code, n, _ in log if code == 200 and n == 0],
         "errored_searches": [q for _, q, code, _, _ in log if code != 200]}, ensure_ascii=False), encoding="utf-8")
