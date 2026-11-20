@@ -146,6 +146,17 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
         write_csv(paths["master"], old + new)  # optional full history; the seen file is all a daily run needs
     write_seen(paths["seen"], seen_keep)
     paths["digest"].write_text(digest(day, new, dups, log, len(old) + len(new)), encoding="utf-8")
+    # a few hundred bytes the weekly manager reads instead of re-running searches
+    by_site: dict[str, int] = {}
+    for r in new:
+        by_site[r["site"]] = by_site.get(r["site"], 0) + 1
+    paths["stats"] = outdir / f"stats-{day}.json"
+    paths["stats"].write_text(json.dumps({
+        "date": str(day), "new": len(new), "repeats_skipped": dups, "searches": len(log),
+        "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if r["price_bdt"]),
+        "by_site": by_site, "memory_used": bool(seen),
+        "zero_result_searches": [q for _, q, code, n, _ in log if code == 200 and n == 0],
+        "errored_searches": [q for _, q, code, _, _ in log if code != 200]}, ensure_ascii=False), encoding="utf-8")
     return {"new": len(new), "duplicates": dups, "searches": len(log), **{k: str(v) for k, v in paths.items()}}
 
 

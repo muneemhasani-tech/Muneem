@@ -340,3 +340,17 @@ def test_scout_every_portal_is_searched_every_day():
         labels = {x["label"] for x in scout.plan(dt.date(2026, 11, 1) + dt.timedelta(days=n))}
         assert {"Bproperty", "Bikroy", "bdHousing", "Bdstall"} <= labels, n
     assert len(scout.plan(dt.date(2026, 11, 20))) == 12 + 4 + scout.CONF["extra_per_day"] == 20
+
+
+def test_scout_writes_a_small_stats_file_for_the_manager(tmp_path, monkeypatch):
+    import datetime as dt
+    import json as _j
+    from property_finder import scout, websearch as w
+    hit = {"title": "Flat sale in Gulshan 2", "url": "https://www.facebook.com/groups/1/posts/2/",
+           "snippet": "Ready flat for sale at Gulshan, 2650 sft, price 3.5 crore, call 01711348757 now please"}
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(w, "run_query", lambda p, k, q, tbs="": (200, [hit]) if "Gulshan" in q else (200, []))
+    r = scout.run(None, out=str(tmp_path), extra=0, day=dt.date(2026, 11, 18), enrich_top=0)
+    st = _j.loads(open(r["stats"]).read())
+    assert st["new"] == 1 and st["with_phone"] == 1 and st["with_price"] == 1 and st["memory_used"] is False
+    assert st["zero_result_searches"] and not st["errored_searches"] and len(open(r["stats"]).read()) < 4000
