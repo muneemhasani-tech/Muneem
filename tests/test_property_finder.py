@@ -388,3 +388,13 @@ def test_crore_typos_and_per_katha():
            "snippet": "Sector #05, Rajuk Purbachal, Dhaka. BDT 90,00,000 per katha."}
     r = websearch.to_listing(hit, {"id": "Bproperty", "engine_label": "Google", "portals_ok": True}, "q", "purbachal")
     assert r and r["price"] == 9e7
+
+
+def test_absurd_price_per_sqft_is_flagged_and_loses_call_slot():
+    from property_finder import scout
+    bad = {"price_bdt": 1731600000, "size_sqft": 1332, "phone": "01778617330", "title": "Used Flat for Sale at Bashundhara R/A",
+           "snippet": "", "gross_yield_pct": "", "type": "apartment"}
+    good = {**bad, "price_bdt": 17316000, "phone": "01711111111", "title": "Flat sale"}
+    assert not scout.plausible_price(bad) and scout.plausible_price(good)
+    assert scout.top_calls([bad, good], 1)[0] is good
+    assert "per sqft" in scout.flag(bad)

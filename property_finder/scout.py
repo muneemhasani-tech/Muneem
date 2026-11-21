@@ -153,7 +153,7 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     paths["stats"] = outdir / f"stats-{day}.json"
     paths["stats"].write_text(json.dumps({
         "date": str(day), "new": len(new), "repeats_skipped": dups, "searches": len(log),
-        "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if r["price_bdt"] and 500_000 <= float(r["price_bdt"]) <= 5e9),
+        "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if plausible_price(r)),
         "by_site": by_site, "memory_used": bool(seen),
         "zero_result_searches": [q for _, q, code, n, _ in log if code == 200 and n == 0],
         "errored_searches": [q for _, q, code, _, _ in log if code != 200]}, ensure_ascii=False), encoding="utf-8")
@@ -163,10 +163,16 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
 OWNER = re.compile(r"\bowner\b|direct|no broker|without broker|মালিক", re.I)
 
 
+def plausible_price(r: dict) -> bool:
+    """A price that can be a real Dhaka sale price: ৳5 lakh to ৳500 crore, and ৳2,000-150,000 per sqft when the size is known."""
+    p, s = float(r.get("price_bdt") or 0), float(r.get("size_sqft") or 0)
+    return 500_000 <= p <= 5e9 and (not s or 2_000 <= p / s <= 150_000)
+
+
 def top_calls(new: list[dict], n: int = 3) -> list[dict]:
     """Whom to call first: a number to ring, owner wording, a stated price and size. One call per number: one agent can own dozens of ads."""
     def score(r):
-        priced = bool(r["price_bdt"]) and 500_000 <= float(r["price_bdt"]) <= 5e9  # an absurd price must not win a call slot
+        priced = plausible_price(r)  # an absurd price must not win a call slot
         return 3 * bool(r["phone"]) + 2 * bool(OWNER.search(r["title"] + " " + r["snippet"])) + 2 * priced + bool(r["size_sqft"])
     out, used = [], set()
     for r in sorted(new, key=lambda r: (-score(r), -float(r["gross_yield_pct"] or 0))):
@@ -201,6 +207,9 @@ def fill_from_page(r: dict) -> None:
 
 
 def flag(r: dict) -> str:
+    if r.get("price_bdt") and r.get("size_sqft") and not plausible_price(r):
+        rate = float(r["price_bdt"]) / float(r["size_sqft"])
+        return f"price works out to ৳{rate:,.0f} per sqft, which cannot be right - ask the seller for the real total price"
     return store.data_flags({"price": float(r["price_bdt"] or 0) or None, "size_sqft": float(r["size_sqft"] or 0) or None,
                              "ptype": r["type"]})
 
