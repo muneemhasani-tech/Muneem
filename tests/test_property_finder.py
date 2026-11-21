@@ -339,7 +339,7 @@ def test_scout_every_portal_is_searched_every_day():
     for n in range(14):
         labels = {x["label"] for x in scout.plan(dt.date(2026, 11, 1) + dt.timedelta(days=n))}
         assert {"Bproperty", "Bikroy", "bdHousing", "Bdstall"} <= labels, n
-    assert len(scout.plan(dt.date(2026, 11, 20))) == 12 + 4 + scout.CONF["extra_per_day"] == 20
+    assert len(scout.plan(dt.date(2026, 11, 20))) == 12 + 4 + scout.CONF["extra_per_day"] == 24
 
 
 def test_scout_writes_a_small_stats_file_for_the_manager(tmp_path, monkeypatch):
