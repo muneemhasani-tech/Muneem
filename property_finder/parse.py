@@ -74,7 +74,8 @@ def facts(text: str) -> dict:
     pp = PPSF.search(text)
     if pp and size:  # "15,000 per sqft" with a known size: the total is what matters
         rate = float((pp.group(1) or pp.group(2)).replace(",", ""))
-        if 1000 <= rate <= 100000 and (price is None or price == rate):
+        same = rate == float(size.group(1).replace(",", ""))  # "3380 SQFT ... 3380/SQFT" restates the size, it is not a rate
+        if 1000 <= rate <= 100000 and not same and (price is None or price == rate):
             price = rate * float(size.group(1).replace(",", ""))
     return {
         "price": price,

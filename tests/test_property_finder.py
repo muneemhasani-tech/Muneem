@@ -398,3 +398,10 @@ def test_absurd_price_per_sqft_is_flagged_and_loses_call_slot():
     assert not scout.plausible_price(bad) and scout.plausible_price(good)
     assert scout.top_calls([bad, good], 1)[0] is good
     assert "per sqft" in scout.flag(bad)
+
+
+def test_size_restated_as_per_sqft_is_not_a_rate():
+    from property_finder import parse
+    f = parse.facts("SOUTH/EAST CORNER PLOT 3380 SQFT APARTMENT FOR SALE IN BASHUNDHARA RA Building G+9 Double Unit 3380/SQFT 15 Katha Land")
+    assert f["size_sqft"] == 3380 and f["price"] is None
+    assert parse.facts("1500 sqft flat, 12,000 per sqft")["price"] == 18_000_000
