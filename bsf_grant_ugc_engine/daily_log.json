@@ -1,0 +1,599 @@
+{
+  "runs": [
+    {
+      "timestamp": "2026-11-17T15:39:49.817271+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=0&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=0&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:39:49.976204+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=0&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=0&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:39:50.144271+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=0&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 1,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=0&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:39:58.291964+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=10&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=10&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:19.602637+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=10&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=10&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:19.716231+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=10&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 2,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=10&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:19.873924+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=20&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=20&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:41.708154+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=20&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=20&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:41.820828+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=20&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 3,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=20&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:41.925781+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=30&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=30&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:48.440871+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=30&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=30&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:48.643108+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=30&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 4,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=30&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:41:48.803692+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=40&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=40&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:56:48.886277+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=40&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=40&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:32.322324+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=40&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 5,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=40&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:32.519809+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=50&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=50&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:32.695102+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=50&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=50&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:49.067813+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=50&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 6,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=50&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:49.281915+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=60&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=60&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T15:57:49.470613+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=60&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=60&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T16:04:28.701688+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=60&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 7,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=60&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T16:04:28.910110+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=70&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=70&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-17T16:04:29.172409+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=70&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=70&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T14:18:48.729329+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": false,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=70&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 8,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=70&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-19T02:44:00+06:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=80&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=80&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:47:39.992713+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=80&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=80&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:50:23.374160+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 10,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=90&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 10,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=90&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:50:44.037996+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 11,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=100&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 11,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=100&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:50:44.113198+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 12,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=110&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 12,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=110&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:50:44.225056+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 13,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=120&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 13,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=120&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:51:05.579692+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 10,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=90&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 10,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=90&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:51:05.689006+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_bioeconomy",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=%28%22black+soldier+fly%22+OR+%22alternative+protein%22+OR+%22aquaculture+innovation%22+OR+%22waste+to+value%22%29+grant+funding+fellowship+NGO&start=80&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_petfood_mill_bd",
+        "page_searched": 9,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22pet+food%22+OR+%22aqua+feed%22+OR+%22poultry+nutrition%22%29+%28%22formulator%22+OR+%22nutritionist%22+OR+%22manufacturer%22+OR+%22dealership%22%29&start=80&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:51:05.776484+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_water_bd",
+        "page_searched": 14,
+        "url": "https://www.google.com/search?q=site%3Angoab.gov.bd+OR+site%3Aundp.org+OR+site%3Aadb.org+%22Bangladesh%22+%28%22water+purification%22+OR+%22wastewater%22+OR+%22effluent%22%29+grant+call+for+proposals&start=130&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_water_lab_bd",
+        "page_searched": 14,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22water+treatment%22+OR+%22effluent+treatment+plant%22+OR+%22analytical+laboratory%22%29+%28%22chemist%22+OR+%22R%26D%22+OR+%22formulation%22%29+Dhaka&start=130&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-18T20:51:12.570068+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": true,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 11,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=100&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 11,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=100&hl=en"
+      },
+      "status": "SUCCESS"
+    },
+    {
+      "timestamp": "2026-11-19T12:50:04.541326+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "dry_run": false,
+      "tasks_opened": 2,
+      "grant_search": {
+        "key": "grant_climate_ngo",
+        "page_searched": 12,
+        "url": "https://www.google.com/search?q=%28%22biotechnology%22+OR+%22circular+economy%22+OR+%22biomaterials%22%29+grant+funding+application+%28%22Asia%22+OR+%22Bangladesh%22+OR+%22developing+countries%22%29&start=110&hl=en"
+      },
+      "partner_search": {
+        "key": "partner_cosmo_chemist_bd",
+        "page_searched": 12,
+        "url": "https://www.google.com/search?q=%22Bangladesh%22+%28%22cosmetics%22+OR+%22dermatology%22+OR+%22pharmaceutical%22%29+%28%22formulation+chemist%22+OR+%22contract+manufacturing%22+OR+%22R%26D+lab%22%29+Dhaka&start=110&hl=en"
+      },
+      "status": "SUCCESS"
+    }
+  ]
+}

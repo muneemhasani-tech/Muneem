@@ -1,0 +1,1 @@
+schtasks /Create /SC DAILY /TN "BSF_Daily_Scout_Layer1" /TR "\"C:\Users\user\AppData\Local\Python\pythoncore-3.14-64\python.exe\" \"C:\Users\user\Desktop\Anti Gravity\bsf_grant_ugc_engine\daily_scout.py\"" /ST 16:00 /F

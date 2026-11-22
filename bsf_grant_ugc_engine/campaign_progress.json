@@ -1,0 +1,131 @@
+{
+  "campaign_name": "BSF & Chitosan 30-Day Grant & UGC Dealership Engine",
+  "total_days": 30,
+  "current_day": 11,
+  "start_date": "2026-11-17",
+  "target_milestone_date": "2026-12-17",
+  "status": "ACTIVE",
+  "targets": {
+    "grants_drafted_goal": 30,
+    "ugc_pitches_goal": 30,
+    "nonprofit_retainer_client_goal": 2,
+    "lab_dealership_partner_goal": 2,
+    "vertical_coverage": {
+      "Water Cleaning Agent": 10,
+      "Cosmopharma Combinations": 10,
+      "Insect Pet Food Solutions": 10
+    }
+  },
+  "history": [
+    {
+      "day": 1,
+      "timestamp": "2026-11-17T15:52:42.324180+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "grant_target": "UNDP Bangladesh Water & Climate Resilient Ecosystems",
+      "grant_url": "https://www.undp.org/bangladesh/projects/water-effluent-remediation",
+      "partner_target": "Dhaka Analytical Services & ETP Solutions",
+      "partner_channel": "LinkedIn + Direct WhatsApp / Email",
+      "draft_file": "BSF_Outreach — 2026-11-17.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 2,
+      "timestamp": "2026-11-17T16:10:00.000000+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "grant_target": "Horizon Europe Bio-based Circular Materials Call",
+      "grant_url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon",
+      "partner_target": "Square Formulations & Analytical QC Laboratory Dhaka",
+      "partner_channel": "LinkedIn + Executive Email",
+      "draft_file": "BSF_Outreach — 2026-11-17.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 3,
+      "timestamp": "2026-11-17T16:30:00.000000+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "grant_target": "Global Sustainable Aquaculture & Protein Innovation Fund",
+      "grant_url": "https://sustainableaquaculture.fund/grants-2026",
+      "partner_target": "Bengal Feed & Nutrition Mills (Pet & Aqua Division)",
+      "partner_channel": "Direct Call / LinkedIn",
+      "draft_file": "BSF_Outreach — 2026-11-17.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 4,
+      "timestamp": "2026-11-18T10:00:00.000000+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "grant_target": "PKSF Community Water Quality Enhancement Fund",
+      "grant_url": "https://pksf.org.bd/water-quality-initiatives",
+      "partner_target": "BCSIR Industrial Chemistry & Water Quality Division",
+      "partner_channel": "Direct Laboratory Visit / Email",
+      "draft_file": "BSF_Outreach — 2026-11-18.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 5,
+      "timestamp": "2026-11-18T14:18:54.130016+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "grant_target": "Bill & Melinda Gates Global Health Innovation Challenge",
+      "grant_url": "https://www.gatesfoundation.org/ideas/grant-opportunities",
+      "partner_target": "Incepta Bio-R&D Special Products Division",
+      "partner_channel": "Corporate LinkedIn / Email",
+      "draft_file": "BSF_Outreach — 2026-11-18.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 6,
+      "timestamp": "2026-11-19T02:44:00.000000+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "grant_target": "World Bank / Bangladesh Livestock & Dairy Development Project (LDDP)",
+      "grant_url": "https://lddp.mofl.gov.bd/grants",
+      "partner_target": "Nourish Pet Care & Companion Nutrition Lab",
+      "partner_channel": "LinkedIn + Direct WhatsApp",
+      "draft_file": "BSF_Outreach — 2026-11-19.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 7,
+      "timestamp": "2026-11-19T12:50:14.634997+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "grant_target": "UNDP Bangladesh Water & Climate Resilient Ecosystems",
+      "grant_url": "https://www.undp.org/bangladesh/projects/water-effluent-remediation",
+      "partner_target": "Dhaka Analytical Services & ETP Solutions",
+      "partner_channel": "LinkedIn + Direct WhatsApp / Email",
+      "draft_file": "BSF_Outreach — 2026-11-19.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 8,
+      "timestamp": "2026-11-20T11:48:54.494832+00:00",
+      "vertical": "Cosmopharma & Biopolymer Skincare",
+      "grant_target": "Horizon Europe Bio-based Circular Materials Call",
+      "grant_url": "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/programmes/horizon",
+      "partner_target": "Square Formulations & Analytical QC Laboratory Dhaka",
+      "partner_channel": "LinkedIn + Executive Email",
+      "draft_file": "BSF_Outreach — 2026-11-20.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 9,
+      "timestamp": "2026-11-21T13:34:40.387525+00:00",
+      "vertical": "BSF Insect Pet Food & Prebiotic Chitin",
+      "grant_target": "World Bank / Bangladesh Livestock & Dairy Development Project (LDDP)",
+      "grant_url": "https://lddp.mofl.gov.bd/grants",
+      "partner_target": "Bengal Feed & Nutrition Mills (Pet & Aqua Division)",
+      "partner_channel": "Direct Call / LinkedIn",
+      "draft_file": "BSF_Outreach — 2026-11-21.md",
+      "status": "COMPLETED"
+    },
+    {
+      "day": 10,
+      "timestamp": "2026-11-22T11:59:23.336636+00:00",
+      "vertical": "Water Cleaning Agent (Chitosan Flocculant)",
+      "grant_target": "UNDP Bangladesh Water & Climate Resilient Ecosystems",
+      "grant_url": "https://www.undp.org/bangladesh/projects/water-effluent-remediation",
+      "partner_target": "Dhaka Analytical Services & ETP Solutions",
+      "partner_channel": "LinkedIn + Direct WhatsApp / Email",
+      "draft_file": "BSF_Outreach — 2026-11-22.md",
+      "status": "COMPLETED"
+    }
+  ]
+}

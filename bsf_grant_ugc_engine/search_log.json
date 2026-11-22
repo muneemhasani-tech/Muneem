@@ -1,0 +1,29 @@
+{
+  "rotation_index": 1,
+  "queries": {
+    "grant_water_bd": {
+      "page": 15,
+      "last_run": "2026-11-18T20:51:05.776484+00:00"
+    },
+    "grant_climate_ngo": {
+      "page": 13,
+      "last_run": "2026-11-19T12:50:04.541326+00:00"
+    },
+    "grant_bioeconomy": {
+      "page": 10,
+      "last_run": "2026-11-18T20:51:05.689006+00:00"
+    },
+    "partner_water_lab_bd": {
+      "page": 15,
+      "last_run": "2026-11-18T20:51:05.776484+00:00"
+    },
+    "partner_cosmo_chemist_bd": {
+      "page": 13,
+      "last_run": "2026-11-19T12:50:04.541326+00:00"
+    },
+    "partner_petfood_mill_bd": {
+      "page": 10,
+      "last_run": "2026-11-18T20:51:05.689006+00:00"
+    }
+  }
+}

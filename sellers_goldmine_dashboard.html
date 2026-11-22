@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>MRA Spatial Intelligence Platform</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+              "on-secondary": "#003824",
+              "inverse-surface": "#dae2fd",
+              "on-surface": "#dae2fd",
+              "secondary-fixed-dim": "#4edea3",
+              "on-tertiary-fixed-variant": "#38485d",
+              "inverse-on-surface": "#283044",
+              "surface-container-low": "#131b2e",
+              "secondary": "#4edea3",
+              "on-error": "#690005",
+              "surface-bright": "#31394d",
+              "on-primary": "#3c2f00",
+              "primary-fixed": "#ffe088",
+              "surface-container": "#171f33",
+              "tertiary-fixed-dim": "#b7c8e1",
+              "secondary-fixed": "#6ffbbe",
+              "on-error-container": "#ffdad6",
+              "tertiary-container": "#a4b4cd",
+              "on-secondary-fixed-variant": "#005236",
+              "on-primary-fixed": "#241a00",
+              "surface-container-lowest": "#060e20",
+              "on-secondary-fixed": "#002113",
+              "primary-fixed-dim": "#e9c349",
+              "error-container": "#93000a",
+              "primary-container": "#d4af37",
+              "on-tertiary": "#213145",
+              "background": "#0b1326",
+              "primary": "#f2ca50",
+              "surface-container-high": "#222a3d",
+              "surface": "#0b1326",
+              "error": "#ffb4ab",
+              "on-tertiary-fixed": "#0b1c30",
+              "outline": "#99907c",
+              "surface-variant": "#2d3449",
+              "on-background": "#dae2fd",
+              "on-secondary-container": "#00311f",
+              "tertiary-fixed": "#d3e4fe",
+              "on-primary-container": "#554300",
+              "tertiary": "#bfd0ea",
+              "secondary-container": "#00a572",
+              "surface-tint": "#e9c349",
+              "surface-container-highest": "#2d3449",
+              "on-surface-variant": "#d0c5af",
+              "inverse-primary": "#735c00",
+              "outline-variant": "#4d4635",
+              "on-primary-fixed-variant": "#574500",
+              "surface-dim": "#0b1326",
+              "on-tertiary-container": "#36465b"
+            },
+            "borderRadius": {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+            "spacing": {
+              "margin-mobile": "20px",
+              "unit": "4px",
+              "container-max": "1440px",
+              "gutter": "24px",
+              "margin-desktop": "64px"
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(23, 31, 51, 0.45);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            border-left: 1px solid rgba(255, 255, 255, 0.08);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.35);
+            border-right: 1px solid rgba(0, 0, 0, 0.35);
+        }
+        
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #f2ca50 0%, #d4af37 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gold-gradient-bg {
+            background: linear-gradient(135deg, #f2ca50 0%, #d4af37 100%);
+        }
+
+        .gauge-conic {
+            background: conic-gradient(from 180deg, #4edea3 0%, #4edea3 75%, #171f33 75%, #171f33 100%);
+        }
+        
+        .donut-conic {
+            background: conic-gradient(#f2ca50 0%, #f2ca50 40%, #2d3449 40%, #2d3449 100%);
+        }
+
+        .hover-card-trigger {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .hover-card-trigger:hover {
+            transform: translateY(-4px) scale(1.01);
+            background: rgba(34, 42, 61, 0.55);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-sans min-h-screen flex antialiased selection:bg-primary/30 selection:text-white">
+    <!-- SideNavBar -->
+    <nav class="hidden lg:flex flex-col p-6 gap-y-4 bg-surface-container backdrop-blur-[40px] text-primary border-r border-white/5 shadow-2xl flex-shrink-0 z-40 w-64">
+        <div class="mb-8">
+            <h1 class="font-bold text-2xl tracking-wider gold-gradient-text">MRA REAL ESTATE</h1>
+            <p class="text-on-surface-variant text-[11px] uppercase tracking-widest mt-1">Spatial Intelligence</p>
+        </div>
+        <div class="flex flex-col gap-2 flex-grow">
+            <!-- Sidebar Navigation Tabs -->
+            <button onclick="switchView('goldmine', this)" id="tab-goldmine" class="tab-button flex items-center gap-3 px-4 py-3 bg-white/5 text-primary font-bold rounded-xl border border-primary/20 shadow-[0_0_15px_rgba(242,202,80,0.05)] w-full text-left">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+                <span>Goldmine Check</span>
+            </button>
+            <button onclick="switchView('portfolio', this)" id="tab-portfolio" class="tab-button flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-xl transition-all duration-200 w-full text-left">
+                <span class="material-symbols-outlined">domain</span>
+                <span>Portfolio Ledger</span>
+            </button>
+            <button onclick="switchView('spatial', this)" id="tab-spatial" class="tab-button flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-xl transition-all duration-200 w-full text-left">
+                <span class="material-symbols-outlined">layers</span>
+                <span>Spatial Map</span>
+            </button>
+            <button onclick="switchView('roi', this)" id="tab-roi" class="tab-button flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-xl transition-all duration-200 w-full text-left">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span>ROI Projections</span>
+            </button>
+            <a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-xl transition-all duration-200 mt-auto" href="#">
+                <span class="material-symbols-outlined">settings_suggest</span>
+                <span>Settings</span>
+            </a>
+        </div>
+        <button class="mt-4 w-full py-3 px-4 rounded-xl gold-gradient-bg text-on-primary font-semibold text-sm hover:brightness-110 active:scale-95 transition-all shadow-[0_4px_20px_rgba(242,202,80,0.15)]">
+            Connect Concierge
+        </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="flex-grow flex flex-col min-w-0">
+        <!-- TopAppBar -->
+        <header class="bg-surface/70 backdrop-blur-[20px] text-primary border-b border-white/5 shadow-xl flex justify-between items-center w-full px-6 md:px-12 h-20 flex-shrink-0 z-50">
+            <div class="flex-grow flex items-center gap-4">
+                <!-- Mobile Navigation Toggle Menu (Visible on smaller viewports) -->
+                <div class="lg:hidden relative">
+                    <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-white/5 rounded-xl flex items-center">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    <!-- Mobile Menu Dropdown -->
+                    <div id="mobile-menu" class="hidden absolute top-14 left-0 w-56 glass-panel rounded-xl p-4 flex flex-col gap-2 shadow-2xl z-50 border border-white/10">
+                        <button onclick="switchView('goldmine', document.getElementById('tab-goldmine')); toggleMobileMenu()" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 rounded-lg text-left text-sm">Goldmine Check</button>
+                        <button onclick="switchView('portfolio', document.getElementById('tab-portfolio')); toggleMobileMenu()" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 rounded-lg text-left text-sm">Portfolio Ledger</button>
+                        <button onclick="switchView('spatial', document.getElementById('tab-spatial')); toggleMobileMenu()" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 rounded-lg text-left text-sm">Spatial Map</button>
+                        <button onclick="switchView('roi', document.getElementById('tab-roi')); toggleMobileMenu()" class="flex items-center gap-3 px-4 py-2 hover:bg-white/5 rounded-lg text-left text-sm">ROI Projections</button>
+                    </div>
+                </div>
+                <h1 id="app-title-display" class="font-bold text-lg text-on-surface hidden sm:block">Spatial Intelligence Platform</h1>
+            </div>
+            
+            <div class="flex-1 flex justify-center hidden md:flex">
+                <div class="relative w-full max-w-md glass-panel rounded-full overflow-hidden">
+                    <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">search</span>
+                    <input class="w-full bg-transparent border-none py-2.5 pl-12 pr-4 text-on-surface focus:ring-1 focus:ring-primary placeholder-on-surface-variant text-sm outline-none" placeholder="Search Dhaka blocks, plots, zoning..." type="text"/>
+                </div>
+            </div>
+            <div class="flex-grow flex justify-end items-center gap-4">
+                <button class="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-white/5 rounded-xl relative">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full animate-pulse"></span>
+                </button>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs text-on-surface font-semibold">Muneeem's Brain</p>
+                        <p class="text-[10px] text-on-surface-variant">Principal Strategist</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-full border border-primary/50 overflow-hidden cursor-pointer hover:border-primary transition-colors">
+                        <div class="w-full h-full bg-surface-container-high flex items-center justify-center font-bold text-primary">MB</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Main Views -->
+        <main class="flex-grow p-6 md:p-12 overflow-y-auto relative z-0">
+            <!-- Decorative Radial Background Glows -->
+            <div class="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+            <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+
+            <!-- VIEW 1: GOLDMINE CHECK -->
+            <div id="view-goldmine" class="view-pane">
+                <!-- Page Header -->
+                <div class="mb-10">
+                    <div class="flex items-center gap-2 text-xs text-primary font-semibold tracking-widest uppercase mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+                        <span>Regulatory Context Engine (RAJUK DAP 2024)</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">Seller's Goldmine Check</h2>
+                    <p class="text-base text-on-surface-variant mt-1">Overlaying satellite height footprints and zoning codes to unlock hidden redevelopment capital.</p>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <!-- Left Column (Input & mini visuals) -->
+                    <div class="xl:col-span-4 flex flex-col gap-6">
+                        <div class="glass-panel rounded-2xl p-6 hover-card-trigger">
+                            <h3 class="text-lg font-semibold text-primary mb-6 flex items-center gap-2">
+                                <span class="material-symbols-outlined">location_city</span>
+                                <span>Property Input Parameters</span>
+                            </h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wider">Target Dhaka Corridor</label>
+                                    <div class="glass-panel rounded-xl px-4 py-3 text-on-surface text-sm border border-white/5 flex items-center justify-between">
+                                        <span class="font-semibold">Bashundhara R/A (Block D)</span>
+                                        <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wider">Land Area</label>
+                                        <div class="glass-panel rounded-xl px-4 py-3 text-on-surface text-sm border border-white/5 flex items-center justify-between">
+                                            <span class="font-bold">5.0</span>
+                                            <span class="text-xs text-on-surface-variant font-medium">Kathas</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wider">Road Width</label>
+                                        <div class="glass-panel rounded-xl px-4 py-3 text-on-surface text-sm border border-white/5 flex items-center justify-between">
+                                            <span class="font-bold">20.0</span>
+                                            <span class="text-xs text-on-surface-variant font-medium">feet</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-on-surface-variant mb-1.5 uppercase tracking-wider">Current Structure Height</label>
+                                    <div class="glass-panel rounded-xl px-4 py-3 text-on-surface text-sm border border-white/5 flex items-center justify-between">
+                                        <span class="font-semibold">2 Stories (Residential)</span>
+                                        <span class="material-symbols-outlined text-on-surface-variant text-sm">home</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="mt-6 w-full py-3.5 rounded-xl border border-primary/30 text-primary font-bold text-sm hover:bg-primary/10 hover:border-primary active:scale-98 transition-all flex items-center justify-center gap-2">
+                                <span class="material-symbols-outlined text-sm">refresh</span>
+                                <span>Recalculate Yield</span>
+                            </button>
+                        </div>
+
+                        <!-- Under-utilized Land Visual -->
+                        <div class="glass-panel rounded-2xl p-6 hover-card-trigger">
+                            <h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4">Spatial Footprint Efficiency</h4>
+                            <div class="flex items-center gap-6">
+                                <div class="relative w-24 h-24 flex-shrink-0">
+                                    <div class="w-full h-full rounded-full donut-conic"></div>
+                                    <div class="absolute inset-2 bg-background rounded-full flex items-center justify-center">
+                                        <span class="font-bold text-xl text-primary">60%</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+                                        <span class="text-xs text-on-surface font-semibold">Active Footprint (40%)</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></div>
+                                        <span class="text-xs text-on-surface-variant font-semibold">Unutilized Potential (60%)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column (Comparison Grid) -->
+                    <div class="xl:col-span-8 flex flex-col gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 glass-panel rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                            
+                            <!-- Left Status: Current Building -->
+                            <div class="p-8 border-b md:border-b-0 md:border-r border-white/5 relative group transition-all duration-300 hover:bg-white/[0.01]">
+                                <div class="absolute top-6 right-6 px-3 py-1 rounded-full bg-surface-container-high/80 text-on-surface-variant text-[10px] font-bold tracking-widest uppercase border border-white/5">
+                                    Current Asset
+                                </div>
+                                <h3 class="text-xl font-bold text-on-surface mb-8 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-on-surface-variant">home</span>
+                                    <span>Unleveraged Status</span>
+                                </h3>
+                                <div class="space-y-5">
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Structure Height</span>
+                                        <span class="text-sm font-semibold text-on-surface">2 Stories</span>
+                                    </div>
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Ground Coverage</span>
+                                        <span class="text-sm font-semibold text-on-surface">40% (~1,440 sqft)</span>
+                                    </div>
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Floor Area Ratio (FAR)</span>
+                                        <span class="text-sm font-semibold text-on-surface">0.80 (Severely Under)</span>
+                                    </div>
+                                    <div class="mt-8 pt-4">
+                                        <span class="block text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">Estimated Asset Value</span>
+                                        <span class="text-3xl font-bold text-on-surface">৳ 4.5 Crore</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right Status: Maximum Redevelopment -->
+                            <div class="p-8 relative group transition-all duration-300 hover:bg-primary/[0.01]">
+                                <div class="absolute top-6 right-6 px-3 py-1 rounded-full bg-primary/20 text-primary text-[10px] font-bold tracking-widest uppercase border border-primary/30 shadow-[0_0_15px_rgba(242,202,80,0.15)]">
+                                    RAJUK Max Yield
+                                </div>
+                                <h3 class="text-xl font-bold gold-gradient-text mb-8 flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary">apartment</span>
+                                    <span>Redevelopment Yield</span>
+                                </h3>
+                                <div class="space-y-5">
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Maximum Height</span>
+                                        <span class="text-sm font-bold text-secondary flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">arrow_upward</span>
+                                            9 Stories (Approved)
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Max Ground Coverage</span>
+                                        <span class="text-sm font-bold text-secondary flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">arrow_upward</span>
+                                            75% (~2,700 sqft)
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between items-end border-b border-white/5 pb-2">
+                                        <span class="text-xs text-on-surface-variant font-semibold">Allowed FAR (20ft Road)</span>
+                                        <span class="text-sm font-bold text-secondary flex items-center gap-1">
+                                            <span class="material-symbols-outlined text-sm">arrow_upward</span>
+                                            3.50 (DAP Compliant)
+                                        </span>
+                                    </div>
+                                    <div class="mt-8 pt-4 relative">
+                                        <span class="block text-xs font-semibold text-on-surface-variant mb-1 uppercase tracking-wider">Projected Portfolio Value</span>
+                                        <span class="text-3xl font-bold gold-gradient-text drop-shadow-[0_0_20px_rgba(242,202,80,0.25)]">৳ 15.7 Crore</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Value Multiplier Gauge Card -->
+                        <div class="glass-panel rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-8 hover-card-trigger">
+                            <div class="flex-1">
+                                <span class="text-xs font-semibold text-secondary uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                                    <span class="material-symbols-outlined text-sm">analytics</span>
+                                    <span>Capital Unlock Efficiency</span>
+                                </span>
+                                <h3 class="text-2xl font-bold text-on-surface mb-2">Value Multiplier Score</h3>
+                                <p class="text-sm text-on-surface-variant leading-relaxed">
+                                    Due to the 20ft road access code and high-velocity development zone in Bashundhara, your land's structural capacity remains 3.5x under-developed. Redevelopment structures 248% more equity.
+                                </p>
+                            </div>
+                            <div class="relative w-48 h-48 flex-shrink-0 flex items-center justify-center">
+                                <!-- Semi-circle Gauge -->
+                                <div class="absolute inset-0 rounded-full gauge-conic" style="clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); transform: rotate(180deg);"></div>
+                                <div class="absolute inset-4 bg-background rounded-full" style="clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); transform: rotate(180deg);"></div>
+                                <!-- Value Display -->
+                                <div class="absolute inset-0 flex flex-col items-center justify-end pb-8">
+                                    <span class="text-4xl font-extrabold text-secondary drop-shadow-[0_0_15px_rgba(78,222,163,0.35)]">3.5x</span>
+                                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest mt-1">Equity Unlock</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Section -->
+                <div class="mt-8 glass-panel rounded-2xl p-8 md:p-12 text-center relative overflow-hidden shadow-2xl border border-white/5">
+                    <div class="absolute inset-0 gold-gradient-bg opacity-5 mix-blend-overlay pointer-events-none"></div>
+                    <h2 class="text-3xl font-bold text-on-surface mb-4">Maximize Your Structural Capital</h2>
+                    <p class="text-sm md:text-base text-on-surface-variant max-w-2xl mx-auto mb-8 leading-relaxed">
+                        Don't let valuable FAR potential sit idle. Partner with MRA Real Estate Solutions' corporate joint venture network to develop premium luxury apartments with zero upfront construction capital.
+                    </p>
+                    <button class="gold-gradient-bg text-on-primary font-bold text-base py-4 px-10 rounded-xl shadow-[0_4px_30px_rgba(242,202,80,0.2)] hover:shadow-[0_4px_40px_rgba(242,202,80,0.4)] active:scale-98 hover:scale-102 transition-all duration-300">
+                        Initiate Partnership Consultation
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 2: PORTFOLIO LEDGER -->
+            <div id="view-portfolio" class="view-pane hidden">
+                <!-- Page Header -->
+                <div class="mb-10">
+                    <div class="flex items-center gap-2 text-xs text-primary font-semibold tracking-widest uppercase mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        <span>MRA Dhaka Real Estate Registry</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">Active Property Ledger</h2>
+                    <p class="text-base text-on-surface-variant mt-1">Audit log of spatial assets processed through the MRA intelligence model in Dhaka.</p>
+                </div>
+
+                <!-- Ledger Table Card -->
+                <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl border border-white/5">
+                    <div class="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container/50">
+                        <h3 class="text-lg font-semibold text-primary">Qualifying Spatial Assets</h3>
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-semibold uppercase tracking-wider border border-primary/30">Total: 5 Checked</span>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="text-xs uppercase tracking-wider text-on-surface-variant bg-surface-container-high/40 border-b border-white/5">
+                                <tr>
+                                    <th class="px-6 py-4">Property ID</th>
+                                    <th class="px-6 py-4">Location</th>
+                                    <th class="px-6 py-4">Road Width (ft)</th>
+                                    <th class="px-6 py-4">Land Area</th>
+                                    <th class="px-6 py-4">Structure State</th>
+                                    <th class="px-6 py-4">RAJUK FAR (Max)</th>
+                                    <th class="px-6 py-4">Redev. Score</th>
+                                    <th class="px-6 py-4">Action Suggestion</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-white/5">
+                                <tr class="hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-6 py-4 font-bold text-primary">MRA-BASH-402</td>
+                                    <td class="px-6 py-4">Bashundhara R/A, Block D</td>
+                                    <td class="px-6 py-4">20.0 ft</td>
+                                    <td class="px-6 py-4 font-semibold">5.0 Kathas</td>
+                                    <td class="px-6 py-4 text-on-surface-variant">2-Story (Residential)</td>
+                                    <td class="px-6 py-4 font-bold text-secondary">9 Stories (FAR 3.5)</td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md bg-secondary/20 text-secondary font-bold text-xs">8.75 / 10.0</span></td>
+                                    <td class="px-6 py-4"><span class="text-secondary font-bold text-xs uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>STRONG BUY / PARTNER</span></td>
+                                </tr>
+                                <tr class="hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-6 py-4 font-bold text-primary">MRA-GUL-108</td>
+                                    <td class="px-6 py-4">Gulshan 2, Road 74</td>
+                                    <td class="px-6 py-4">40.0 ft</td>
+                                    <td class="px-6 py-4 font-semibold">10.0 Kathas</td>
+                                    <td class="px-6 py-4 text-on-surface-variant">3-Story (Old Building)</td>
+                                    <td class="px-6 py-4 font-bold text-secondary">14 Stories (FAR 4.75)</td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md bg-secondary/20 text-secondary font-bold text-xs">9.20 / 10.0</span></td>
+                                    <td class="px-6 py-4"><span class="text-secondary font-bold text-xs uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>STRONG BUY / DEVELOP</span></td>
+                                </tr>
+                                <tr class="hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-6 py-4 font-bold text-primary">MRA-UTT-220</td>
+                                    <td class="px-6 py-4">Uttara, Sector 4</td>
+                                    <td class="px-6 py-4">30.0 ft</td>
+                                    <td class="px-6 py-4 font-semibold">4.0 Kathas</td>
+                                    <td class="px-6 py-4 text-on-surface-variant">Vacant Land</td>
+                                    <td class="px-6 py-4 font-bold text-secondary">8 Stories (FAR 4.0)</td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md bg-secondary/20 text-secondary font-bold text-xs">10.0 / 10.0</span></td>
+                                    <td class="px-6 py-4"><span class="text-secondary font-bold text-xs uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>ACQUIRE IMMEDIATELY</span></td>
+                                </tr>
+                                <tr class="hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-6 py-4 font-bold text-primary">MRA-BAN-091</td>
+                                    <td class="px-6 py-4">Banani, Block H</td>
+                                    <td class="px-6 py-4">30.0 ft</td>
+                                    <td class="px-6 py-4 font-semibold">6.0 Kathas</td>
+                                    <td class="px-6 py-4 text-on-surface-variant">5-Story (Built 2012)</td>
+                                    <td class="px-6 py-4 font-bold text-secondary">10 Stories (FAR 4.0)</td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md bg-primary/20 text-primary font-bold text-xs">4.10 / 10.0</span></td>
+                                    <td class="px-6 py-4"><span class="text-primary font-bold text-xs uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span>HOLD & NEGOTIATE</span></td>
+                                </tr>
+                                <tr class="hover:bg-white/[0.01] transition-colors">
+                                    <td class="px-6 py-4 font-bold text-primary">MRA-MIR-511</td>
+                                    <td class="px-6 py-4">Mirpur 12, Block C</td>
+                                    <td class="px-6 py-4">12.0 ft</td>
+                                    <td class="px-6 py-4 font-semibold">3.5 Kathas</td>
+                                    <td class="px-6 py-4 text-on-surface-variant">4-Story (Residential)</td>
+                                    <td class="px-6 py-4 font-bold text-secondary">5 Stories (FAR 2.5)</td>
+                                    <td class="px-6 py-4"><span class="px-2.5 py-1 rounded-md bg-red-500/20 text-red-400 font-bold text-xs">1.80 / 10.0</span></td>
+                                    <td class="px-6 py-4"><span class="text-red-400 font-bold text-xs uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>AVOID / OUT OF SCALES</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 3: SPATIAL MAP -->
+            <div id="view-spatial" class="view-pane hidden">
+                <!-- Page Header -->
+                <div class="mb-10">
+                    <div class="flex items-center gap-2 text-xs text-primary font-semibold tracking-widest uppercase mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
+                        <span>Google Earth Engine Map Layer Integration</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">Construction Velocity Heatmap</h2>
+                    <p class="text-base text-on-surface-variant mt-1">Spatial intelligence mapping displaying growth velocities and building height polygons in Dhaka.</p>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <!-- Layer Controls -->
+                    <div class="xl:col-span-3 flex flex-col gap-6">
+                        <div class="glass-panel rounded-2xl p-6 hover-card-trigger">
+                            <h3 class="text-md font-semibold text-primary mb-4 flex items-center gap-2">
+                                <span class="material-symbols-outlined">layers</span>
+                                <span>GEE Map Layers</span>
+                            </h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
+                                    <input type="checkbox" checked class="rounded border-white/10 text-primary focus:ring-primary bg-background w-4 h-4"/>
+                                    <div class="text-left">
+                                        <p class="text-xs font-semibold text-on-surface">Construction Velocity</p>
+                                        <p class="text-[10px] text-on-surface-variant">Sourced Sentinel-2 (2016-2024)</p>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
+                                    <input type="checkbox" checked class="rounded border-white/10 text-primary focus:ring-primary bg-background w-4 h-4"/>
+                                    <div class="text-left">
+                                        <p class="text-xs font-semibold text-on-surface">RAJUK DAP Boundaries</p>
+                                        <p class="text-[10px] text-on-surface-variant">Digitized GeoJSON Polygons</p>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 cursor-pointer hover:border-primary/50 transition-colors">
+                                    <input type="checkbox" class="rounded border-white/10 text-primary focus:ring-primary bg-background w-4 h-4"/>
+                                    <div class="text-left">
+                                        <p class="text-xs font-semibold text-on-surface">Height Potentials (FAR)</p>
+                                        <p class="text-[10px] text-on-surface-variant">Max Story overlay mapping</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Mini Legend -->
+                        <div class="glass-panel rounded-2xl p-6">
+                            <h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">Map Legend</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-sm bg-secondary"></div>
+                                        <span>High Velocity (>15%)</span>
+                                    </div>
+                                    <span class="font-bold">Active</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-sm bg-primary"></div>
+                                        <span>Stable / Densified</span>
+                                    </div>
+                                    <span class="font-bold">Premium</span>
+                                </div>
+                                <div class="flex items-center justify-between text-xs text-on-surface-variant">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-sm bg-white/20"></div>
+                                        <span>Low Growth Corridor</span>
+                                    </div>
+                                    <span class="font-bold">Sub-2%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stylized SVG Vector Map -->
+                    <div class="xl:col-span-9 glass-panel rounded-2xl overflow-hidden border border-white/5 relative h-[550px] shadow-2xl flex items-center justify-center bg-slate-950">
+                        <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(11,19,38,0.2)_0%,rgba(6,14,32,0.85)_100%)] pointer-events-none z-10"></div>
+                        
+                        <!-- Map Grid Gridlines -->
+                        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+                        
+                        <!-- Dynamic Vector Map Drawing -->
+                        <svg class="w-full h-full p-8 relative z-0" viewBox="0 0 800 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Dhaka Roads (Polylines) -->
+                            <path d="M 50,250 L 750,250" stroke="rgba(255,255,255,0.15)" stroke-width="6" stroke-linecap="round"/>
+                            <path d="M 400,50 L 400,450" stroke="rgba(255,255,255,0.15)" stroke-width="6" stroke-linecap="round"/>
+                            
+                            <!-- Internal Sector Roads -->
+                            <path d="M 200,50 L 200,450" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M 600,50 L 600,450" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M 50,120 L 750,120" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"/>
+                            <path d="M 50,370 L 750,370" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"/>
+                            
+                            <!-- Blocks and polygons (Active highlights) -->
+                            <!-- Block A (Gulshan Style Premium) -->
+                            <rect x="80" y="70" width="100" height="150" rx="8" fill="rgba(242,202,80,0.1)" stroke="rgba(242,202,80,0.3)" stroke-width="1.5" class="transition-all hover:fill-primary/20 cursor-pointer" onmouseover="showMapTooltip('Block A (Gulshan Core)', 'Growth Velocity: Stable Premium', 'Avg Price: ৳22,000/sqft', event)" onmouseout="hideMapTooltip()"/>
+                            <!-- Block D (Bashundhara High Velocity) -->
+                            <rect x="220" y="70" width="160" height="150" rx="8" fill="rgba(78,222,163,0.15)" stroke="rgba(78,222,163,0.5)" stroke-width="2" class="transition-all hover:fill-secondary/35 cursor-pointer animate-pulse" onmouseover="showMapTooltip('Block D (Bashundhara R/A)', 'Growth Velocity: 16.4% (Very High)', 'FAR Cap: 3.50 (9 Stories)', event)" onmouseout="hideMapTooltip()"/>
+                            
+                            <!-- Block B (Stable development) -->
+                            <rect x="80" y="270" width="300" height="80" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1" class="transition-all hover:fill-white/10 cursor-pointer" onmouseover="showMapTooltip('Block B (Residential Corridor)', 'Growth Velocity: 4.8% (Stable)', 'Avg Price: ৳13,500/sqft', event)" onmouseout="hideMapTooltip()"/>
+                            
+                            <!-- Block C (Active investment corridor) -->
+                            <rect x="420" y="70" width="160" height="150" rx="8" fill="rgba(78,222,163,0.1)" stroke="rgba(78,222,163,0.3)" stroke-width="1.5" class="transition-all hover:fill-secondary/25 cursor-pointer" onmouseover="showMapTooltip('Block C (Commercial High-Yield)', 'Growth Velocity: 12.1% (High)', 'FAR Cap: 4.00 (10 Stories)', event)" onmouseout="hideMapTooltip()"/>
+                            <!-- Block E (Sub-optimal low growth) -->
+                            <rect x="600" y="270" width="130" height="150" rx="8" fill="rgba(239,68,68,0.05)" stroke="rgba(239,68,68,0.2)" stroke-width="1" class="transition-all hover:fill-red-500/10 cursor-pointer" onmouseover="showMapTooltip('Block E (Zoning Conflict Sector)', 'Growth Velocity: 1.8% (Low)', 'Risk Level: DAP Height Caps Apply', event)" onmouseout="hideMapTooltip()"/>
+                        </svg>
+
+                        <!-- Dynamic Tooltip -->
+                        <div id="map-tooltip" class="hidden absolute p-4 glass-panel border border-primary/20 rounded-xl text-left pointer-events-none z-30 shadow-2xl">
+                            <h5 id="tooltip-title" class="font-bold text-sm text-primary mb-1">Block D</h5>
+                            <p id="tooltip-growth" class="text-xs text-on-surface font-semibold mb-0.5">Growth Velocity: 16.4%</p>
+                            <p id="tooltip-metric" class="text-[10px] text-on-surface-variant">Allowed FAR: 3.5 (9 Stories)</p>
+                        </div>
+                        
+                        <!-- Map Floating Compass -->
+                        <div class="absolute bottom-6 right-6 p-3 glass-panel border border-white/5 rounded-xl text-center z-20 flex flex-col items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-xl animate-spin" style="animation-duration: 8s;">explore</span>
+                            <span class="text-[9px] font-bold text-on-surface-variant tracking-wider mt-1 uppercase">DHAKA DEPT</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW 4: ROI PROJECTIONS -->
+            <div id="view-roi" class="view-pane hidden">
+                <!-- Page Header -->
+                <div class="mb-10">
+                    <div class="flex items-center gap-2 text-xs text-primary font-semibold tracking-widest uppercase mb-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        <span>Job - Wage - Rent - Valuation Predictive Chain</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-bold text-on-surface tracking-tight">Venture Projections Matrix</h2>
+                    <p class="text-base text-on-surface-variant mt-1">Multi-layered financial modeling linking local economic indicators to capital appreciation in Dhaka.</p>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                    <!-- Right Details: Value Growth Projections -->
+                    <div class="xl:col-span-8 flex flex-col gap-6">
+                        <div class="glass-panel rounded-2xl p-6 border border-white/5 shadow-2xl">
+                            <h3 class="text-lg font-semibold text-primary mb-6 flex items-center gap-2">
+                                <span class="material-symbols-outlined text-primary">finance_mode</span>
+                                <span>Dhaka Property Value appreciation Timeline (Crores ৳)</span>
+                            </h3>
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center text-xs font-bold text-on-surface-variant uppercase tracking-wider pb-2 border-b border-white/5 bg-white/[0.01] p-3 rounded-lg">
+                                    <span>Timeline (Year)</span>
+                                    <span>Base Value</span>
+                                    <span>Maximized Redevelopment Value</span>
+                                    <span>Net Appreciation Yield</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-on-surface p-3 border-b border-white/5 hover:bg-white/[0.01] transition-colors rounded-lg">
+                                    <span class="font-bold">Year 1 (Initial Setup)</span>
+                                    <span>৳ 4.5 Crore</span>
+                                    <span class="font-semibold text-secondary">৳ 6.2 Crore</span>
+                                    <span class="text-secondary font-bold">137%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-on-surface p-3 border-b border-white/5 hover:bg-white/[0.01] transition-colors rounded-lg">
+                                    <span class="font-bold">Year 2</span>
+                                    <span>৳ 4.8 Crore</span>
+                                    <span class="font-semibold text-secondary">৳ 8.5 Crore</span>
+                                    <span class="text-secondary font-bold">177%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-on-surface p-3 border-b border-white/5 hover:bg-white/[0.01] transition-colors rounded-lg">
+                                    <span class="font-bold">Year 3 (Mid-point)</span>
+                                    <span>৳ 5.1 Crore</span>
+                                    <span class="font-semibold text-secondary">৳ 11.2 Crore</span>
+                                    <span class="text-secondary font-bold">219%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-on-surface p-3 border-b border-white/5 hover:bg-white/[0.01] transition-colors rounded-lg">
+                                    <span class="font-bold">Year 4</span>
+                                    <span>৳ 5.4 Crore</span>
+                                    <span class="font-semibold text-secondary">৳ 13.4 Crore</span>
+                                    <span class="text-secondary font-bold">248%</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm text-on-surface p-3 hover:bg-white/[0.01] transition-colors rounded-lg bg-primary/[0.02]">
+                                    <span class="font-bold gold-gradient-text">Year 5 (Fully Leveraged)</span>
+                                    <span>৳ 5.8 Crore</span>
+                                    <span class="font-bold gold-gradient-text drop-shadow-[0_0_10px_rgba(242,202,80,0.15)]">৳ 15.7 Crore</span>
+                                    <span class="text-secondary font-extrabold">270% (Value Unlock)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Left detail metrics (5-Factor calculations) -->
+                    <div class="xl:col-span-4 flex flex-col gap-6">
+                        <div class="glass-panel rounded-2xl p-6 hover-card-trigger">
+                            <h4 class="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-4">Dhaka Rental Yield Forecasts</h4>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-white/5 border border-white/5 rounded-xl text-left">
+                                    <span class="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Current Rental Yield</span>
+                                    <p class="text-2xl font-bold text-primary">5.2% <span class="text-xs font-normal text-on-surface-variant">/ annum</span></p>
+                                    <p class="text-[10px] text-on-surface-variant mt-1">Based on low-rise under-utilized residential units</p>
+                                </div>
+                                <div class="p-4 bg-secondary/10 border border-secondary/20 rounded-xl text-left relative overflow-hidden">
+                                    <div class="absolute inset-0 gold-gradient-bg opacity-5"></div>
+                                    <span class="text-[10px] text-secondary font-bold uppercase tracking-wider flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>Maximized Rental Yield</span>
+                                    <p class="text-2xl font-bold text-secondary">8.75% <span class="text-xs font-normal text-on-surface-variant">/ annum</span></p>
+                                    <p class="text-[10px] text-on-surface-variant mt-1">Based on modern high-rise residential layouts</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-surface-container-lowest border-t border-white/5 flex flex-col md:flex-row justify-between items-center py-6 px-6 md:px-12 w-full flex-shrink-0 z-40 text-xs text-on-surface-variant/80">
+            <div class="font-bold text-sm gold-gradient-text mb-4 md:mb-0">MRA Real Estate Solutions</div>
+            <div class="flex flex-wrap justify-center gap-6 mb-4 md:mb-0">
+                <a class="hover:text-primary transition-colors" href="#">DAP Compliance Registry</a>
+                <a class="hover:text-primary transition-colors" href="#">Investment Protocol</a>
+                <a class="hover:text-primary transition-colors" href="#">Private Concierge</a>
+            </div>
+            <div>© 2026 MRA Real Estate. Dhaka Spatial Intelligence Division.</div>
+        </footer>
+    </div>
+
+    <!-- SPA VIEW SWITCHER JS -->
+    <script>
+        function switchView(viewId, clickedBtn) {
+            // 1. Hide all view content panes
+            const views = document.querySelectorAll('.view-pane');
+            views.forEach(view => {
+                view.classList.add('hidden');
+            });
+            
+            // 2. Show the targeted view
+            const targetView = document.getElementById('view-' + viewId);
+            if (targetView) {
+                targetView.classList.remove('hidden');
+            }
+
+            // 3. Reset active states on desktop buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(btn => {
+                btn.className = "tab-button flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:text-primary hover:bg-white/5 rounded-xl transition-all duration-200 w-full text-left";
+                // Reset standard icon variations
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if (icon) {
+                    icon.style.variationSettings = "'FILL' 0";
+                }
+            });
+
+            // 4. Set active states on selected button
+            if (clickedBtn) {
+                clickedBtn.className = "tab-button flex items-center gap-3 px-4 py-3 bg-white/5 text-primary font-bold rounded-xl border border-primary/20 shadow-[0_0_15px_rgba(242,202,80,0.05)] w-full text-left";
+                const activeIcon = clickedBtn.querySelector('.material-symbols-outlined');
+                if (activeIcon) {
+                    activeIcon.style.variationSettings = "'FILL' 1";
+                }
+            }
+
+            // 5. Update header title text to map the page
+            const appHeaderTitle = document.getElementById('app-title-display');
+            if (appHeaderTitle) {
+                if (viewId === 'goldmine') {
+                    appHeaderTitle.innerText = "Goldmine Yield Analyst";
+                } else if (viewId === 'portfolio') {
+                    appHeaderTitle.innerText = " ঢাকার সক্রিয় লেজার (Active Ledger)";
+                } else if (viewId === 'spatial') {
+                    appHeaderTitle.innerText = "Construction Velocity Heatmap (GEE)";
+                } else if (viewId === 'roi') {
+                    appHeaderTitle.innerText = "5-Factor ROI Forecast Matrix";
+                }
+            }
+        }
+
+        // Tooltip logic for custom spatial map SVG
+        function showMapTooltip(title, growth, metrics, event) {
+            const tooltip = document.getElementById('map-tooltip');
+            const tooltipTitle = document.getElementById('tooltip-title');
+            const tooltipGrowth = document.getElementById('tooltip-growth');
+            const tooltipMetric = document.getElementById('tooltip-metric');
+            
+            tooltipTitle.innerText = title;
+            tooltipGrowth.innerText = growth;
+            tooltipMetric.innerText = metrics;
+
+            tooltip.classList.remove('hidden');
+            
+            // Positioning tooltip relative to SVG canvas mouse positions
+            tooltip.style.left = (event.clientX - 240) + 'px';
+            tooltip.style.top = (event.clientY - 120) + 'px';
+        }
+
+        function hideMapTooltip() {
+            const tooltip = document.getElementById('map-tooltip');
+            tooltip.classList.add('hidden');
+        }
+
+        // Toggle mobile hamburger navigation panel
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+            } else {
+                menu.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
