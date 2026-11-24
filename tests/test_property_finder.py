@@ -429,4 +429,4 @@ def test_weekly_summary_builds(tmp_path):
     out = tmp_path / "w.html"
     assert weekly.write([str(p)], str(out))["rows"] == 4
     h = out.read_text(encoding="utf-8")
-    assert "Weekly summary" in h and "<script" not in h and "<style" not in h
+    assert "new properties" in h and "<script" not in h and "<style" not in h
