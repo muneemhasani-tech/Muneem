@@ -157,6 +157,32 @@ def _card(y, h, title, inner):
             f'{_t(22, 36, title, 20, 700, NAVY, fam="disp")}{inner}</g>')
 
 
+PIE = [NAVY, GOLD, "#8a93b8", "#2a9d8f", "#e6c27a", "#4a5a9c", "#c9cfe6"]
+
+
+def _pie(cx, cy, r, items, labels=True):
+    """A pie of (label, value, colour); slices of 8% or more carry their share."""
+    import math
+    tot = sum(v for _, v, _ in items) or 1
+    out, a0 = "", -math.pi / 2
+    for lab, v, c in items:
+        frac = v / tot
+        a1 = a0 + 2 * math.pi * frac
+        if frac >= 0.999:
+            out += f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{c}"/>'
+        else:
+            x0, y0, x1, y1 = cx + r * math.cos(a0), cy + r * math.sin(a0), cx + r * math.cos(a1), cy + r * math.sin(a1)
+            out += (f'<path d="M{cx},{cy} L{x0:.1f},{y0:.1f} A{r},{r} 0 {1 if frac > 0.5 else 0} 1 {x1:.1f},{y1:.1f} Z" '
+                    f'fill="{c}" stroke="#ffffff" stroke-width="2"/>')
+        if labels and frac >= 0.08:
+            am = (a0 + a1) / 2
+            dark = c in (NAVY, "#4a5a9c", "#2a9d8f")
+            out += _t(cx + 0.62 * r * math.cos(am), cy + 0.62 * r * math.sin(am) + 5, f"{round(100 * frac)}%", 14, 700,
+                      "#ffffff" if dark else INK, "middle")
+        a0 = a1
+    return out
+
+
 def onepager_html(rows: list[dict], stats: dict[str, dict]) -> str:
     days = sorted({r["date"] for r in rows})
     start, end = dt.date.fromisoformat(days[0]), dt.date.fromisoformat(days[-1])
@@ -202,73 +228,41 @@ def onepager_html(rows: list[dict], stats: dict[str, dict]) -> str:
     parts.append(_card(y, 184, "How a lead reaches you", flow))
     y += 200
 
-    # 2. type mix donut
-    r, cx, cy, circ = 62, 110, 150, 2 * 3.14159 * 62
-    arcs, off = "", 0.0
-    for t, _, c in TYPES:
-        frac = by_type[t] / total
-        arcs += (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{c}" stroke-width="26" '
-                 f'stroke-dasharray="{frac * circ:.1f} {circ:.1f}" stroke-dashoffset="{-off * circ:.1f}" transform="rotate(-90 {cx} {cy})"/>')
-        off += frac
-    donut = arcs + _t(cx, cy + 4, total, 30, 700, INK, "middle", "disp") + _t(cx, cy + 26, "listings", 13, 400, MUTE, "middle")
-    for i, (t, name, c) in enumerate(TYPES):
-        ly = 92 + i * 42
-        donut += (f'<rect x="232" y="{ly}" width="16" height="16" rx="4" fill="{c}"/>' + _t(258, ly + 14, name, 18, 600, INK)
-                  + _t(530, ly + 14, f"{by_type[t]}  ·  {round(100 * by_type[t] / total)}%", 18, 600, INK, "end"))
-    parts.append(_card(y, 240, "What was found", donut))
-    y += 256
+    # 2-6: pie charts, each with a legend of count and share
+    def section(title, items, note=""):
+        nonlocal y
+        items = [(lab, v, PIE[i % len(PIE)] if c is None else c) for i, (lab, v, c) in enumerate(items) if v]
+        tot = sum(v for _, v, _ in items)
+        leg = ""
+        for i, (lab, v, c) in enumerate(items):
+            ly = 76 + i * 36
+            leg += (f'<rect x="250" y="{ly - 13}" width="16" height="16" rx="4" fill="{c}"/>' + _t(276, ly, lab, 17, 600, INK)
+                    + _t(530, ly, f"{v}  ·  {round(100 * v / tot)}%", 17, 600, INK, "end"))
+        h = max(250, 96 + 36 * len(items)) + (28 if note else 0)
+        body = _pie(122, 56 + (h - (28 if note else 0) - 56) / 2, 92, items) + leg
+        if note:
+            body += _t(22, h - 18, note, 14, 400, MUTE)
+        parts.append(_card(y, h, title, body))
+        y += h + 16
 
-    # 3. area tiles, 3 x 2, each with a type strip
-    tiles = ""
-    for i, (a, cnt) in enumerate(by_area.most_common(6)):
-        col, row = i % 3, i // 3
-        x, ty = 22 + col * 172, 56 + row * 118
-        tiles += (f'<rect x="{x}" y="{ty}" width="160" height="104" rx="12" fill="{BG}" stroke="{GOLD if i == 0 else LINE}"/>'
-                  + _t(x + 14, ty + 28, AREA_NAMES.get(a, a.title()).replace(" R/A", ""), 15, 600, MUTE)
-                  + _t(x + 14, ty + 66, cnt, 32, 700, INK, fam="disp"))
-        sx = x + 14
-        for t, _, c in TYPES:
-            ww = 132 * cell[(a, t)] / cnt
-            if ww:
-                tiles += f'<rect x="{sx:.1f}" y="{ty + 80}" width="{ww:.1f}" height="9" fill="{c}"/>'
-            sx += ww
-    parts.append(_card(y, 304, "Where", tiles))
-    y += 320
+    section("What was found", [(name, by_type[t], c) for t, name, c in TYPES])
+    section("Where", [(AREA_NAMES.get(a_, a_.title()).replace(" R/A", ""), n_, None) for a_, n_ in by_area.most_common()],
+            "Most plots: " + ", ".join(f"{AREA_NAMES.get(a_, a_).replace(' R/A', '')} ({n_})" for a_, n_ in
+                                      collections.Counter(r["area"] for r in rows if r["type"] == "land").most_common(2)))
 
-    # 4. what the listing tells you: two parallel proportion bars (overlapping groups, so not a funnel)
-    reach = ""
-    for i, (lab, k) in enumerate((("Phone number shown", phone), ("Price shown", priced))):
-        by = 66 + i * 64
-        pct = round(100 * k / total)
-        reach += (_t(22, by, lab, 17, 600, INK) + _t(530, by, f"{pct}%", 22, 700, NAVY, "end", "disp")
-                  + f'<rect x="22" y="{by + 12}" width="508" height="14" rx="7" fill="{BG}"/>'
-                  + f'<rect x="22" y="{by + 12}" width="{max(8, 508 * k / total):.0f}" height="14" rx="7" fill="{GOLD if i else NAVY}"/>')
-    reach += _t(22, 196, f"{total - phone} without a number: message the seller on the post.", 14, 400, MUTE)
-    parts.append(_card(y, 218, "Ready to call?", reach))
-    y += 234
+    # ready to call: two pies side by side (phone and price overlap, so they are separate pies, not one)
+    pair = ""
+    for i, (lab, k, c) in enumerate((("Phone shown", phone, NAVY), ("Price shown", priced, GOLD))):
+        cx = 146 + i * 260
+        pair += (_pie(cx, 140, 74, [("yes", k, c), ("no", total - k, "#e3e6ef")], labels=False)
+                 + _t(cx, 258, f"{round(100 * k / total)}%", 32, 700, INK, "middle", "disp")
+                 + _t(cx, 284, lab, 17, 600, INK, "middle") + _t(cx, 306, f"{k} of {total}", 14, 400, MUTE, "middle"))
+    pair += _t(22, 346, f"{total - phone} without a number: message the seller on the post.", 14, 400, MUTE)
+    parts.append(_card(y, 368, "Ready to call?", pair))
+    y += 384
 
-    # 5. per day columns
-    peak = max(by_day.values())
-    cw = min(70, (508 - 14 * (len(days) - 1)) / len(days))
-    cols = ""
-    for i, d in enumerate(days):
-        h = 120 * by_day[d] / peak
-        x = 22 + i * (cw + 14)
-        cols += (f'<rect x="{x:.0f}" y="{196 - h:.0f}" width="{cw:.0f}" height="{h:.0f}" rx="6" fill="{NAVY}"/>'
-                 + _t(x + cw / 2, 188 - h, by_day[d], 17, 700, INK, "middle", "disp")
-                 + _t(x + cw / 2, 220, dt.date.fromisoformat(d).strftime("%a %d"), 13, 400, MUTE, "middle"))
-    parts.append(_card(y, 240, "New each day", cols))
-    y += 256
-
-    # 6. sources
-    sp = src.most_common(1)[0][1]
-    bars = ""
-    for i, (s, k) in enumerate(src.most_common(6)):
-        by = 60 + i * 34
-        bars += (_t(22, by + 15, s, 16, 400, INK) + f'<rect x="150" y="{by + 2}" width="{max(6, 330 * k / sp):.0f}" height="18" rx="5" fill="#8a93b8"/>'
-                 + _t(530, by + 16, k, 16, 700, INK, "end"))
-    parts.append(_card(y, 60 + 34 * min(6, len(src)) + 10, "Sources", bars))
-    y += 60 + 34 * min(6, len(src)) + 26
+    section("New each day", [(dt.date.fromisoformat(d).strftime("%a %d %b"), by_day[d], None) for d in days])
+    section("Sources", [(s_, n_, None) for s_, n_ in src.most_common(6)])
 
     parts.append(f'<rect x="24" y="{y}" width="3" height="20" fill="{GOLD}"/>' + _t(36, y + 15, "Prices as posted. Confirm on the call.", 14, 400, MUTE))
     y += 40
