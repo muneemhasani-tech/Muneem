@@ -436,3 +436,13 @@ def test_weekly_summary_builds(tmp_path):
     empty = tmp_path / "empty.csv"
     empty.write_text(",".join(scout.COLS) + "\n", encoding="utf-8")
     assert weekly.make([str(empty)], [], str(tmp_path / "e"))["rows"] == 0
+
+
+def test_google_wrapped_bikroy_ads_are_listings_but_category_pages_are_not():
+    from property_finder import websearch as w
+    g = "https://www.google.com/goto?url=CAESpAEBxCJF1"
+    assert w.is_listing(g, "3 Katha Near 300 Feet Jalshari Plot Sale Rajuk Purbachal", False, True)
+    assert w.is_listing(g, "4 Bedroom Apartment in Gulshan 2 Estate for sale", False, True)
+    assert not w.is_listing(g, "4 Bedrooms Flat for sale in basundhara - Dhaka", False, True)
+    assert not w.is_listing(g, "Property in Gulshan for rent & sale ...", False, True)
+    assert not w.is_listing(g, "3 Katha Plot Sale Purbachal", False, False)  # only for portal searches

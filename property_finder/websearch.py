@@ -118,12 +118,20 @@ GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartment
 CATEGORY_TITLE = re.compile(r"^\s*\d+\+|^\s*(?:flats|apartments|properties|plots|houses|lands)\b|price list|দাম ২০", re.I)
 
 
+# Bikroy's category and filter pages ("4 Bedrooms Flat for sale in basundhara - Dhaka", "Property in Gulshan for rent & sale")
+PORTAL_CATEGORY = re.compile(r"^\s*(?:\d+\+?\s+|\d+\s+bedrooms?\s+)?(?:furnished\s+)?(?:houses\s*&\s*apartments|flats?|apartments?|land\s*&\s*plots|"
+                             r"commercial\s+land|plots?|property|properties)\s+for\s+(?:sale|rent)\s+in\s+[\w ]+(?:\s*-\s*dhaka)?\s*(?:\.{3}|…)?\s*$"
+                             r"|for\s+rent\s*&\s*sale", re.I)
+
+
 def is_listing(url: str, title: str = "", dev: bool = False, portals_ok: bool = False) -> bool:
     """One property in Bangladesh: not a category page, an area guide, a whole group or a foreign site."""
     u = urllib.parse.urlparse(url)
     host, path = u.netloc.lower().removeprefix("www."), u.path.rstrip("/")
     if (CRAWLED.search(host) and not portals_ok) or FOREIGN_HOSTS.search(host) or NOT_A_LISTING.search(url) or CATEGORY_TITLE.search(title):
         return False
+    if host == "google.com" and path == "/goto":  # Google wraps some portal ads (Bikroy) in its own redirect link
+        return portals_ok and not PORTAL_CATEGORY.search(title)
     if "facebook.com" in host:  # a post, a permalink or a Marketplace item; never a bare group or page
         return bool(re.search(r"/posts/|/permalink/|/marketplace/item/|story_fbid|/photos?/", url))
     if "bikroy.com" in host:  # Google indexes ads as /<area>/<category>/<ad-slug>; shorter paths are category pages
