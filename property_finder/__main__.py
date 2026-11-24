@@ -1,8 +1,10 @@
 """python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
    | reset-password EMAIL | build-html OUT.html
    | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
+   | sites --registry sites-old.json leads-*.csv [--add domain] --out sites.json   (weekly: find and test other listing sites)
    | weekly leads-*.csv stats-*.json --out DIR   (the associates' weekly one-pager email)"""
 import getpass
+import json
 import sys
 
 from . import auth, scrape, store, web
@@ -34,7 +36,7 @@ elif cmd == "scout":
     from . import scout
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
     info = scout.run(master=opt("--master"), out=opt("--out", "out"), seen=opt("--seen"), fresh="--fresh" in args,
-                     extra=int(opt("--extra")) if opt("--extra") else None)
+                     extra=int(opt("--extra")) if opt("--extra") else None, sites=opt("--sites"))
     print(f"{info['new']} new, {info['duplicates']} repeats skipped, {info['searches']} searches\n"
           f"leads: {info['leads']}\ndigest: {info['digest']}\nseen: {info['seen']}")
 elif cmd == "weekly":
@@ -42,6 +44,12 @@ elif cmd == "weekly":
     out = args[args.index("--out") + 1] if "--out" in args else "weekly"
     info = weekly.make([a for a in args[1:] if a.endswith(".csv")], [a for a in args[1:] if a.endswith(".json")], out)
     print(f"{info['rows']} listings, one-pager image: {'yes' if info['png'] else 'no (table email instead)'} -> {out}/email.html")
+elif cmd == "sites":
+    from . import sites
+    opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
+    adds = [args[i + 1] for i, a in enumerate(args) if a == "--add" and i + 1 < len(args)]
+    info = sites.write(opt("--registry"), [a for a in args[1:] if a.endswith(".csv")], adds, opt("--out", "sites.json"))
+    print(json.dumps(info, ensure_ascii=False))
 elif cmd == "admin":
     email = input("Admin email: ").strip()
     name = input("Admin name: ").strip()

@@ -29,7 +29,10 @@ COLS = ["date", "area", "type", "title", "price_bdt", "size_sqft", "price_per_sq
         "site", "url", "snippet", "query", "fingerprints"]
 
 
-def plan(day: dt.date, extra: int | None = None) -> list[dict]:
+SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily total stays the same)
+
+
+def plan(day: dt.date, extra: int | None = None, sites: list[str] | None = None) -> list[dict]:
     """Today's searches: the daily ones for every area, then a fresh slice of the rotating pool."""
     extra = CONF["extra_per_day"] if extra is None else extra
     fill = lambda t, a, v="", k="": t.format(area=a.capitalize(), area_bn=websearch.AREA_BN[a], variant=v, katha=k)
@@ -51,7 +54,16 @@ def plan(day: dt.date, extra: int | None = None) -> list[dict]:
         a = areas[(ordinal + i) % len(areas)]
         v = CONF["variants"][(ordinal * 3 + i) % len(CONF["variants"])]
         out.append({**p, "area": a, "q": fill(p["q"], a, v=v)})
-    return out + [pool[(start + i) % len(pool)] for i in range(min(extra, len(pool)))]
+    from .sites import clean
+    sites = [d for d in (sites or []) if clean(d) == d]  # validated domains only; the query is built here, never read from the registry
+    slots = min(SITE_SLOTS, len(sites), extra)
+    extras = [pool[(start + i) % len(pool)] for i in range(min(extra, len(pool)) - slots)]
+    for i in range(slots):
+        d = sites[(ordinal * SITE_SLOTS + i) % len(sites)]
+        a = areas[(ordinal + i + 2) % len(areas)]
+        v = CONF["variants"][(ordinal + i) % len(CONF["variants"])]
+        extras.append({"label": f"Directory: {d}", "area": a, "tbs": "", "q": f'site:{d} "{a.capitalize()}" {v}'})
+    return out + extras
 
 
 def fingerprints(r: dict) -> list[str]:
@@ -98,7 +110,7 @@ def read_master(path: str | None) -> tuple[list[dict], set[str], set[str]]:
 
 
 def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.date | None = None, seen: str | None = None,
-        enrich_top: int = 3, fresh: bool = False) -> dict:
+        enrich_top: int = 3, fresh: bool = False, sites: str | None = None) -> dict:
     """fresh=True: no memory needed. Facebook searches ask Google for the last 24 hours only (that filter works there; portals are rarely indexed that fast, so they keep their own rotating keywords and pages)."""
     day = day or dt.date.today()
     old, seen_urls, seen_fps = read_master(master)
@@ -107,7 +119,8 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     if not key:
         raise SystemExit("Set SERPER_API_KEY (or BRAVE_API_KEY) first.")
     new, dups, log = [], 0, []
-    for spec in plan(day, extra):
+    from . import sites as site_dir
+    for spec in plan(day, extra, site_dir.active(sites)):
         code, hits = websearch.run_query(prov, key, spec["q"], "qdr:d" if fresh and spec["label"].startswith("Facebook") else (spec.get("tbs") or ""))
         kept = 0
         for h in hits if code == 200 else []:

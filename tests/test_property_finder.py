@@ -446,3 +446,22 @@ def test_google_wrapped_bikroy_ads_are_listings_but_category_pages_are_not():
     assert not w.is_listing(g, "4 Bedrooms Flat for sale in basundhara - Dhaka", False, True)
     assert not w.is_listing(g, "Property in Gulshan for rent & sale ...", False, True)
     assert not w.is_listing(g, "3 Katha Plot Sale Purbachal", False, False)  # only for portal searches
+
+
+def test_site_directory_promotes_after_two_good_weeks_and_scout_uses_only_active(tmp_path, monkeypatch):
+    import datetime as dt, json
+    from property_finder import sites, websearch, scout
+    assert sites.clean("www.PBazaar.com") == "pbazaar.com"
+    assert sites.clean("bikroy.com") is None and sites.clean('evil.com" OR site:x') is None
+    hit = lambda i: {"title": f"3 Katha Plot Sale Gulshan {i}", "url": f"https://pbazaar.com/listing/plot-sale-gulshan-{i:04d}",
+                     "snippet": "3 katha plot for sale in Gulshan, price 5 crore"}
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(websearch, "run_query", lambda prov, key, q, tbs="": (200, [hit(i) for i in range(4)] if "site:" in q else []))
+    reg = tmp_path / "r.json"
+    reg.write_text(json.dumps(sites.update(None, [], ["pbazaar.com"], dt.date(2026, 11, 27))), encoding="utf-8")
+    assert sites.active(str(reg)) == []  # one good week is not enough
+    reg.write_text(json.dumps(sites.update(str(reg), [], [], dt.date(2026, 12, 4))), encoding="utf-8")
+    assert sites.active(str(reg)) == ["pbazaar.com"]
+    p = scout.plan(dt.date(2026, 12, 5), sites=sites.active(str(reg)) + ['bad" OR site:x'])
+    assert len(p) == 24 and sum(x["label"].startswith("Directory:") for x in p) == 1
+    assert all("bad" not in x["q"] for x in p)
