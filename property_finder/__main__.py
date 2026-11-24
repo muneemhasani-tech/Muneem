@@ -1,6 +1,7 @@
 """python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
    | reset-password EMAIL | build-html OUT.html
-   | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)"""
+   | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
+   | weekly leads-*.csv --out weekly.html   (the associates' weekly summary email)"""
 import getpass
 import sys
 
@@ -36,6 +37,12 @@ elif cmd == "scout":
                      extra=int(opt("--extra")) if opt("--extra") else None)
     print(f"{info['new']} new, {info['duplicates']} repeats skipped, {info['searches']} searches\n"
           f"leads: {info['leads']}\ndigest: {info['digest']}\nseen: {info['seen']}")
+elif cmd == "weekly":
+    from . import weekly
+    out = args[args.index("--out") + 1] if "--out" in args else "weekly.html"
+    files = [a for a in args[1:] if a.endswith(".csv")]
+    info = weekly.write(files, out)
+    print(f"{info['rows']} listings -> {info['out']}")
 elif cmd == "admin":
     email = input("Admin email: ").strip()
     name = input("Admin name: ").strip()

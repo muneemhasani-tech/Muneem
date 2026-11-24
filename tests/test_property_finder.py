@@ -405,3 +405,28 @@ def test_size_restated_as_per_sqft_is_not_a_rate():
     f = parse.facts("SOUTH/EAST CORNER PLOT 3380 SQFT APARTMENT FOR SALE IN BASHUNDHARA RA Building G+9 Double Unit 3380/SQFT 15 Katha Land")
     assert f["size_sqft"] == 3380 and f["price"] is None
     assert parse.facts("1500 sqft flat, 12,000 per sqft")["price"] == 18_000_000
+
+
+def test_crore_then_bare_lakh_figure():
+    from property_finder import parse
+    assert parse.parse_price("Flat Sell Gulshan-1 Nearby lake 3 cr 80 ...") == 3.8e7
+    assert parse.parse_price("price 1.20 cr 2 car parking") == 1.2e7
+    assert parse.parse_price("3 cr 5 katha plot") == 3e7
+
+
+def test_weekly_summary_builds(tmp_path):
+    import csv
+    from property_finder import weekly, scout
+    rows = [{"date": f"2026-11-2{i % 3}", "area": a, "type": t, "title": f"{t} in {a}", "price_bdt": 20_000_000 if i % 2 else "",
+             "size_sqft": 1500, "price_per_sqft": "", "gross_yield_pct": "", "phone": "01711111111" if i % 3 == 0 else "",
+             "site": "Facebook groups", "url": f"https://x/{i}", "snippet": "", "query": "", "fingerprints": ""}
+            for i, (a, t) in enumerate([("gulshan", "apartment"), ("uttara", "land"), ("banani", "house"), ("gulshan", "land")])]
+    p = tmp_path / "leads.csv"
+    with open(p, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=scout.COLS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    out = tmp_path / "w.html"
+    assert weekly.write([str(p)], str(out))["rows"] == 4
+    h = out.read_text(encoding="utf-8")
+    assert "Weekly summary" in h and "<script" not in h and "<style" not in h
