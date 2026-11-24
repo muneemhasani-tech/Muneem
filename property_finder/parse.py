@@ -27,7 +27,7 @@ def clean_phone(s: str) -> str:
 
 
 CR_LAKH = re.compile(r"(\d+(?:\.\d+)?)\s*(?:crore|core|koti|cr|কোটি|কটি)s?\s*(?:(\d+(?:\.\d+)?)\s*(?:lakh|lac|lakhs|লাখ|লক্ষ)"
-                     r"|(\d{1,2})(?!\d|[.,]\d|\s*(?:sq|sft|katha|kata|কাঠা|bed|bath|car|park|unit|floor|tala|তলা|%)))", re.I)  # "3 cr 80" = 3.80 crore
+                     r"|(\d{1,2})(?!\d|[.,]\d|\s*(?:sq|sft|katha|kata|কাঠা|bed|bath|car|park|unit|floor|tala|তলা|feet|ft|ফিট|min|road|year|yr|%)))", re.I)  # "3 cr 80" = 3.80 crore
 
 
 # "Price: 2.00.00.000/-", "দাম 1,20,00,000", "asking price 2.5 crore": a price word, then a number

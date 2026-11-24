@@ -1,7 +1,7 @@
 """python -m property_finder serve [port] [--host 0.0.0.0] | probe | admin | users | approve EMAIL | revoke EMAIL
    | reset-password EMAIL | build-html OUT.html
    | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
-   | weekly leads-*.csv --out weekly.html   (the associates' weekly summary email)"""
+   | weekly leads-*.csv stats-*.json --out DIR   (the associates' weekly one-pager email)"""
 import getpass
 import sys
 
@@ -39,10 +39,9 @@ elif cmd == "scout":
           f"leads: {info['leads']}\ndigest: {info['digest']}\nseen: {info['seen']}")
 elif cmd == "weekly":
     from . import weekly
-    out = args[args.index("--out") + 1] if "--out" in args else "weekly.html"
-    files = [a for a in args[1:] if a.endswith(".csv")]
-    info = weekly.write(files, out)
-    print(f"{info['rows']} listings -> {info['out']}")
+    out = args[args.index("--out") + 1] if "--out" in args else "weekly"
+    info = weekly.make([a for a in args[1:] if a.endswith(".csv")], [a for a in args[1:] if a.endswith(".json")], out)
+    print(f"{info['rows']} listings, one-pager image: {'yes' if info['png'] else 'no (table email instead)'} -> {out}/email.html")
 elif cmd == "admin":
     email = input("Admin email: ").strip()
     name = input("Admin name: ").strip()

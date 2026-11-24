@@ -430,3 +430,9 @@ def test_weekly_summary_builds(tmp_path):
     assert weekly.write([str(p)], str(out))["rows"] == 4
     h = out.read_text(encoding="utf-8")
     assert "new properties" in h and "<script" not in h and "<style" not in h
+    page = weekly.onepager_html(weekly.load([str(p)]), {})
+    assert "<svg" in page and "How a lead reaches you" in page and "01711111111" not in page  # aggregates only, safe to forward
+    assert "cid:att0" in weekly.email_html(weekly.load([str(p)]), "cid:att0")
+    empty = tmp_path / "empty.csv"
+    empty.write_text(",".join(scout.COLS) + "\n", encoding="utf-8")
+    assert weekly.make([str(empty)], [], str(tmp_path / "e"))["rows"] == 0

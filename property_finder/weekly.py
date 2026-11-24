@@ -9,6 +9,7 @@ import collections
 import csv
 import datetime as dt
 import html
+import json
 from pathlib import Path
 
 from . import parse
@@ -128,3 +129,208 @@ def write(paths: list[str], out: str) -> dict:
     rows = load(paths)
     Path(out).write_text(build(rows), encoding="utf-8")
     return {"rows": len(rows), "out": out}
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# One-pager infographic: drawn as SVG, rendered to a PNG (email clients strip SVG), embedded inline in the email.
+# Aggregates only: no seller phone numbers in the image, so it is safe to forward.
+
+def load_stats(paths: list[str]) -> dict[str, dict]:
+    out = {}
+    for p in paths:
+        try:
+            d = json.loads(Path(p).read_text(encoding="utf-8"))
+            out[d["date"]] = d
+        except (OSError, ValueError, KeyError):
+            continue
+    return out
+
+
+def _t(x, y, s, size=16, w=400, fill=INK, anchor="start", fam="sans"):
+    f = "Outfit,'IBM Plex Sans',Segoe UI,Arial,sans-serif" if fam == "disp" else "'IBM Plex Sans',Segoe UI,Arial,sans-serif"
+    return (f'<text x="{x}" y="{y}" font-family="{f}" font-size="{size}" font-weight="{w}" fill="{fill}" '
+            f'text-anchor="{anchor}">{html.escape(str(s))}</text>')
+
+
+def _card(y, h, title, inner):
+    return (f'<g transform="translate(24,{y})"><rect width="552" height="{h}" rx="14" fill="{CARD}" stroke="{LINE}"/>'
+            f'{_t(22, 36, title, 20, 700, NAVY, fam="disp")}{inner}</g>')
+
+
+def onepager_html(rows: list[dict], stats: dict[str, dict]) -> str:
+    days = sorted({r["date"] for r in rows})
+    start, end = dt.date.fromisoformat(days[0]), dt.date.fromisoformat(days[-1])
+    total = len(rows)
+    by_type = collections.Counter(r["type"] for r in rows)
+    by_area = collections.Counter(r["area"] for r in rows)
+    cell = collections.Counter((r["area"], r["type"]) for r in rows)
+    by_day = collections.Counter(r["date"] for r in rows)
+    phone = sum(1 for r in rows if r["phone"])
+    priced = sum(1 for r in rows if plausible_price(r))
+    src = collections.Counter("Facebook" if r["site"].startswith("Facebook") else
+                              ("Other sites" if r["site"].startswith("Open web") else r["site"]) for r in rows)
+    st = [stats[d] for d in days if d in stats]
+    parts, y = [], 0
+
+    # header
+    period = f'{start.strftime("%d")}–{end.strftime("%d %b %Y")}' if start.month == end.month else f'{start.strftime("%d %b")} – {end.strftime("%d %b %Y")}'
+    parts.append(_t(24, 34, "MRA PROPERTY HUNT · WEEKLY", 13, 700, GOLD) + _t(24, 84, f"{total} new properties", 44, 700, INK, fam="disp")
+                 + _t(24, 116, f"{period} · 6 areas · no repeats", 17, 400, MUTE))
+    y = 140
+
+    # 1. how a lead reaches you (the real pipeline; numbers from the stats files, a node is dropped when its figure is unknown)
+    nodes = []
+    if st:
+        nodes.append((f"{round(sum(s['searches'] for s in st) / len(st))}", "searches", "a day"))
+    nodes.append(("6", "areas", "5 sources"))
+    if st:
+        nodes.append((str(sum(s["repeats_skipped"] for s in st)), "repeats", "removed"))
+    nodes += [(str(total), "new", "this week"), ("3", "to call", "every day")]
+    n = len(nodes)
+    gap = 22
+    w = (508 - gap * (n - 1)) / n
+    flow = ""
+    for i, (num, a, b) in enumerate(nodes):
+        x = 22 + i * (w + gap)
+        hot = i == n - 1
+        flow += (f'<rect x="{x:.0f}" y="58" width="{w:.0f}" height="104" rx="12" fill="{NAVY if hot else BG}" stroke="{GOLD if hot else LINE}"/>'
+                 + _t(x + w / 2, 104, num, 30, 700, "#ffffff" if hot else INK, "middle", "disp")
+                 + _t(x + w / 2, 130, a, 15, 600, GOLD if hot else INK, "middle") + _t(x + w / 2, 149, b, 13, 400, "#c9cfe6" if hot else MUTE, "middle"))
+        if i < n - 1:
+            ax = x + w + 4
+            flow += f'<path d="M{ax:.0f} 110 h{gap - 10} m-6 -6 l6 6 l-6 6" fill="none" stroke="{GOLD}" stroke-width="2.5" stroke-linecap="round"/>'
+    parts.append(_card(y, 184, "How a lead reaches you", flow))
+    y += 200
+
+    # 2. type mix donut
+    r, cx, cy, circ = 62, 110, 150, 2 * 3.14159 * 62
+    arcs, off = "", 0.0
+    for t, _, c in TYPES:
+        frac = by_type[t] / total
+        arcs += (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{c}" stroke-width="26" '
+                 f'stroke-dasharray="{frac * circ:.1f} {circ:.1f}" stroke-dashoffset="{-off * circ:.1f}" transform="rotate(-90 {cx} {cy})"/>')
+        off += frac
+    donut = arcs + _t(cx, cy + 4, total, 30, 700, INK, "middle", "disp") + _t(cx, cy + 26, "listings", 13, 400, MUTE, "middle")
+    for i, (t, name, c) in enumerate(TYPES):
+        ly = 92 + i * 42
+        donut += (f'<rect x="232" y="{ly}" width="16" height="16" rx="4" fill="{c}"/>' + _t(258, ly + 14, name, 18, 600, INK)
+                  + _t(530, ly + 14, f"{by_type[t]}  ·  {round(100 * by_type[t] / total)}%", 18, 600, INK, "end"))
+    parts.append(_card(y, 240, "What was found", donut))
+    y += 256
+
+    # 3. area tiles, 3 x 2, each with a type strip
+    tiles = ""
+    for i, (a, cnt) in enumerate(by_area.most_common(6)):
+        col, row = i % 3, i // 3
+        x, ty = 22 + col * 172, 56 + row * 118
+        tiles += (f'<rect x="{x}" y="{ty}" width="160" height="104" rx="12" fill="{BG}" stroke="{GOLD if i == 0 else LINE}"/>'
+                  + _t(x + 14, ty + 28, AREA_NAMES.get(a, a.title()).replace(" R/A", ""), 15, 600, MUTE)
+                  + _t(x + 14, ty + 66, cnt, 32, 700, INK, fam="disp"))
+        sx = x + 14
+        for t, _, c in TYPES:
+            ww = 132 * cell[(a, t)] / cnt
+            if ww:
+                tiles += f'<rect x="{sx:.1f}" y="{ty + 80}" width="{ww:.1f}" height="9" fill="{c}"/>'
+            sx += ww
+    parts.append(_card(y, 304, "Where", tiles))
+    y += 320
+
+    # 4. what the listing tells you: two parallel proportion bars (overlapping groups, so not a funnel)
+    reach = ""
+    for i, (lab, k) in enumerate((("Phone number shown", phone), ("Price shown", priced))):
+        by = 66 + i * 64
+        pct = round(100 * k / total)
+        reach += (_t(22, by, lab, 17, 600, INK) + _t(530, by, f"{pct}%", 22, 700, NAVY, "end", "disp")
+                  + f'<rect x="22" y="{by + 12}" width="508" height="14" rx="7" fill="{BG}"/>'
+                  + f'<rect x="22" y="{by + 12}" width="{max(8, 508 * k / total):.0f}" height="14" rx="7" fill="{GOLD if i else NAVY}"/>')
+    reach += _t(22, 196, f"{total - phone} without a number: message the seller on the post.", 14, 400, MUTE)
+    parts.append(_card(y, 218, "Ready to call?", reach))
+    y += 234
+
+    # 5. per day columns
+    peak = max(by_day.values())
+    cw = min(70, (508 - 14 * (len(days) - 1)) / len(days))
+    cols = ""
+    for i, d in enumerate(days):
+        h = 120 * by_day[d] / peak
+        x = 22 + i * (cw + 14)
+        cols += (f'<rect x="{x:.0f}" y="{196 - h:.0f}" width="{cw:.0f}" height="{h:.0f}" rx="6" fill="{NAVY}"/>'
+                 + _t(x + cw / 2, 188 - h, by_day[d], 17, 700, INK, "middle", "disp")
+                 + _t(x + cw / 2, 220, dt.date.fromisoformat(d).strftime("%a %d"), 13, 400, MUTE, "middle"))
+    parts.append(_card(y, 240, "New each day", cols))
+    y += 256
+
+    # 6. sources
+    sp = src.most_common(1)[0][1]
+    bars = ""
+    for i, (s, k) in enumerate(src.most_common(6)):
+        by = 60 + i * 34
+        bars += (_t(22, by + 15, s, 16, 400, INK) + f'<rect x="150" y="{by + 2}" width="{max(6, 330 * k / sp):.0f}" height="18" rx="5" fill="#8a93b8"/>'
+                 + _t(530, by + 16, k, 16, 700, INK, "end"))
+    parts.append(_card(y, 60 + 34 * min(6, len(src)) + 10, "Sources", bars))
+    y += 60 + 34 * min(6, len(src)) + 26
+
+    parts.append(f'<rect x="24" y="{y}" width="3" height="20" fill="{GOLD}"/>' + _t(36, y + 15, "Prices as posted. Confirm on the call.", 14, 400, MUTE))
+    y += 40
+    return (f'<!doctype html><html><head><meta charset="utf-8">'
+            f'<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap">'
+            f'<style>html,body{{margin:0;background:{BG}}}</style></head><body>'
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="{y}" viewBox="0 0 600 {y}">'
+            f'<rect width="600" height="{y}" fill="{BG}"/>{"".join(parts)}</svg></body></html>')
+
+
+def render_png(page_html: str, png: str) -> bool:
+    """Screenshot the one-pager at 2x with the pre-installed Playwright (Node). False if it cannot run."""
+    import subprocess
+    import tempfile
+    src = Path(tempfile.mkdtemp()) / "onepager.html"
+    src.write_text(page_html, encoding="utf-8")
+    js = ("const {chromium}=require('playwright');(async()=>{const b=await chromium.launch();"
+          "const p=await b.newPage({viewport:{width:600,height:800},deviceScaleFactor:2});"
+          f"await p.goto('file://{src}',{{waitUntil:'networkidle',timeout:20000}}).catch(()=>{{}});"
+          f"await p.locator('svg').screenshot({{path:'{Path(png).resolve()}'}});await b.close()}})()")
+    try:
+        return subprocess.run(["node", "-e", js], capture_output=True, timeout=90).returncode == 0 and Path(png).exists()
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
+
+def email_html(rows: list[dict], img_src: str | None) -> str:
+    """The email body: the one-pager image, then 'Call first' as live text (tappable links and numbers).
+    Without an image it is the table-only summary."""
+    if not img_src:
+        return build(rows)
+    e = html.escape
+    best = "".join(
+        f'<tr><td style="padding:10px 0;border-top:1px solid {LINE};font-size:15px;line-height:1.45">'
+        f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:600;text-decoration:none">{e(r["title"][:70])}</a><br>'
+        f'<span style="color:{MUTE}">{AREA_NAMES.get(r["area"], r["area"].title())} · '
+        f'{_money(float(r["price_bdt"])) if plausible_price(r) else "price on call"}'
+        f'{f" · {int(float(r["size_sqft"])):,} sqft" if r["size_sqft"] else ""}'
+        f'{f" · {e(r["phone"])}" if r["phone"] else ""}</span></td></tr>'
+        for r in top_calls(rows, 5))
+    return f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:{BG};{SANS}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BG}"><tr><td align="center" style="padding:12px 0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;{SANS}">
+<tr><td><img src="{e(img_src)}" width="600" alt="MRA Property Hunt weekly: {len(rows)} new properties" style="display:block;width:100%;max-width:600px;height:auto;border:0"></td></tr>
+<tr><td style="padding:4px 24px 24px"><div style="background:{CARD};border:1px solid {LINE};border-radius:14px;padding:18px 20px 8px">
+<div style="{DISP};font-size:20px;font-weight:700;color:{NAVY};margin-bottom:6px">Call first</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{best}</table></div></td></tr>
+</table></td></tr></table></body></html>"""
+
+
+def make(lead_paths: list[str], stats_paths: list[str], out_dir: str) -> dict:
+    """Write onepager.png and email.html (image referenced as cid:att0 for sending) plus preview.html (image by file name)."""
+    rows = load(lead_paths)
+    od = Path(out_dir)
+    od.mkdir(parents=True, exist_ok=True)
+    if not rows:  # an empty week still gets a short, honest email
+        msg = f'<p style="{SANS};font-size:16px;color:{INK}">MRA Property Hunt: no new properties this week.</p>'
+        for f in ("email.html", "preview.html"):
+            (od / f).write_text(msg, encoding="utf-8")
+        return {"rows": 0, "png": False}
+    ok = render_png(onepager_html(rows, load_stats(stats_paths)), str(od / "onepager.png"))
+    (od / "email.html").write_text(email_html(rows, "cid:att0" if ok else None), encoding="utf-8")
+    (od / "preview.html").write_text(email_html(rows, "onepager.png" if ok else None), encoding="utf-8")
+    return {"rows": len(rows), "png": ok}
