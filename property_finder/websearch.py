@@ -176,7 +176,7 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     if tp:
         f["price"] = tp
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
-    ptype = parse._ptype(text) or "apartment"
+    ptype = parse.ptype_of(hit["title"], hit["snippet"]) or "apartment"
     if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):
         ptype = "commercial" if re.search(r"commercial|office", hit["title"] + hit["url"], re.I) else "apartment"
     if f["price"] and katha and re.search(r"(?:per|/)\s*(?:katha|kata|kotha|কাঠা)", text, re.I) and f["price"] < 5e7:

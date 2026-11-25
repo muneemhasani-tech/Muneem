@@ -24,8 +24,8 @@ from . import weekly
 from .scout import drafts, flag, plausible_price, top_calls
 
 AREA_NAMES = {**weekly.AREA_NAMES, "baridhara": "Baridhara DOHS & Diplomatic Zone"}
-TYPE_NAMES = {"apartment": "Flats", "land": "Plots & land", "house": "Houses & duplexes"}
-TYPE_ONE = {"apartment": "Flat", "land": "Plot / land", "house": "House"}
+TYPE_NAMES = {"apartment": "Flats", "land": "Plots & land", "house": "Houses & duplexes", "commercial": "Commercial"}
+TYPE_ONE = {"apartment": "Flat", "land": "Plot / land", "house": "House", "commercial": "Commercial"}
 INK, MUTE, LINE, BG, CARD, NAVY, GOLD, SOFT = "#101a3a", "#56607f", "#e3e6ef", "#f6f7fa", "#ffffff", "#0b163e", "#c8922a", "#eef1f8"
 SANS = "font-family:'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"
 DISP = "font-family:Outfit,'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"

@@ -219,6 +219,26 @@ PTYPE_WORDS = [("land", ("land", "plot")), ("commercial", ("commercial", "office
                ("house", ("house", "building", "duplex", "villa")), ("apartment", ("apartment", "flat", "condo"))]
 
 
+_T_FLAT = re.compile(r"apartment|\bflats?\b|condo|ফ্ল্যাট|ফ্লাট|অ্যাপার্টমেন্ট|এপার্টমেন্ট", re.I)
+_T_HOUSE = re.compile(r"\bhouse\b|duplex|villa|\bbuilding\b|বাড়ি|বাড়ী|বাড়ি|ভবন|ডুপ্লেক্স", re.I)
+_T_COMM = re.compile(r"commercial|office space|\bshop\b|showroom|warehouse|factory|কমার্শিয়াল|দোকান", re.I)
+_T_LAND = re.compile(r"\bland\b|\bplots?\b|katha|kata|kotha|bigha|জমি|জায়গা|জায়গা|প্লট|কাঠা|বিঘা", re.I)
+
+
+def ptype_of(title: str, snippet: str = "") -> str:
+    """Flat, house, commercial or land, read from the title first. A flat or house 'on 3 katha land' is not land."""
+    for text in (title or "", snippet or ""):
+        if _T_FLAT.search(text):
+            return "apartment"
+        if _T_HOUSE.search(text):
+            return "house"
+        if _T_COMM.search(text):
+            return "commercial"
+        if _T_LAND.search(text):
+            return "land"
+    return ""
+
+
 def flight_text(html: str) -> str:
     chunks = re.findall(r'self\.__next_f\.push\(\[1,"(.*?)"\]\)', html, re.S)
     return "".join(json.loads('"' + c + '"') if '\\' in c else c for c in chunks) if chunks else ""

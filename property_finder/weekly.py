@@ -32,6 +32,7 @@ def load(paths: list[str]) -> list[dict]:
                 tp = parse.parse_price(parse.norm(r["title"]))  # older days were read by an older parser; the title is the surest price
                 if tp and plausible_price({**r, "price_bdt": tp}):
                     r["price_bdt"] = str(int(tp))
+                r["type"] = parse.ptype_of(parse.norm(r["title"]), parse.norm(r.get("snippet", ""))) or r["type"]  # older days used a cruder type rule
                 rows.append(r)
     return rows
 

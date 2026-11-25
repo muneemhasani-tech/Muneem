@@ -498,3 +498,13 @@ def test_associate_emails_route_by_area_and_type(tmp_path):
     h = (tmp_path / "out" / m["A"]["html"]).read_text(encoding="utf-8")
     assert "wa.me/8801711111111?text=" in h and "<script" not in h and "house sale" not in h
     assert mailer._note("price missing - ask seller; size missing - ask seller") == "Ask the seller for: price, size"
+
+
+def test_property_type_reads_title_first_and_bangla():
+    from property_finder import parse
+    assert parse.ptype_of("জমি বিক্রয় | বসুন্ধরা আবাসিক এলাকা") == "land"
+    assert parse.ptype_of("ফ্ল্যাট বিক্রয়") == "apartment"
+    assert parse.ptype_of("বাড়ি বিক্রি হবে") == "house"
+    assert parse.ptype_of("Flat with 3 katha land") == "apartment"
+    assert parse.ptype_of("Ready flat sale", "Land: 3 katha, G+6") == "apartment"
+    assert parse.ptype_of("Urgent sale Purbachal", "3 katha plot, sector 18") == "land"
