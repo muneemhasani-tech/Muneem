@@ -3,6 +3,7 @@
    | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
    | sites --registry sites-old.json leads-*.csv [--add domain] --out sites.json   (weekly: find and test other listing sites)
    | mail --routes associates.json leads-*.csv --out DIR   (one email per associate, their areas only)
+   | send --manifest DIR/manifest.json [--png onepager.png]   (send through the owner's Gmail Apps Script, MRA_MAILER_URL)
    | weekly leads-*.csv stats-*.json --out DIR   (the associates' weekly one-pager email)"""
 import getpass
 import json
@@ -45,6 +46,12 @@ elif cmd == "weekly":
     out = args[args.index("--out") + 1] if "--out" in args else "weekly"
     info = weekly.make([a for a in args[1:] if a.endswith(".csv")], [a for a in args[1:] if a.endswith(".json")], out)
     print(f"{info['rows']} listings, one-pager image: {'yes' if info['png'] else 'no (table email instead)'} -> {out}/email.html")
+elif cmd == "send":
+    from . import sendmail
+    opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
+    res = sendmail.send_manifest(opt("--manifest", "mail_out/manifest.json"), opt("--png"))
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    sys.exit(0 if all(r.get("ok") for r in res) else 1)
 elif cmd == "mail":
     from . import mailer
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d

@@ -525,3 +525,18 @@ def test_baridhara_area_and_multi_rule_routes(tmp_path):
     a = mailer.load_routes(str(r))[0]
     rows = [{"area": "gulshan", "type": "apartment"}, {"area": "gulshan", "type": "land"}, {"area": "uttara", "type": "house"}]
     assert mailer.mine(rows, a) == [rows[0], rows[2]]
+
+
+def test_sendmail_posts_each_email_and_skips_empty(tmp_path, monkeypatch):
+    import json
+    from property_finder import sendmail
+    (tmp_path / "a.html").write_text("<p>a</p>", encoding="utf-8")
+    (tmp_path / "a.txt").write_text("a", encoding="utf-8")
+    (tmp_path / "manifest.json").write_text(json.dumps([
+        {"to": "a@example.com", "subject": "MRA fresh leads x", "html": "a.html", "text": "a.txt", "count": 3, "all": False},
+        {"to": "b@example.com", "subject": "MRA fresh leads y", "html": "a.html", "text": "a.txt", "count": 0, "all": False}]), encoding="utf-8")
+    sent = []
+    monkeypatch.setattr(sendmail, "post", lambda url, p, timeout=60: sent.append(p) or {"ok": True, "sent": True})
+    res = sendmail.send_manifest(str(tmp_path / "manifest.json"), url="https://script.google.com/macros/s/x/exec", pause=0)
+    assert [p["to"] for p in sent] == ["a@example.com"] and res[1]["skipped"]
+    assert not sendmail.send_manifest(str(tmp_path / "manifest.json"), url="")[0]["ok"]

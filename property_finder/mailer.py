@@ -249,6 +249,6 @@ def make(routes: str, leads: list[str], out_dir: str, label: str | None = None) 
             (od / f"{name}.html").write_text(page, encoding="utf-8")
             (od / f"{name}.txt").write_text(text, encoding="utf-8")
             manifest.append({"name": a["name"], "to": a["email"], "subject": subject, "html": f"{name}.html", "text": f"{name}.txt",
-                             "count": len(mine(rows, a))})
+                             "count": len(mine(rows, a)), "all": a["all"]})
     (od / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     return manifest
