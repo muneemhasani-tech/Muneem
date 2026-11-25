@@ -551,3 +551,10 @@ def test_area_rules_rajuk_purbachal_badda_and_near():
     assert area_of("Purbachal American City Plot") is None and area_of("পূর্বাচল বানিজ্য মেলার পাশেই তিন কাঠার প্লট") is None
     assert area_of("Flat for sale", "Gulshan 2 road 59, near Banani") == "gulshan"
     assert area_of("Plot sale", "Rajuk Purbachal sector 18, 10 minutes from Bashundhara") == "purbachal"
+
+
+def test_facebook_group_name_is_not_the_area():
+    from property_finder.scrape import area_of
+    assert area_of("3 +3 = 6 কাঠার প্লট বিক্রি করা হবে।",
+                   "Gulshan 1/ 2 Flat, Land Buy & Sale (গুলশানে ফ্ল্যাট/ জমি ক্রয়-বিক্রয়) ... দাম -কোটি 17 লাখ টাকা।") is None
+    assert area_of("3 +3 = 6 কাঠার প্লট বিক্রি করা হবে।", "লোকেশন : উত্তরা সেক্টর 17, ব্লক - বি") == "uttara"

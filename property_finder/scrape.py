@@ -123,6 +123,7 @@ NOT_RAJUK_PURBACHAL = re.compile(r"american city|\bpac\b|jolshiri|jalshiri|জ�
 NOT_GULSHAN = re.compile(r"badda|বাড্ডা|gudaraghat|গুদারাঘাট|গুুদারাঘাট|link road|লিংক রোড", re.I)
 
 
+GROUP_NAME = re.compile(r"[^.|।]{0,60}?(?:buy\s*(?:&|and)\s*(?:sale|sell)|sell\s*(?:&|and)\s*buy|ক্রয়[\s-]*বিক্রয়|ক্রয়[\s-]*বিক্রয়|ক্রয়-বিক্রয়)[^.|।)]{0,60}\)?", re.I)
 NEAR = re.compile(r"(?:near|beside|adjacent to|close to|next to|opposite|from|to)\s*$", re.I)
 
 
@@ -140,6 +141,7 @@ def area_of(title: str, snippet: str = "") -> str | None:
     """The one area a listing is in. The title decides when it names an area; otherwise the snippet must point clearly at one
     area (most mentions). A listing that only fits outside our areas (DOHS, American City, Badda link road) gets None."""
     title, snippet = (title or "").lower(), (snippet or "").lower()
+    snippet = GROUP_NAME.sub(" ", snippet)  # a Facebook group's name ("Gulshan Flat, Land Buy & Sale") is not the property's area
     whole = title + " " + snippet
     for text in (title, snippet):
         hits = []
