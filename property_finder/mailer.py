@@ -124,7 +124,7 @@ def _row(r: dict, first: bool = False) -> str:
     (plain links render the same in every mail app; filled buttons can show up blank)."""
     e = html.escape
     note = _note(flag(r))
-    links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:700">View post</a>']
+    links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:700">See post →</a>']
     if r.get("phone"):
         links += [f'<a href="tel:{e(r["phone"])}" style="color:{NAVY}">Call {e(r["phone"])}</a>',
                   f'<a href="{e(_wa(r["phone"], _wa_text(r)))}" style="color:{NAVY}">WhatsApp</a>']
