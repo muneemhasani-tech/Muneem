@@ -22,7 +22,7 @@ QUERIES: list[dict] = CONF.get("web_queries", [])
 AREA_BN = {"gulshan": "গুলশান", "banani": "বনানী", "purbachal": "পূর্বাচল", "uttara": "উত্তরা",
            "dhanmondi": "ধানমন্ডি", "bashundhara": "বসুন্ধরা", "baridhara": "বারিধারা"}
 SALE = re.compile(r"sale|sell|selling|buy|বিক্রি|বিক্রয়|বিক্রয়", re.I)
-WANTED = re.compile(r"\bwant(?:ed)?\b|looking for|need (?:a|an)\b|প্রয়োজন|চাই|(?:মিডিয়া|এজেন্ট|লোক) দরকার|কারণ কী|কারন কী", re.I)  # "টাকার দরকার" (seller needs cash) stays a listing  # buyers' posts, not listings
+WANTED = re.compile(r"\bwant(?:ed)?\b|looking for|need (?:a|an)\b|প্রয়োজন|চাই|(?:মিডিয়া|এজেন্ট|লোক) দরকার|কারণ কী|কারন কী|করতে চান\s*\?", re.I)  # "টাকার দরকার" (seller needs cash) stays a listing  # buyers' posts, not listings
 RENT = re.compile(r"\brent\b|to-let|to let|ভাড়া|ভাড়া|sublet|bachelor", re.I)
 
 
