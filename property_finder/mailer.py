@@ -62,6 +62,13 @@ def mine(rows: list[dict], a: dict) -> list[dict]:
     return [r for r in rows if any(matches(r, x["areas"], x["types"]) for x in a["rules"])]
 
 
+def _wa_text(r: dict) -> str:
+    """Short ready message for the WhatsApp link (the full drafts stay in the Call-first cards)."""
+    kind = {"apartment": "flat", "land": "plot", "house": "property", "commercial": "commercial space"}.get(r["type"], "property")
+    return (f"Assalamu alaikum. I am from MRA Real Estate. I saw your {kind} for sale in {AREA_NAMES.get(r['area'], r['area'].title())}. "
+            "Is it still available? Could you share the final price, size and papers?")
+
+
 def _wa(phone: str, text: str) -> str:
     digits = re.sub(r"\D", "", phone)
     intl = "880" + digits[1:] if digits.startswith("0") else digits
@@ -103,7 +110,7 @@ def _card(r: dict, rank: int | None = None, with_draft: bool = False) -> str:
     en, bn = drafts(r)
     buttons = _btn(r["url"], "View post", solid=True)
     if r.get("phone"):
-        buttons += _btn("tel:" + r["phone"], "Call " + e(r["phone"])) + _btn(_wa(r["phone"], en), "WhatsApp")
+        buttons += _btn("tel:" + r["phone"], "Call " + e(r["phone"])) + _btn(_wa(r["phone"], _wa_text(r)), "WhatsApp")
     draft = (f'<div style="margin-top:10px;font-size:12px;color:{MUTE};line-height:1.5;border-left:3px solid {LINE};padding-left:10px">'
              f'<b style="color:{INK}">Message (EN):</b> {e(en)}<br><b style="color:{INK}">বার্তা (BN):</b> {e(bn)}</div>' if with_draft else "")
     return (f'<tr><td style="padding:6px 0"><div style="background:{CARD};border:1px solid {LINE};border-radius:12px;padding:14px 16px">'
@@ -118,9 +125,8 @@ def _row(r: dict) -> str:
     note = _note(flag(r))
     links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:600">View post</a>']
     if r.get("phone"):
-        en, _ = drafts(r)
         links += [f'<a href="tel:{e(r["phone"])}" style="color:{NAVY}">Call {e(r["phone"])}</a>',
-                  f'<a href="{e(_wa(r["phone"], en))}" style="color:{NAVY}">WhatsApp</a>']
+                  f'<a href="{e(_wa(r["phone"], _wa_text(r)))}" style="color:{NAVY}">WhatsApp</a>']
     n = f'<div style="font-size:12px;color:#8a5a00">{e(note)}</div>' if note else ""
     return (f'<tr><td style="padding:10px 2px;border-top:1px solid {LINE}"><div style="font-size:15px;font-weight:600;color:{INK}">'
             f'{e(r["title"][:90])}</div><div style="font-size:13px;color:{MUTE}">{_facts(r)}</div>{n}'
