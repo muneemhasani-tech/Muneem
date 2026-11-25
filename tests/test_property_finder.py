@@ -465,3 +465,11 @@ def test_site_directory_promotes_after_two_good_weeks_and_scout_uses_only_active
     p = scout.plan(dt.date(2026, 12, 5), sites=sites.active(str(reg)) + ['bad" OR site:x'])
     assert len(p) == 24 and sum(x["label"].startswith("Directory:") for x in p) == 1
     assert all("bad" not in x["q"] for x in p)
+
+
+def test_foreign_and_discussion_posts_are_dropped_but_urgent_sellers_kept():
+    from property_finder import websearch as w
+    bad = ["1350 sqft 3bhk flat sale near andal airport", "Luxury Duplex 110 gaz only 78 lakh near kanker Khera",
+           "PAC তেহ জমির দাম এত বেশি হবার কারন কী?", "বসুন্ধরায় ফ্ল্যাট বিক্রি করার জন্য কিছু কমিশন ভিত্তিক মিডিয়া দরকার।"]
+    assert all(w.FOREIGN.search(t) or w.WANTED.search(t) for t in bad)
+    assert not w.WANTED.search("জরুরি ভিত্তিতে টাকার দরকার পূর্বাচলে 3 কাঠা প্লট বিক্রি করা হবে।")
