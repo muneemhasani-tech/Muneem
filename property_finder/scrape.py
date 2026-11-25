@@ -107,7 +107,7 @@ def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> st
 
 AREA_RX = {"gulshan": r"gulshan|গুলশান", "banani": r"banani|বনানী", "purbachal": r"purbachal|পূর্বাচল",
            "uttara": r"uttara|uttra|uttora|উত্তরা", "dhanmondi": r"dhanmondi|dhanmandi|ধানমন্ডি|ধানমণ্ডি",
-           "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা",
+           "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা|\bi[\s-]?ext(?:ension)?\b",  # "I Ext" = Bashundhara I Extension
            "baridhara": r"baridhara|বারিধারা"}  # Diplomatic Zone only: see NOT_DIPLOMATIC
 
 
@@ -116,12 +116,53 @@ NOT_DIPLOMATIC = re.compile(r"d\.?\s?o\.?\s?h\.?\s?s|ডিওএইচএস|�
 DIPLOMATIC = re.compile(r"diplomatic|ডিপ্লোমেটিক|কূটনৈতিক", re.I)
 
 
+# Purbachal means the RAJUK Purbachal New Town (it has sectors); Purbachal American City, Jolshiri and "near Purbachal" posts are not it
+RAJUK_PURBACHAL = re.compile(r"rajuk|রাজউক|\bsec(?:tor)?\.?[\s#-]*\d|সেক্টর", re.I)
+NOT_RAJUK_PURBACHAL = re.compile(r"american city|\bpac\b|jolshiri|jalshiri|জলসিঁড়ি|জলসিড়ি|আমেরিকান", re.I)
+# Gulshan/Banani name clashes: "Gulshan-Badda link road", Gudaraghat and Badda are other neighbourhoods
+NOT_GULSHAN = re.compile(r"badda|বাড্ডা|gudaraghat|গুদারাঘাট|গুুদারাঘাট|link road|লিংক রোড", re.I)
+
+
+NEAR = re.compile(r"(?:near|beside|adjacent to|close to|next to|opposite|from|to)\s*$", re.I)
+
+
+def _valid(slug: str, low: str) -> bool:
+    if slug == "baridhara":
+        return not (NOT_DIPLOMATIC.search(low) and not DIPLOMATIC.search(low))
+    if slug == "purbachal":
+        return bool(RAJUK_PURBACHAL.search(low)) and not NOT_RAJUK_PURBACHAL.search(low)
+    if slug in ("gulshan", "banani"):
+        return not NOT_GULSHAN.search(low)
+    return True
+
+
+def area_of(title: str, snippet: str = "") -> str | None:
+    """The one area a listing is in. The title decides when it names an area; otherwise the snippet must point clearly at one
+    area (most mentions). A listing that only fits outside our areas (DOHS, American City, Badda link road) gets None."""
+    title, snippet = (title or "").lower(), (snippet or "").lower()
+    whole = title + " " + snippet
+    for text in (title, snippet):
+        hits = []
+        for slug, rx in AREA_RX.items():  # "near Banani", "beside Purbachal" describe the neighbourhood, not the property
+            found = [m for m in re.finditer(rx, text) if not NEAR.search(text[max(0, m.start() - 14):m.start()])]
+            if found:
+                hits.append((len(found), -found[0].start(), slug))
+        if not hits:
+            continue
+        hits.sort(reverse=True)
+        if text is snippet and len(hits) > 1 and hits[0][0] == hits[1][0] and re.search(r"\bborder\b|সীমান্ত", text):
+            return None  # "on the Gulshan-Banani border": unclear which area
+        slug = hits[0][2] if text is snippet and (len(hits) == 1 or hits[0][0] > hits[1][0]) else max(hits, key=lambda h: h[1])[2]  # else the first named wins
+        return slug if _valid(slug, whole) else None
+    return None
+
+
 def _area_in(text: str, fallback: str | None) -> str | None:
     """The area a listing is in, read from the listing itself. Falls back only when the URL already proved it."""
     low = (text or "").lower()
     for slug, rx in AREA_RX.items():
         if re.search(rx, low):
-            if slug == "baridhara" and NOT_DIPLOMATIC.search(low) and not DIPLOMATIC.search(low):
+            if not _valid(slug, low):
                 continue
             return slug
     return fallback

@@ -30,9 +30,14 @@ def load(paths: list[str]) -> list[dict]:
             text = parse.norm(r["title"] + " " + r.get("snippet", ""))
             if websearch.WANTED.search(text) or websearch.FOREIGN.search(text):
                 continue  # older days were saved before these filters existed
+            from .scrape import area_of
+            area = area_of(parse.norm(r["title"]), parse.norm(r.get("snippet", "")))
+            if not area:
+                continue  # older days used a looser area rule (Purbachal outside RAJUK, Badda link road, two areas named)
+            r["area"] = area
             if r["url"] not in seen:  # the scout never repeats, but a re-run day must not count twice
                 seen.add(r["url"])
-                tp = parse.parse_price(parse.norm(r["title"]))  # older days were read by an older parser; the title is the surest price
+                tp = websearch.price_of(parse.norm(r["title"]), parse.norm(r.get("snippet", "")))  # older days used an older parser
                 if tp and plausible_price({**r, "price_bdt": tp}):
                     r["price_bdt"] = str(int(tp))
                 r["type"] = parse.ptype_of(parse.norm(r["title"]), parse.norm(r.get("snippet", ""))) or r["type"]  # older days used a cruder type rule

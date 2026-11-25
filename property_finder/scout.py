@@ -178,9 +178,10 @@ OWNER = re.compile(r"\bowner\b|direct|no broker|without broker|মালিক",
 
 
 def plausible_price(r: dict) -> bool:
-    """A price that can be a real Dhaka sale price: ৳5 lakh to ৳500 crore, and ৳2,000-150,000 per sqft when the size is known."""
+    """A price that can be a real Dhaka sale price: ৳5 lakh to ৳500 crore, and ৳2,000 (land ৳300) to 150,000 per sqft when the size is known."""
     p, s = float(r.get("price_bdt") or 0), float(r.get("size_sqft") or 0)
-    return 500_000 <= p <= 5e9 and (not s or 2_000 <= p / s <= 150_000)
+    low = 300 if r.get("type") in ("land", "house") else 2_000  # land sells far cheaper per sqft than flats (5 katha for 65 lakh)
+    return 500_000 <= p <= 5e9 and (not s or low <= p / s <= 150_000)
 
 
 def top_calls(new: list[dict], n: int = 3) -> list[dict]:

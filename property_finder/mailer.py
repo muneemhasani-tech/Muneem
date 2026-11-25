@@ -119,18 +119,35 @@ def _card(r: dict, rank: int | None = None, with_draft: bool = False) -> str:
             f'{note_html}<div>{buttons}</div>{draft}</div></td></tr>')
 
 
-def _row(r: dict) -> str:
-    """A light listing row (the bulk of the email): title link, one facts line, plain text links."""
+def _row(r: dict, first: bool = False) -> str:
+    """One listing: title, one facts line, an ask-the-seller note when something is missing, then plain links
+    (plain links render the same in every mail app; filled buttons can show up blank)."""
     e = html.escape
     note = _note(flag(r))
-    links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:600">View post</a>']
+    links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:700">View post</a>']
     if r.get("phone"):
         links += [f'<a href="tel:{e(r["phone"])}" style="color:{NAVY}">Call {e(r["phone"])}</a>',
                   f'<a href="{e(_wa(r["phone"], _wa_text(r)))}" style="color:{NAVY}">WhatsApp</a>']
-    n = f'<div style="font-size:12px;color:#8a5a00">{e(note)}</div>' if note else ""
-    return (f'<tr><td style="padding:10px 2px;border-top:1px solid {LINE}"><div style="font-size:15px;font-weight:600;color:{INK}">'
-            f'{e(r["title"][:90])}</div><div style="font-size:13px;color:{MUTE}">{_facts(r)}</div>{n}'
-            f'<div style="font-size:13px;margin-top:3px">{" &nbsp;·&nbsp; ".join(links)}</div></td></tr>')
+    tag = (f'<span style="display:inline-block;background:{GOLD};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.5px;'
+           f'border-radius:4px;padding:1px 6px;margin-bottom:4px">CALL FIRST</span><br>' if first else "")
+    n = f'<div style="font-size:12px;color:#8a5a00;margin-top:2px">{e(note)}</div>' if note else ""
+    edge = f"border-left:3px solid {GOLD};padding-left:10px;" if first else "padding-left:2px;"
+    return (f'<tr><td style="padding:12px 0 12px;border-top:1px solid {LINE}"><div style="{edge}">{tag}'
+            f'<div style="font-size:15px;font-weight:600;color:{INK};line-height:1.35">{e(r["title"][:90])}</div>'
+            f'<div style="font-size:13px;color:{MUTE};margin-top:2px">{_facts(r)}</div>{n}'
+            f'<div style="font-size:13px;margin-top:5px">{" &nbsp;·&nbsp; ".join(links)}</div></div></td></tr>')
+
+
+def _area_band(area: str, n: int, cont: bool = False) -> str:
+    name = AREA_NAMES.get(area, area.title()).replace(" R/A", "") + (" (continued)" if cont else "")
+    return (f'<tr><td style="padding:22px 0 6px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+            f'<tr><td bgcolor="{NAVY}" style="background:{NAVY};border-radius:10px;padding:11px 14px;{DISP};font-size:17px;'
+            f'font-weight:700;color:#ffffff">{html.escape(name)} <span style="color:{GOLD}">· {n}</span></td></tr></table></td></tr>')
+
+
+def _type_label(t: str, n: int) -> str:
+    return (f'<tr><td style="padding:12px 0 2px;font-size:11px;font-weight:700;letter-spacing:1.2px;color:{MUTE}">'
+            f'{html.escape(TYPE_NAMES.get(t, t).upper())} · {n}</td></tr>')
 
 
 def _section(title: str, count: int, body: str) -> str:
@@ -180,55 +197,57 @@ def _text_line(r: dict, first: bool = False) -> str:
 
 
 def build(a: dict, rows: list[dict], label: str) -> list[tuple[str, str, str]]:
-    """[(subject, html, text), ...] for one associate: one email, or numbered parts when it would be too long for Gmail."""
+    """[(subject, html, text), ...]: one block per area (best leads first, then by property type); numbered parts when long."""
     picks = mine(rows, a)
-    first = top_calls(picks, 3)
-    seen = {id(r) for r in first}
-    rest = [r for r in picks if id(r) not in seen]
-    blocks: list[tuple[str, list[dict]]] = []
-    if a["all"] and a["focus"]:
-        fa, ft = a["focus"]["areas"], a["focus"]["types"]
-        f = [r for r in rest if matches(r, fa, ft)]
-        if f:
-            blocks.append(("Your focus: " + _scope_rule(fa, ft), f))
-            ids = {id(r) for r in f}
-            rest = [r for r in rest if id(r) not in ids]
-    groups = collections.defaultdict(list)
-    for r in rest:
-        groups[(r["area"], r["type"])].append(r)
-    per_area = collections.Counter(r["area"] for r in rest)
-    order = {k: i for i, k in enumerate(["apartment", "land", "house"])}
-    for (area, t), rs in sorted(groups.items(), key=lambda kv: (-per_area[kv[0][0]], kv[0][0], order.get(kv[0][1], 9))):
-        blocks.append((f"{AREA_NAMES.get(area, area.title()).replace(' R/A', '')} · {TYPE_NAMES.get(t, t)}", rs))
     n, phones = len(picks), sum(1 for r in picks if r.get("phone"))
     if not n:
         body = f'<tr><td style="padding:18px 0;font-size:15px;color:{INK}">No new listings in your areas today. The scout searches again tomorrow.</td></tr>'
         return [(f"MRA fresh leads {label} · {a['name']} (0 new)", _page(a, label, 0, 0, "", body), f"{a['name']}: no new listings in your areas today.")]
-    # pack sections (split inside a section when needed) into parts that stay under LIMIT
-    parts: list[tuple[str, list[dict]]] = [(_section("Call first", len(first), "".join(_card(r, i + 1, with_draft=True) for i, r in enumerate(first))), list(first))]
-    for title, rs in blocks:
-        rows_html = [(_row(r), r) for r in rs]
-        while rows_html:
+    by_area = collections.defaultdict(list)
+    for r in picks:
+        by_area[r["area"]].append(r)
+    focus = (a.get("focus") or {}).get("areas", [])
+    areas = sorted(by_area, key=lambda x: (x not in focus, -len(by_area[x]), x))
+    order = {k: i for i, k in enumerate(["apartment", "land", "house", "commercial"])}
+    index = " &nbsp;·&nbsp; ".join(f'<b style="color:{INK}">{html.escape(AREA_NAMES.get(x, x.title()).replace(" R/A", ""))}</b> {len(by_area[x])}'
+                                   for x in areas)
+    head = f'<tr><td style="padding:6px 2px 0;font-size:13px;color:{MUTE}">{index}</td></tr>'
+    # each area: its best 2 first (marked), then the rest grouped by type
+    units: list[tuple[str, str, list[dict]]] = []  # (area, html piece, rows) in display order
+    for x in areas:
+        rs = by_area[x]
+        best = top_calls(rs, 2)
+        ids = {id(r) for r in best}
+        pieces = [(_row(r, first=True), r) for r in best]
+        groups = collections.defaultdict(list)
+        for r in rs:
+            if id(r) not in ids:
+                groups[r["type"]].append(r)
+        for t in sorted(groups, key=lambda t: order.get(t, 9)):
+            pieces.append((_type_label(t, len(groups[t])), None))
+            pieces += [(_row(r), r) for r in groups[t]]
+        units.append((x, len(rs), pieces))
+    parts: list[tuple[str, list[dict]]] = [(head, [])]
+    for x, cnt, pieces in units:
+        band, cont = _area_band(x, cnt), False
+        body, used = parts[-1]
+        if len((body + band).encode()) > LIMIT - 8000 and used:
+            parts.append(("", []))
             body, used = parts[-1]
-            head = _section(title, len(rs), "")
-            take, size = [], len((body + head).encode())
-            for h, r in rows_html:
-                if take and size + len(h.encode()) > LIMIT - 6000:
-                    break
-                take.append((h, r))
-                size += len(h.encode())
-            if not take or (size > LIMIT - 6000 and used):
-                parts.append(("", []))
-                continue
-            parts[-1] = (body + _section(title if not used or title not in body else title + " (cont.)", len(rs), "".join(h for h, _ in take)), used + [r for _, r in take])
-            rows_html = rows_html[len(take):]
-            if rows_html:
-                parts.append(("", []))
+        body += band
+        for h, r in pieces:
+            if len((body + h).encode()) > LIMIT - 6000 and used:
+                parts[-1] = (body, used)
+                parts.append((_area_band(x, cnt, cont=True), []))
+                body, used = parts[-1]
+            body += h
+            if r is not None:
+                used = used + [r]
+        parts[-1] = (body, used)
     out = []
     for i, (body, used) in enumerate(parts):
         tag = f" · part {i + 1} of {len(parts)}" if len(parts) > 1 else ""
-        text = "\n".join([f"{a['name']}, {n} new for you · {label} · {_scope(a)}{tag}", ""] +
-                         [_text_line(r, i == 0 and j < len(first)) for j, r in enumerate(used)])
+        text = "\n".join([f"{a['name']}, {n} new for you · {label} · {_scope(a)}{tag}", ""] + [_text_line(r) for r in used])
         out.append((f"MRA fresh leads {label} · {a['name']} ({n} new){tag}", _page(a, label, n, phones, tag, body), text))
     return out
 

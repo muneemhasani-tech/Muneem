@@ -145,8 +145,25 @@ def is_listing(url: str, title: str = "", dev: bool = False, portals_ok: bool = 
     return len(last) >= 12 or bool(re.search(r"\d", last))  # a real listing has a long or numbered slug
 
 
+def price_of(title: str, snippet: str, facts_price: float | None = None) -> float | None:
+    """Total asking price: the title's price first (a snippet can quote a neighbouring ad), a bare 7-10 digit title number,
+    then the snippet; a per-katha price is multiplied by the katha count."""
+    text = f"{title} {snippet}"
+    price = facts_price if facts_price is not None else parse.facts(text)["price"]
+    tp = parse.parse_price(title)
+    if not tp:
+        bare = re.search(r"(?<![\d+])([1-9]\d{6,9})(?!\d)", title)  # "3 Katha Plot Sale Purbachal | 26000000"
+        tp = float(bare.group(1)) if bare and 5e5 <= float(bare.group(1)) <= 5e9 else None
+    if tp:
+        price = tp
+    katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
+    if price and katha and re.search(r"(?:per|/)\s*(?:katha|kata|kotha|কাঠা)|প্রতি কাঠা", text, re.I) and price < 5e7:
+        price *= float(katha.group(1))  # "BDT 90,00,000 per katha" for a 10 katha plot
+    return price
+
+
 def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None:
-    from .scrape import _area_in  # same area rule as every other source
+    from .scrape import area_of  # same area rule as every other source
     hit = {**hit, "title": parse.norm(hit["title"]), "snippet": parse.norm(hit["snippet"])}
     host = urllib.parse.urlparse(hit["url"]).netloc.lower()
     if spec.get("host") and not re.search(spec["host"], host):  # results are filtered by site here, not with site:
@@ -163,24 +180,17 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
     dev = spec["id"].startswith("dev_")  # developers sell by definition; their pages seldom say "for sale"
     if (not dev and not SALE.search(text)) or WANTED.search(text):
         return None
-    area = _area_in(hit["title"], None) or _area_in(text, None)  # the title names the property; snippets often mention nearby areas
+    area = area_of(hit["title"], hit["snippet"])  # the title names the property; snippets often mention nearby areas
     if not area:
         return None
     if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
         return None
     f = parse.facts(text)
-    tp = parse.parse_price(hit["title"])  # the title describes this property; a snippet can quote a neighbouring ad
-    if not tp:
-        bare = re.search(r"(?<![\d+])([1-9]\d{6,9})(?!\d)", hit["title"])  # "3 Katha Plot Sale Purbachal | 26000000"
-        tp = float(bare.group(1)) if bare and 5e5 <= float(bare.group(1)) <= 5e9 else None
-    if tp:
-        f["price"] = tp
+    f["price"] = price_of(hit["title"], hit["snippet"], f["price"])
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
     ptype = parse.ptype_of(hit["title"], hit["snippet"]) or "apartment"
     if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):
         ptype = "commercial" if re.search(r"commercial|office", hit["title"] + hit["url"], re.I) else "apartment"
-    if f["price"] and katha and re.search(r"(?:per|/)\s*(?:katha|kata|kotha|কাঠা)", text, re.I) and f["price"] < 5e7:
-        f["price"] *= float(katha.group(1))  # "BDT 90,00,000 per katha" for a 10 katha plot
     size = f["size_sqft"] or (float(katha.group(1)) * 720 if katha else None)
     # No value is dropped for looking odd: sellers hide details on purpose. store.data_flags marks them to clear.
     return {**f, "title": re.sub(r"\s*[|\-–]\s*Facebook\s*$", "", hit["title"])[:200], "url": hit["url"],

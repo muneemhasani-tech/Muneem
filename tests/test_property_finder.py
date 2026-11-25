@@ -540,3 +540,14 @@ def test_sendmail_posts_each_email_and_skips_empty(tmp_path, monkeypatch):
     res = sendmail.send_manifest(str(tmp_path / "manifest.json"), url="https://script.google.com/macros/s/x/exec", pause=0)
     assert [p["to"] for p in sent] == ["a@example.com"] and res[1]["skipped"]
     assert not sendmail.send_manifest(str(tmp_path / "manifest.json"), url="")[0]["ok"]
+
+
+def test_area_rules_rajuk_purbachal_badda_and_near():
+    from property_finder.scrape import area_of
+    assert area_of("I Ext South Lake Face 3 Katha Plot Sale Tk. 98 lac", "near Purbachal 300 feet") == "bashundhara"
+    assert area_of("বাড়ি বিক্রি হবে** লোকেশন: গুলশান গুুদারাঘাট বাড্ডা লিংক") is None
+    assert area_of("3 Katha Plot Sale Purbachal Sector-2") == "purbachal"
+    assert area_of("রাজউক পূর্বাচলে 3 কাঠা প্লট বিক্রি করা হবে") == "purbachal"
+    assert area_of("Purbachal American City Plot") is None and area_of("পূর্বাচল বানিজ্য মেলার পাশেই তিন কাঠার প্লট") is None
+    assert area_of("Flat for sale", "Gulshan 2 road 59, near Banani") == "gulshan"
+    assert area_of("Plot sale", "Rajuk Purbachal sector 18, 10 minutes from Bashundhara") == "purbachal"
