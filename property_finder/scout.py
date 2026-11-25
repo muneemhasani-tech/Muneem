@@ -35,7 +35,8 @@ SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily 
 def plan(day: dt.date, extra: int | None = None, sites: list[str] | None = None) -> list[dict]:
     """Today's searches: the daily ones for every area, then a fresh slice of the rotating pool."""
     extra = CONF["extra_per_day"] if extra is None else extra
-    fill = lambda t, a, v="", k="": t.format(area=a.capitalize(), area_bn=websearch.AREA_BN[a], variant=v, katha=k)
+    name = {"baridhara": "Baridhara Diplomatic"}  # never Baridhara DOHS
+    fill = lambda t, a, v="", k="": t.format(area=name.get(a, a.capitalize()), area_bn=websearch.AREA_BN[a], variant=v, katha=k)
     out = [{**d, "area": a, "q": fill(d["q"], a)} for d in CONF["daily"] for a in AREAS]
     pool = []
     for p in CONF["pool"]:

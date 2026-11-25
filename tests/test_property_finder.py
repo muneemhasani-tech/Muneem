@@ -515,6 +515,10 @@ def test_baridhara_area_and_multi_rule_routes(tmp_path):
     from property_finder import scrape, mailer
     assert scrape._area_in("3 katha plot sale Baridhara Diplomatic Zone", None) == "baridhara"
     assert scrape._area_in("Flat sale Baridhara J Block", None) != "baridhara"
+    assert scrape._area_in("5 katha plot sale Baridhara DOHS", None) != "baridhara"
+    assert scrape._area_in("ঢাকা বারিধারা ডিওএইচএস প্লট বিক্রি", None) != "baridhara"
+    assert scrape._area_in("Plot in Baridhara Diplomatic Zone, near DOHS", None) == "baridhara"
+    assert any('"Baridhara Diplomatic"' in x["q"] for x in __import__("property_finder.scout", fromlist=["plan"]).plan(__import__("datetime").date(2026, 11, 26)))
     r = tmp_path / "r.json"
     r.write_text(json.dumps({"associates": [{"name": "S", "email": "s@example.com", "rules": [
         {"areas": ["gulshan"], "types": ["apartment"]}, {"areas": ["uttara"], "types": ["apartment", "land"]}]}]}), encoding="utf-8")

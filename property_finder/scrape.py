@@ -108,7 +108,12 @@ def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> st
 AREA_RX = {"gulshan": r"gulshan|গুলশান", "banani": r"banani|বনানী", "purbachal": r"purbachal|পূর্বাচল",
            "uttara": r"uttara|uttra|uttora|উত্তরা", "dhanmondi": r"dhanmondi|dhanmandi|ধানমন্ডি|ধানমণ্ডি",
            "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা",
-           "baridhara": r"baridhara(?![\s-]*j[\s-]*block)|বারিধারা"}  # Baridhara J Block sits by Bashundhara, not the Diplomatic Zone
+           "baridhara": r"baridhara|বারিধারা"}  # Diplomatic Zone only: see NOT_DIPLOMATIC
+
+
+# Baridhara DOHS and Baridhara J Block (next to Bashundhara) are other places; only the Diplomatic Zone counts
+NOT_DIPLOMATIC = re.compile(r"d\.?\s?o\.?\s?h\.?\s?s|ডিওএইচএস|ডিওএইচএস|j[\s-]*block|জে ব্লক", re.I)
+DIPLOMATIC = re.compile(r"diplomatic|ডিপ্লোমেটিক|কূটনৈতিক", re.I)
 
 
 def _area_in(text: str, fallback: str | None) -> str | None:
@@ -116,6 +121,8 @@ def _area_in(text: str, fallback: str | None) -> str | None:
     low = (text or "").lower()
     for slug, rx in AREA_RX.items():
         if re.search(rx, low):
+            if slug == "baridhara" and NOT_DIPLOMATIC.search(low) and not DIPLOMATIC.search(low):
+                continue
             return slug
     return fallback
 
