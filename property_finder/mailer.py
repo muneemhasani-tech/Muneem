@@ -23,33 +23,43 @@ from pathlib import Path
 from . import weekly
 from .scout import drafts, flag, plausible_price, top_calls
 
-AREA_NAMES = {**weekly.AREA_NAMES, "baridhara": "Baridhara DOHS & Diplomatic Zone"}
-TYPE_NAMES = {"apartment": "Flats", "land": "Plots & land", "house": "Houses & duplexes", "commercial": "Commercial"}
-TYPE_ONE = {"apartment": "Flat", "land": "Plot / land", "house": "House", "commercial": "Commercial"}
+AREA_NAMES = {**weekly.AREA_NAMES, "baridhara": "Baridhara Diplomatic Zone"}
+# A whole building for sale is land with a building on it (one product), labelled so buyers who want a ready house see it.
+TYPE_NAMES = {"apartment": "Flats", "land": "Plots & land", "house": "Land with building (ready house)", "commercial": "Commercial"}
+TYPE_ONE = {"apartment": "Flat", "land": "Plot / land", "house": "Land with building · ready house", "commercial": "Commercial"}
 INK, MUTE, LINE, BG, CARD, NAVY, GOLD, SOFT = "#101a3a", "#56607f", "#e3e6ef", "#f6f7fa", "#ffffff", "#0b163e", "#c8922a", "#eef1f8"
 SANS = "font-family:'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"
 DISP = "font-family:Outfit,'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"
 EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[a-z]{2,}$", re.I)
 
 
+def _rule(x: dict) -> dict:
+    return {"areas": [a.lower() for a in x.get("areas") or []], "types": [t.lower() for t in x.get("types") or []]}
+
+
 def load_routes(path: str) -> list[dict]:
+    """Each associate has one or more rules (areas x types); 'areas'/'types' at the top level are a single rule."""
     d = json.loads(Path(path).read_text(encoding="utf-8"))
     out = []
     for a in d.get("associates", []):
         if not EMAIL.match(a.get("email", "")) or not a.get("name"):
             continue
-        out.append({"name": str(a["name"])[:40], "email": a["email"].strip(), "all": bool(a.get("all")),
-                    "areas": [x.lower() for x in a.get("areas") or []], "types": [x.lower() for x in a.get("types") or []],
-                    "focus": a.get("focus") or {}})
+        rules = [_rule(x) for x in a.get("rules") or []] or ([_rule(a)] if not a.get("all") else [])
+        out.append({"name": str(a["name"])[:40], "email": a["email"].strip(), "all": bool(a.get("all")), "rules": rules,
+                    "focus": _rule(a["focus"]) if a.get("focus") else {}})
     return out
 
 
 def matches(r: dict, areas: list[str], types: list[str]) -> bool:
-    return (not areas or r["area"] in areas) and (not types or r["type"] in types)
+    t = r["type"]
+    wanted = set(types) | ({"house"} if "land" in types else set())  # land with a building counts as land
+    return (not areas or r["area"] in areas) and (not types or t in wanted)
 
 
 def mine(rows: list[dict], a: dict) -> list[dict]:
-    return list(rows) if a["all"] else [r for r in rows if matches(r, a["areas"], a["types"])]
+    if a["all"]:
+        return list(rows)
+    return [r for r in rows if any(matches(r, x["areas"], x["types"]) for x in a["rules"])]
 
 
 def _wa(phone: str, text: str) -> str:
@@ -122,12 +132,18 @@ def _section(title: str, count: int, body: str) -> str:
             f' <span style="color:{MUTE};font-weight:400;font-size:14px">· {count}</span></div></td></tr>{body}')
 
 
+def _scope_rule(areas: list[str], types: list[str]) -> str:
+    names = ", ".join(AREA_NAMES.get(x, x.title()).replace(" R/A", "") for x in areas) or "All areas"
+    if not types:
+        return f"{names}: everything"
+    kinds = [{"apartment": "flats", "land": "land (incl. land with building)", "house": "land with building", "commercial": "commercial"}.get(t, t) for t in types]
+    return f"{names}: " + " & ".join(kinds)
+
+
 def _scope(a: dict) -> str:
-    if a["all"]:
+    if a.get("all"):
         return "All areas · all property types"
-    areas = ", ".join(AREA_NAMES.get(x, x.title()).replace(" R/A", "") for x in a["areas"]) or "All areas"
-    types = " & ".join(TYPE_NAMES.get(t, t).lower() for t in a["types"]) if a["types"] else "all property types"
-    return f"{areas} · {types}"
+    return " · ".join(_scope_rule(x["areas"], x["types"]) for x in a["rules"])
 
 
 LIMIT = 90_000  # Gmail clips an email body over ~102 KB; stay below it and split into parts instead
@@ -165,10 +181,10 @@ def build(a: dict, rows: list[dict], label: str) -> list[tuple[str, str, str]]:
     rest = [r for r in picks if id(r) not in seen]
     blocks: list[tuple[str, list[dict]]] = []
     if a["all"] and a["focus"]:
-        fa, ft = [x.lower() for x in a["focus"].get("areas", [])], [x.lower() for x in a["focus"].get("types", [])]
+        fa, ft = a["focus"]["areas"], a["focus"]["types"]
         f = [r for r in rest if matches(r, fa, ft)]
         if f:
-            blocks.append(("Your focus: " + _scope({"all": False, "areas": fa, "types": ft}), f))
+            blocks.append(("Your focus: " + _scope_rule(fa, ft), f))
             ids = {id(r) for r in f}
             rest = [r for r in rest if id(r) not in ids]
     groups = collections.defaultdict(list)

@@ -16,8 +16,8 @@ from . import parse
 from .scout import plausible_price, top_calls
 
 AREA_NAMES = {"gulshan": "Gulshan", "banani": "Banani", "purbachal": "Purbachal", "uttara": "Uttara",
-              "dhanmondi": "Dhanmondi", "bashundhara": "Bashundhara R/A"}
-TYPES = [("apartment", "Flats", "#0b163e"), ("land", "Plots", "#c8922a"), ("house", "Houses", "#8a93b8")]
+              "dhanmondi": "Dhanmondi", "bashundhara": "Bashundhara R/A", "baridhara": "Baridhara"}
+TYPES = [("apartment", "Flats", "#0b163e"), ("land", "Plots", "#c8922a"), ("house", "Land + building", "#8a93b8")]
 INK, MUTE, LINE, BG, CARD, NAVY, GOLD = "#101a3a", "#56607f", "#d5d9e6", "#f6f7fa", "#ffffff", "#0b163e", "#c8922a"
 SANS = "font-family:'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"   # the Property Hunt page's type; falls back where fonts are blocked
 DISP = "font-family:Outfit,'IBM Plex Sans',Segoe UI,Helvetica,Arial,sans-serif"
@@ -85,7 +85,7 @@ def build(rows: list[dict], start: dt.date | None = None, end: dt.date | None = 
                 f'<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:{MUTE};font-weight:600;margin-top:4px">{label}</div></div></td>')
 
     tiles = (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
-             f'{tile(total, "New", True)}{tile(by_type["apartment"], "Flats")}{tile(by_type["land"], "Plots")}{tile(by_type["house"], "Houses")}'
+             f'{tile(total, "New", True)}{tile(by_type["apartment"], "Flats")}{tile(by_type["land"], "Plots")}{tile(by_type["house"], "Land + bldg")}'
              f'</tr></table>')
 
     legend = " &nbsp;&nbsp; ".join(f'<span style="display:inline-block;width:9px;height:9px;background:{c};border-radius:2px"></span>'

@@ -260,7 +260,7 @@ def test_scout_plan_dedupe_and_filters(tmp_path, monkeypatch):
     import datetime as dt
     from property_finder import scout, websearch as w
     a, b = scout.plan(dt.date(2026, 11, 18)), scout.plan(dt.date(2026, 11, 19))
-    assert len(a) == 12 + len(scout.CONF["portal_daily"]) + scout.CONF["extra_per_day"]
+    assert len(a) == 2 * len(scout.AREAS) + len(scout.CONF["portal_daily"]) + scout.CONF["extra_per_day"]
     assert not {x["q"] for x in a[16:]} & {x["q"] for x in b[16:]}          # a different rotating slice each day
     assert w.is_listing("https://www.bdhousing.com/details/245411/2390-sqft-used-apartment-banani", "2390 sqft", portals_ok=True)  # not "housing.com"
     assert w.is_listing("https://bikroy.com/gulshan/houses-apartments-for-sale/3bdrm-apartment-in-gulshan", portals_ok=True)
@@ -339,7 +339,7 @@ def test_scout_every_portal_is_searched_every_day():
     for n in range(14):
         labels = {x["label"] for x in scout.plan(dt.date(2026, 11, 1) + dt.timedelta(days=n))}
         assert {"Bproperty", "Bikroy", "bdHousing", "Bdstall"} <= labels, n
-    assert len(scout.plan(dt.date(2026, 11, 20))) == 12 + 4 + scout.CONF["extra_per_day"] == 24
+    assert len(scout.plan(dt.date(2026, 11, 20))) == 2 * len(scout.AREAS) + 4 + scout.CONF["extra_per_day"] == 26
 
 
 def test_scout_writes_a_small_stats_file_for_the_manager(tmp_path, monkeypatch):
@@ -463,7 +463,7 @@ def test_site_directory_promotes_after_two_good_weeks_and_scout_uses_only_active
     reg.write_text(json.dumps(sites.update(str(reg), [], [], dt.date(2026, 12, 4))), encoding="utf-8")
     assert sites.active(str(reg)) == ["pbazaar.com"]
     p = scout.plan(dt.date(2026, 12, 5), sites=sites.active(str(reg)) + ['bad" OR site:x'])
-    assert len(p) == 24 and sum(x["label"].startswith("Directory:") for x in p) == 1
+    assert len(p) == 26 and sum(x["label"].startswith("Directory:") for x in p) == 1
     assert all("bad" not in x["q"] for x in p)
 
 
@@ -494,9 +494,9 @@ def test_associate_emails_route_by_area_and_type(tmp_path):
         {"name": "B", "email": "b@example.com", "areas": ["dhanmondi"], "types": []},
         {"name": "Bad", "email": "not-an-email", "areas": []}]}), encoding="utf-8")
     m = {x["name"]: x for x in mailer.make(str(routes), [str(p)], str(tmp_path / "out"), "25 Nov 2026")}
-    assert set(m) == {"Owner", "A", "B"} and (m["Owner"]["count"], m["A"]["count"], m["B"]["count"]) == (4, 1, 1)
+    assert set(m) == {"Owner", "A", "B"} and (m["Owner"]["count"], m["A"]["count"], m["B"]["count"]) == (4, 2, 1)  # A's land includes land with building
     h = (tmp_path / "out" / m["A"]["html"]).read_text(encoding="utf-8")
-    assert "wa.me/8801711111111?text=" in h and "<script" not in h and "house sale" not in h
+    assert "wa.me/8801711111111?text=" in h and "<script" not in h and "Land with building" in h
     assert mailer._note("price missing - ask seller; size missing - ask seller") == "Ask the seller for: price, size"
 
 
@@ -508,3 +508,16 @@ def test_property_type_reads_title_first_and_bangla():
     assert parse.ptype_of("Flat with 3 katha land") == "apartment"
     assert parse.ptype_of("Ready flat sale", "Land: 3 katha, G+6") == "apartment"
     assert parse.ptype_of("Urgent sale Purbachal", "3 katha plot, sector 18") == "land"
+
+
+def test_baridhara_area_and_multi_rule_routes(tmp_path):
+    import json
+    from property_finder import scrape, mailer
+    assert scrape._area_in("3 katha plot sale Baridhara Diplomatic Zone", None) == "baridhara"
+    assert scrape._area_in("Flat sale Baridhara J Block", None) != "baridhara"
+    r = tmp_path / "r.json"
+    r.write_text(json.dumps({"associates": [{"name": "S", "email": "s@example.com", "rules": [
+        {"areas": ["gulshan"], "types": ["apartment"]}, {"areas": ["uttara"], "types": ["apartment", "land"]}]}]}), encoding="utf-8")
+    a = mailer.load_routes(str(r))[0]
+    rows = [{"area": "gulshan", "type": "apartment"}, {"area": "gulshan", "type": "land"}, {"area": "uttara", "type": "house"}]
+    assert mailer.mine(rows, a) == [rows[0], rows[2]]

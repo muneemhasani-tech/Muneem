@@ -26,7 +26,7 @@ DOMAIN = re.compile(r"^(?=.{4,60}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](
 # already searched every day, social networks, search engines and sites that never list single Dhaka properties
 COVERED = re.compile(r"(^|\.)(facebook|fb|bproperty|bikroy|bdhousing|bdstall|google|instagram|youtube|tiktok|linkedin|twitter|x|"
                      r"pinterest|wikipedia|reddit|quora|whatsapp|telegram|amazon|daraz)\.", re.I)
-AREAS = ["gulshan", "banani", "purbachal", "uttara", "dhanmondi", "bashundhara"]
+AREAS = ["gulshan", "banani", "purbachal", "uttara", "dhanmondi", "bashundhara", "baridhara"]
 PROBE_CAP = 6          # sites probed a week (2 searches each)
 PROMOTE_KEPT, PROMOTE_WEEKS, DROP_WEEKS = 3, 2, 3
 DISCOVERY = [  # fixed queries: listings outside the portals already covered
@@ -104,7 +104,7 @@ def update(registry: str | None, leads: list[str], add: list[str], day: dt.date 
                    key=lambda k: (sites[k]["probes"][-1]["date"] if sites[k]["probes"] else "", k))[:PROBE_CAP]
     for j, h in enumerate(queue):  # least recently probed first
         total = 0
-        for a in (AREAS[(week + j) % 6], AREAS[(week + j + 3) % 6]):
+        for a in (AREAS[(week + j) % len(AREAS)], AREAS[(week + j + 3) % len(AREAS)]):
             n, _ = _kept("serper", key, f'site:{h} "{a.capitalize()}" sale', a, f"Directory: {h}")
             log["searches"] += 1
             total += max(n, 0)

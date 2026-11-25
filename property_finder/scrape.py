@@ -107,7 +107,8 @@ def build_url(src: dict, area: str, purpose: str, ptype: str, q: str = "") -> st
 
 AREA_RX = {"gulshan": r"gulshan|গুলশান", "banani": r"banani|বনানী", "purbachal": r"purbachal|পূর্বাচল",
            "uttara": r"uttara|uttra|uttora|উত্তরা", "dhanmondi": r"dhanmondi|dhanmandi|ধানমন্ডি|ধানমণ্ডি",
-           "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা"}
+           "bashundhara": r"bashundhara|basundhara|bosundhora|বসুন্ধরা",
+           "baridhara": r"baridhara(?![\s-]*j[\s-]*block)|বারিধারা"}  # Baridhara J Block sits by Bashundhara, not the Diplomatic Zone
 
 
 def _area_in(text: str, fallback: str | None) -> str | None:
