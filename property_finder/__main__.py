@@ -2,6 +2,7 @@
    | reset-password EMAIL | build-html OUT.html
    | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
    | sites --registry sites-old.json leads-*.csv [--add domain] --out sites.json   (weekly: find and test other listing sites)
+   | mail --routes associates.json leads-*.csv --out DIR   (one email per associate, their areas only)
    | weekly leads-*.csv stats-*.json --out DIR   (the associates' weekly one-pager email)"""
 import getpass
 import json
@@ -44,6 +45,11 @@ elif cmd == "weekly":
     out = args[args.index("--out") + 1] if "--out" in args else "weekly"
     info = weekly.make([a for a in args[1:] if a.endswith(".csv")], [a for a in args[1:] if a.endswith(".json")], out)
     print(f"{info['rows']} listings, one-pager image: {'yes' if info['png'] else 'no (table email instead)'} -> {out}/email.html")
+elif cmd == "mail":
+    from . import mailer
+    opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
+    m = mailer.make(opt("--routes"), [a for a in args[1:] if a.endswith(".csv")], opt("--out", "mail_out"), opt("--label"))
+    print(json.dumps([{k: x[k] for k in ("name", "count", "subject")} for x in m], ensure_ascii=False))
 elif cmd == "sites":
     from . import sites
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d

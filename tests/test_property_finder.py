@@ -473,3 +473,28 @@ def test_foreign_and_discussion_posts_are_dropped_but_urgent_sellers_kept():
            "PAC তেহ জমির দাম এত বেশি হবার কারন কী?", "বসুন্ধরায় ফ্ল্যাট বিক্রি করার জন্য কিছু কমিশন ভিত্তিক মিডিয়া দরকার।"]
     assert all(w.FOREIGN.search(t) or w.WANTED.search(t) for t in bad)
     assert not w.WANTED.search("জরুরি ভিত্তিতে টাকার দরকার পূর্বাচলে 3 কাঠা প্লট বিক্রি করা হবে।")
+
+
+def test_associate_emails_route_by_area_and_type(tmp_path):
+    import csv, json
+    from property_finder import mailer, scout
+    rows = [{"date": "2026-11-25", "area": a, "type": t, "title": f"{t} sale {a} {i}", "price_bdt": 15_000_000, "size_sqft": 1500,
+             "price_per_sqft": "", "gross_yield_pct": "", "phone": "01711111111" if i == 0 else "", "site": "Facebook groups",
+             "url": f"https://x/{i}", "snippet": "", "query": "", "fingerprints": ""}
+            for i, (a, t) in enumerate([("bashundhara", "apartment"), ("bashundhara", "house"), ("gulshan", "land"), ("dhanmondi", "house")])]
+    p = tmp_path / "leads.csv"
+    with open(p, "w", encoding="utf-8-sig", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=scout.COLS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    routes = tmp_path / "r.json"
+    routes.write_text(json.dumps({"associates": [
+        {"name": "Owner", "email": "o@example.com", "all": True, "focus": {"areas": ["gulshan"], "types": ["land"]}},
+        {"name": "A", "email": "a@example.com", "areas": ["bashundhara"], "types": ["apartment", "land"]},
+        {"name": "B", "email": "b@example.com", "areas": ["dhanmondi"], "types": []},
+        {"name": "Bad", "email": "not-an-email", "areas": []}]}), encoding="utf-8")
+    m = {x["name"]: x for x in mailer.make(str(routes), [str(p)], str(tmp_path / "out"), "25 Nov 2026")}
+    assert set(m) == {"Owner", "A", "B"} and (m["Owner"]["count"], m["A"]["count"], m["B"]["count"]) == (4, 1, 1)
+    h = (tmp_path / "out" / m["A"]["html"]).read_text(encoding="utf-8")
+    assert "wa.me/8801711111111?text=" in h and "<script" not in h and "house sale" not in h
+    assert mailer._note("price missing - ask seller; size missing - ask seller") == "Ask the seller for: price, size"
