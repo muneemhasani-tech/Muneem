@@ -10,6 +10,7 @@ import csv
 import datetime as dt
 import html
 import json
+import re
 from pathlib import Path
 
 from . import parse, websearch
@@ -35,6 +36,13 @@ def load(paths: list[str]) -> list[dict]:
             if not area:
                 continue  # older days used a looser area rule (Purbachal outside RAJUK, Badda link road, two areas named)
             r["area"] = area
+            if re.search(r"facebook|google\.com/goto", r["url"] + r["site"], re.I) and not websearch.same_post(
+                    parse.norm(r["title"]), parse.norm(r.get("snippet", "")), strict="google.com/goto" in r["url"]):  # the preview mixed in another post's details
+                f = parse.facts(parse.norm(r["title"]))
+                r["phone"] = f["phone"] or ""
+                r["size_sqft"] = str(int(f["size_sqft"])) if f["size_sqft"] else ""
+                tp = websearch.price_of(parse.norm(r["title"]), "")
+                r["price_bdt"] = str(int(tp)) if tp else ""
             if r["url"] not in seen:  # the scout never repeats, but a re-run day must not count twice
                 seen.add(r["url"])
                 tp = websearch.price_of(parse.norm(r["title"]), parse.norm(r.get("snippet", "")))  # older days used an older parser

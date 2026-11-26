@@ -21,8 +21,11 @@ CONF = json.loads((Path(__file__).parent / "sources.json").read_text(encoding="u
 QUERIES: list[dict] = CONF.get("web_queries", [])
 AREA_BN = {"gulshan": "গুলশান", "banani": "বনানী", "purbachal": "পূর্বাচল", "uttara": "উত্তরা",
            "dhanmondi": "ধানমন্ডি", "bashundhara": "বসুন্ধরা", "baridhara": "বারিধারা ডিপ্লোমেটিক"}
-SALE = re.compile(r"sale|sell|selling|buy|বিক্রি|বিক্রয়|বিক্রয়", re.I)
-WANTED = re.compile(r"\bwant(?:ed)?\b|looking for|need (?:a|an)\b|প্রয়োজন|চাই|(?:মিডিয়া|এজেন্ট|লোক) দরকার|কারণ কী|কারন কী|করতে চান\s*\?", re.I)  # "টাকার দরকার" (seller needs cash) stays a listing  # buyers' posts, not listings
+SALE = re.compile(r"sale|sell|selling|বিক্রি|বিক্রয়|বিক্রয়", re.I)  # not "buy": that is a buyer's post
+WANTED = re.compile(r"\bwant(?:ed)?\b|looking (?:for|to buy|to purchase)|need (?:a|an)\b|need (?:flat|plot|land|apartment|house)|"
+                    r"\b(?:want|wish|planning) to (?:buy|purchase)|\bbuyer (?:needed|wanted)|\brequire(?:d|ment)?\b|"
+                    r"কিনতে চাই|কিনতে আগ্রহী|কিনবো|কিনব\b|কিনতে|খুঁজছি|খুজছি|লাগবে|প্রয়োজন|প্রয়োজন|চাই|"
+                    r"(?:মিডিয়া|এজেন্ট|লোক) দরকার|কারণ কী|কারন কী|করতে চান\s*\?", re.I)  # buyers' and other non-listing posts; "টাকার দরকার" stays
 RENT = re.compile(r"\brent\b|to-let|to let|ভাড়া|ভাড়া|sublet|bachelor", re.I)
 
 
@@ -145,6 +148,32 @@ def is_listing(url: str, title: str = "", dev: bool = False, portals_ok: bool = 
     return len(last) >= 12 or bool(re.search(r"\d", last))  # a real listing has a long or numbered slug
 
 
+def same_post(title: str, snippet: str, strict: bool = True) -> bool:
+    """True only when the preview text is clearly about the post named in the title. Google often splices a neighbouring
+    post into a Facebook preview, and its phone, price and size then belong to someone else.
+    Different post if: sizes or prices disagree, three or more phone numbers, or different block letters.
+    Same post (strict, for Google redirect links): the preview repeats most of the title's first words, or states the same size."""
+    t, sn = parse.facts(title), parse.facts(snippet)
+    tn, snl = parse.norm(title).lower(), parse.norm(snippet).lower()
+    if t["size_sqft"] and sn["size_sqft"] and abs(t["size_sqft"] - sn["size_sqft"]) > 0.1 * t["size_sqft"]:
+        return False
+    tp = parse.parse_price(parse.norm(title))
+    if tp and sn["price"] and abs(tp - sn["price"]) > 0.1 * tp:
+        return False
+    if len({re.sub(r"\D", "", m.group(1))[-10:] for m in parse.PHONE.finditer(parse.norm(snippet))}) > 2:
+        return False
+    blk = lambda x: set(re.findall(r"\bblock[\s:#-]*([a-p])\b|\b([a-p])[\s-]*block\b", x))
+    tb, sb = {a or b for a, b in blk(tn)}, {a or b for a, b in blk(snl)}
+    if tb and sb and not tb & sb:
+        return False
+    if not strict:
+        return True  # a direct post link: its preview comes from that post, so no contradiction is enough
+    words = re.findall(r"[a-z0-9ঀ-৿]{2,}", tn)[:4]
+    if len(words) >= 3 and sum(w in snl for w in words) >= 3:
+        return True
+    return bool(t["size_sqft"] and sn["size_sqft"])  # same size stated (a different one returned False above)
+
+
 def price_of(title: str, snippet: str, facts_price: float | None = None) -> float | None:
     """Total asking price: the title's price first (a snippet can quote a neighbouring ad), a bare 7-10 digit title number,
     then the snippet; a per-katha price is multiplied by the katha count."""
@@ -170,7 +199,8 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
         return None
     if spec.get("exclude") and re.search(spec["exclude"], host):
         return None
-    text = f"{hit['title']} {hit['snippet']}"
+    from .scrape import GROUP_NAME
+    text = f"{hit['title']} {GROUP_NAME.sub(' ', hit['snippet'])}"  # a group's name ("Flat Buy & Sale") says nothing about the post
     if not is_listing(hit["url"], hit["title"], spec["id"].startswith("dev_"), spec.get("portals_ok", False)) or FOREIGN.search(text) or (not PROPERTY_WORD.search(text) and not spec["id"].startswith("dev_")):
         return None
     path = urllib.parse.urlparse(hit["url"]).path.lower()
@@ -185,8 +215,14 @@ def to_listing(hit: dict, spec: dict, query: str, area_hint: str) -> dict | None
         return None
     if re.search(r"iqbal|karachi|uttar badda|north badda", text, re.I):  # name clashes with other places
         return None
-    f = parse.facts(text)
-    f["price"] = price_of(hit["title"], hit["snippet"], f["price"])
+    if not re.search(r"facebook|google\.com/goto", hit["url"] + spec["id"], re.I) or same_post(
+            hit["title"], hit["snippet"], strict="google.com/goto" in hit["url"]):
+        f = parse.facts(text)
+        f["price"] = price_of(hit["title"], hit["snippet"], f["price"])
+    else:  # Google mixed another post into this Facebook preview: its phone, price and size belong to someone else
+        f = parse.facts(hit["title"])
+        f["price"] = price_of(hit["title"], "", f["price"])
+        text = hit["title"]
     katha = re.search(r"(\d+(?:\.\d+)?)\s*(?:katha|kata|kotha|কাঠা)", text, re.I)
     ptype = parse.ptype_of(hit["title"], hit["snippet"]) or "apartment"
     if dev and not re.search(r"plot|land|katha|কাঠা", hit["title"] + hit["url"], re.I):

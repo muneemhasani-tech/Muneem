@@ -26,7 +26,7 @@ from .scrape import AREAS
 
 CONF = json.loads((Path(__file__).parent / "scout.json").read_text(encoding="utf-8"))
 COLS = ["date", "area", "type", "title", "price_bdt", "size_sqft", "price_per_sqft", "gross_yield_pct", "phone",
-        "site", "url", "snippet", "query", "fingerprints"]
+        "site", "url", "snippet", "query", "fingerprints", "known_seller"]
 
 
 SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily total stays the same)
@@ -133,16 +133,20 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
             if r["url"] in seen_urls or any(fp in seen_fps for fp in fps) or any(x in seen_h for x in hs):
                 dups += 1
                 continue
+            seller = _h("k:" + r["phone"]) if r.get("phone") else ""
+            known = bool(seller) and seller in seen_h  # this number sent us a listing on an earlier day: same seller, not a stranger
             seen_urls.add(r["url"])
             seen_fps.update(fps)
             seen_h.update(hs)
-            # the memory file may be published, so it never holds a phone-derived hash (the p: fingerprint is used within a run only)
+            # the memory now lives privately in Drive; it holds only short one-way hashes, never a phone number itself
             seen_keep.update({_h(f): day.isoformat() for f in ["u" + r["url"]] + [fp for fp in fps if not fp.startswith("p:")]})
+            if seller:
+                seen_keep[seller] = day.isoformat()
             p = roi.project(r, roi.DEFAULTS, {})
             new.append({"date": day.isoformat(), "area": r["area"], "type": r["ptype"], "title": r["title"],
                         "price_bdt": int(r["price"]) if r.get("price") else "", "size_sqft": int(r["size_sqft"]) if r.get("size_sqft") else "",
                         "price_per_sqft": round(r["price"] / r["size_sqft"]) if r.get("price") and r.get("size_sqft") else "",
-                        "gross_yield_pct": p["gross"] or "", "phone": r.get("phone") or "", "site": spec["label"],
+                        "gross_yield_pct": p["gross"] or "", "phone": r.get("phone") or "", "site": spec["label"], "known_seller": "yes" if known else "",
                         "url": r["url"], "snippet": r.get("snippet", ""), "query": spec["q"], "fingerprints": "|".join(fps)})
             kept += 1
         log.append((spec["label"], spec["q"], code, len(hits), kept))

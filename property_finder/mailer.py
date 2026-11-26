@@ -119,21 +119,49 @@ def _card(r: dict, rank: int | None = None, with_draft: bool = False) -> str:
             f'{note_html}<div>{buttons}</div>{draft}</div></td></tr>')
 
 
-def _row(r: dict, first: bool = False) -> str:
+import unicodedata
+
+
+def clean_title(t: str, n: int = 90) -> str:
+    """Readable everywhere: fancy Facebook letters made plain, emoji/symbols and stray markup removed, cut on a word."""
+    t = unicodedata.normalize("NFKC", t or "")
+    t = "".join(ch for ch in t if unicodedata.category(ch) not in ("So", "Sk", "Cs", "Co", "Cn")
+                and ch not in "\ufffd\ufe0f\ufe0e*#|" and (unicodedata.category(ch) != "Cf" or ch in "\u200c\u200d"))
+    t = re.sub(r"\s+", " ", re.sub(r"\.{2,}|…", " ", t)).strip(" -–:,.")
+    if len(t) > n:
+        t = t[:n].rsplit(" ", 1)[0] + " …"
+    return t or "Property for sale"
+
+
+def post_link(r: dict) -> tuple[str, str]:
+    """Google's redirect links (google.com/goto) are tied to one search session and can open a different post later,
+    so for those we link a search for this exact post instead."""
+    if "google.com/goto" in r["url"]:
+        site = "facebook.com" if r["site"].startswith("Facebook") else {"Bikroy": "bikroy.com"}.get(r["site"], "")
+        q = f'"{" ".join(clean_title(r["title"], 70).replace(" …", "").split()[:9])}"' + (f" site:{site}" if site else "")
+        return "https://www.google.com/search?q=" + urllib.parse.quote(q), "Find post →"
+    return r["url"], "See post →"
+
+
+def _row(r: dict, first: bool = False, same_seller: int = 0) -> str:
     """One listing: title, one facts line, an ask-the-seller note when something is missing, then plain links
     (plain links render the same in every mail app; filled buttons can show up blank)."""
     e = html.escape
     note = _note(flag(r))
-    links = [f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:700">See post →</a>']
+    href, label = post_link(r)
+    links = [f'<a href="{e(href)}" style="color:{NAVY};font-weight:700">{label}</a>']
     if r.get("phone"):
         links += [f'<a href="tel:{e(r["phone"])}" style="color:{NAVY}">Call {e(r["phone"])}</a>',
                   f'<a href="{e(_wa(r["phone"], _wa_text(r)))}" style="color:{NAVY}">WhatsApp</a>']
-    tag = (f'<span style="display:inline-block;background:{GOLD};color:#ffffff;font-size:10px;font-weight:700;letter-spacing:.5px;'
-           f'border-radius:4px;padding:1px 6px;margin-bottom:4px">CALL FIRST</span><br>' if first else "")
+    chip = lambda txt, bg: (f'<span style="display:inline-block;background:{bg};color:#ffffff;font-size:10px;font-weight:700;'
+                            f'letter-spacing:.5px;border-radius:4px;padding:1px 6px;margin:0 4px 4px 0">{txt}</span>')
+    tags = (chip("CALL FIRST", GOLD) if first else "") + (chip(f"SAME SELLER · {same_seller} LISTINGS", "#4a5a9c") if same_seller > 1 else "") \
+        + (chip("SELLER SEEN BEFORE", "#8a93b8") if r.get("known_seller") else "")
+    tag = tags + "<br>" if tags else ""
     n = f'<div style="font-size:12px;color:#8a5a00;margin-top:2px">{e(note)}</div>' if note else ""
     edge = f"border-left:3px solid {GOLD};padding-left:10px;" if first else "padding-left:2px;"
     return (f'<tr><td style="padding:12px 0 12px;border-top:1px solid {LINE}"><div style="{edge}">{tag}'
-            f'<div style="font-size:15px;font-weight:600;color:{INK};line-height:1.35">{e(r["title"][:90])}</div>'
+            f'<div style="font-size:15px;font-weight:600;color:{INK};line-height:1.35">{e(clean_title(r["title"]))}</div>'
             f'<div style="font-size:13px;color:{MUTE};margin-top:2px">{_facts(r)}</div>{n}'
             f'<div style="font-size:13px;margin-top:5px">{" &nbsp;·&nbsp; ".join(links)}</div></div></td></tr>')
 
@@ -189,11 +217,11 @@ Found by the MRA Property Scout from public listings.</td></tr>
 </table></td></tr></table></body></html>"""
 
 
-def _text_line(r: dict, first: bool = False) -> str:
+def _text_line(r: dict, first: bool = False) -> str:  # noqa: D401
     price = weekly._money(float(r["price_bdt"])) if plausible_price(r) else "price on call"
     size = f", {int(float(r['size_sqft'])):,} sqft" if r.get("size_sqft") else ""
-    return (f"{'CALL FIRST ' if first else ''}- {r['title'][:80]}\n  {AREA_NAMES.get(r['area'], r['area'])} · "
-            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'}\n  {r['url']}")
+    return (f"{'CALL FIRST ' if first else ''}- {clean_title(r['title'], 80)}\n  {AREA_NAMES.get(r['area'], r['area'])} · "
+            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'}\n  {post_link(r)[0]}")
 
 
 def build(a: dict, rows: list[dict], label: str) -> list[tuple[str, str, str]]:
@@ -214,18 +242,20 @@ def build(a: dict, rows: list[dict], label: str) -> list[tuple[str, str, str]]:
     head = f'<tr><td style="padding:6px 2px 0;font-size:13px;color:{MUTE}">{index}</td></tr>'
     # each area: its best 2 first (marked), then the rest grouped by type
     units: list[tuple[str, str, list[dict]]] = []  # (area, html piece, rows) in display order
+    per_phone = collections.Counter(r["phone"] for r in picks if r.get("phone"))
     for x in areas:
         rs = by_area[x]
         best = top_calls(rs, 2)
         ids = {id(r) for r in best}
-        pieces = [(_row(r, first=True), r) for r in best]
+        pieces = [(_row(r, first=True, same_seller=per_phone.get(r.get("phone"), 0)), r) for r in best]
         groups = collections.defaultdict(list)
         for r in rs:
             if id(r) not in ids:
                 groups[r["type"]].append(r)
         for t in sorted(groups, key=lambda t: order.get(t, 9)):
             pieces.append((_type_label(t, len(groups[t])), None))
-            pieces += [(_row(r), r) for r in groups[t]]
+            ordered = sorted(groups[t], key=lambda r: (-per_phone.get(r.get("phone"), 0), r.get("phone") or "~"))  # one seller's listings together
+            pieces += [(_row(r, same_seller=per_phone.get(r.get("phone"), 0)), r) for r in ordered]
         units.append((x, len(rs), pieces))
     parts: list[tuple[str, list[dict]]] = [(head, [])]
     for x, cnt, pieces in units:

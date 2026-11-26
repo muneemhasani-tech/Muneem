@@ -559,3 +559,22 @@ def test_facebook_group_name_is_not_the_area():
     assert area_of("3 +3 = 6 কাঠার প্লট বিক্রি করা হবে।",
                    "Gulshan 1/ 2 Flat, Land Buy & Sale (গুলশানে ফ্ল্যাট/ জমি ক্রয়-বিক্রয়) ... দাম -কোটি 17 লাখ টাকা।") is None
     assert area_of("3 +3 = 6 কাঠার প্লট বিক্রি করা হবে।", "লোকেশন : উত্তরা সেক্টর 17, ব্লক - বি") == "uttara"
+
+
+def test_owner_reported_bugs_27_nov():
+    from property_finder import websearch as w, mailer
+    # 1. a Google-redirect preview that mixes in another post must not lend its phone/size/price
+    assert not w.same_post("BASHUNDHARA G BLOCK South Facing Single Unit", "1945 SFT Brand New Apartment for Sale at block- M, Bashundhara R/A!")
+    assert not w.same_post("3200 sqft er Flat Sell Gulshan-1 er Nearby lake 3 cr 80", "Gulshan 1 Flat for SALE 2,015 sft Price - 2.5 crores 01791492116")
+    assert w.same_post("Urgent Apartment Sale bashundhara Semi Furnished", "Urgent Apartment Sale bashundhara Semi Furnished Full interior. 01711111111")
+    hit = {"title": "BASHUNDHARA G BLOCK South Facing Single Unit flat sale", "url": "https://www.google.com/goto?url=CAES",
+           "snippet": "1945 SFT Brand New Apartment for Sale at block- M, Bashundhara R/A! Call 01711111111"}
+    r = w.to_listing(hit, {"id": "Facebook groups", "engine_label": "G", "portals_ok": True}, "q", "bashundhara")
+    assert r and not r.get("phone") and not r.get("size_sqft")
+    # 2. redirect links become a search for that exact post
+    href, label = mailer.post_link({"url": "https://www.google.com/goto?url=X", "site": "Facebook groups", "title": "🏡 Flat sale at Gulshan 2 road 59"})
+    assert label == "Find post →" and href.startswith("https://www.google.com/search?q=") and "facebook.com" in href
+    # 3. buyers' posts are not listings
+    assert w.WANTED.search("গুলশানে একটি ফ্ল্যাট কিনতে চাই") and w.WANTED.search("Looking to buy a flat in Banani")
+    # 4. fancy letters and emoji become plain readable text
+    assert mailer.clean_title("3200 𝘀𝗾𝗳𝘁 𝗲𝗿 Flat Sell 🏡 ...") == "3200 sqft er Flat Sell"
