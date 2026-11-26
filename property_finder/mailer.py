@@ -159,6 +159,11 @@ def _row(r: dict, first: bool = False, same_seller: int = 0) -> str:
         + (chip("SELLER SEEN BEFORE", "#8a93b8") if r.get("known_seller") else "")
     tag = tags + "<br>" if tags else ""
     n = f'<div style="font-size:12px;color:#8a5a00;margin-top:2px">{e(note)}</div>' if note else ""
+    if r.get("contact_name") and r.get("phone"):
+        n += f'<div style="font-size:12px;color:{MUTE};margin-top:2px">Seller: {e(r["contact_name"][:80])}</div>'
+    elif r.get("contact_how") and not r.get("phone"):
+        n += f'<div style="font-size:12px;color:{MUTE};margin-top:2px">How to reach: {e(r["contact_how"])}</div>'
+
     edge = f"border-left:3px solid {GOLD};padding-left:10px;" if first else "padding-left:2px;"
     return (f'<tr><td style="padding:12px 0 12px;border-top:1px solid {LINE}"><div style="{edge}">{tag}'
             f'<div style="font-size:15px;font-weight:600;color:{INK};line-height:1.35">{e(clean_title(r["title"]))}</div>'
@@ -221,7 +226,8 @@ def _text_line(r: dict, first: bool = False) -> str:  # noqa: D401
     price = weekly._money(float(r["price_bdt"])) if plausible_price(r) else "price on call"
     size = f", {int(float(r['size_sqft'])):,} sqft" if r.get("size_sqft") else ""
     return (f"{'CALL FIRST ' if first else ''}- {clean_title(r['title'], 80)}\n  {AREA_NAMES.get(r['area'], r['area'])} · "
-            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'}\n  {post_link(r)[0]}")
+            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'}\n  {post_link(r)[0]}"
+            + (f"\n  How to reach: {r['contact_how']}" if r.get("contact_how") and not r.get("phone") else ""))
 
 
 def build(a: dict, rows: list[dict], label: str) -> list[tuple[str, str, str]]:

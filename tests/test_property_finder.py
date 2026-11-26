@@ -605,6 +605,8 @@ def test_scout_balances_facebook_with_portals_and_next_pages(tmp_path, monkeypat
     monkeypatch.setenv("SERPER_API_KEY", "k")
     monkeypatch.setattr(w, "run_query", fake)
     monkeypatch.setattr(scout, "fill_from_page", lambda r: None)  # no page fetches in a test
+    from property_finder import contacts
+    monkeypatch.setattr(contacts, "read", lambda r: {})
     r = scout.run(None, out=str(tmp_path), extra=0, day=dt.date(2026, 11, 18), enrich_top=0)
     st = _j.loads(open(r["stats"]).read())
     assert st["facebook"] > 0 and st["other"] >= st["facebook"] and st["balanced"] and 0 < st["balance_searches"] <= 30
@@ -634,3 +636,47 @@ def test_redirect_links_keep_the_real_site_for_balance_and_discovery():
     assert not scout.is_facebook({"site": "Open web", "url": goto, "via": "credencere.com"})
     assert scout.is_facebook({"site": "Open web", "url": goto, "via": "facebook.com"})
     assert sites.clean("credencere.com") == "credencere.com"
+
+
+
+BDH_PAGE = ('<script type="application/ld+json">{"@type":"Organization","contactPoint":[{"@type":"ContactPoint","telephone":"+8801730000000"}]}</script>'
+            '<a class="mobile_diealer" href="tel:+8801730000000">hotline</a>'
+            '<p style="text-align:center;" class="user_info_view"> <a href="/Asian-Duplex"> <span class="pop-up-info-area">Asian Duplex Ltd. </span> </a> </p>'
+            '<p class="pop-up-info-area"><i class="glyphicon glyphicon-user"></i> Yousuf Imran </p>'
+            '<p class="pop-up-info-mobile"> <a class="mobile_diealer" href="tel:\'+8801833300000\'"> +8801833300000 </a></p>')
+
+
+def test_contact_tool_reads_the_bdhousing_seller_card_not_the_hotline():
+    from property_finder import contacts
+    got = contacts.bdhousing(BDH_PAGE)
+    assert got["phone"] == "01833300000" and "Yousuf Imran" in got["contact_name"] and "Asian Duplex" in got["contact_name"]
+    assert contacts.generic('<a href="https://wa.me/8801911222333">WhatsApp</a>')["phone"] == "01911222333"
+    assert contacts.generic(BDH_PAGE.split("</script>")[0] + "</script>") == {}
+
+
+def test_contact_tool_never_opens_blocked_sites_and_says_what_to_tap(monkeypatch):
+    from property_finder import contacts, scrape
+    opened = []
+    monkeypatch.setattr(scrape, "may_fetch", lambda u: (opened.append(u), (True, ""))[1])
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (200, BDH_PAGE))
+    monkeypatch.setattr(scrape, "crawl_delay", lambda u: 0)
+    monkeypatch.setattr(contacts.time, "sleep", lambda s: None)
+    rows = [{"url": "https://bikroy.com/gulshan/houses/flat-sale-abc.html", "site": "Bikroy", "phone": ""},
+            {"url": "https://www.bproperty.com/property/flat-1", "site": "Bproperty", "phone": ""},
+            {"url": "https://www.google.com/goto?url=x", "site": "Bikroy", "phone": "", "via": "bikroy.com"},
+            {"url": "https://www.facebook.com/groups/1/posts/2/", "site": "Facebook groups", "phone": ""},
+            {"url": "https://www.bdhousing.com/details/1/flat", "site": "bdHousing", "phone": "", "price_bdt": "", "size_sqft": ""}]
+    st = contacts.enrich(rows, cap=5)
+    assert opened == ["https://www.bdhousing.com/details/1/flat"] and st["phones_found"] == 1
+    assert rows[4]["phone"] == "01833300000" and not rows[4].get("contact_how")
+    assert "Show phone number" in rows[0]["contact_how"] and "Show phone number" in rows[2]["contact_how"]
+    assert "agent card" in rows[1]["contact_how"] and "Messenger" in rows[3]["contact_how"]
+
+
+def test_contact_tool_respects_robots_and_the_page_cap(monkeypatch):
+    from property_finder import contacts, scrape
+    monkeypatch.setattr(scrape, "may_fetch", lambda u: (False, "disallowed by robots.txt"))
+    monkeypatch.setattr(scrape, "fetch", lambda u, t=20: (_ for _ in ()).throw(AssertionError("fetched a disallowed page")))
+    rows = [{"url": f"https://agency{i}.com.bd/listing/flat-for-sale-{i}", "site": "Open web", "phone": ""} for i in range(4)]
+    st = contacts.enrich(rows, cap=2)
+    assert st["pages_read"] == 2 and all(r["contact_how"] for r in rows)

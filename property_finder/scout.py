@@ -26,7 +26,7 @@ from .scrape import AREAS
 
 CONF = json.loads((Path(__file__).parent / "scout.json").read_text(encoding="utf-8"))
 COLS = ["date", "area", "type", "title", "price_bdt", "size_sqft", "price_per_sqft", "gross_yield_pct", "phone",
-        "site", "url", "snippet", "query", "fingerprints", "known_seller", "via"]
+        "site", "url", "snippet", "query", "fingerprints", "known_seller", "via", "contact_name", "contact_how"]
 
 
 SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily total stays the same)
@@ -206,11 +206,12 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     outdir.mkdir(parents=True, exist_ok=True)
     paths = {"leads": outdir / f"leads-{day}.csv", "master": outdir / "master.csv", "digest": outdir / f"digest-{day}.md",
              "seen": outdir / "seen.tsv"}
-    for r in top_calls(new)[:enrich_top]:
+    for r in [r for r in top_calls(new)[:enrich_top] if "bdhousing.com" not in r["url"]]:  # bdHousing: the contact tool reads its seller card
         fill_from_page(r)
-    # portals often keep the price off Google's snippet: read up to 8 allowed listing pages (robots.txt checked) for it
-    for r in [r for r in new if not r["price_bdt"] and not re.search(r"facebook\.com|google\.|bproperty\.com|bikroy\.com", r["url"])][:8]:
-        fill_from_page(r)
+    # the site contact tool: the seller's number from listing pages where the site allows it (bdHousing first),
+    # otherwise the exact step an associate takes on that site; it also fills a missing price or size
+    from . import contacts
+    cstats = contacts.enrich(new, cap=CONF.get("contact_pages", 25))
     write_csv(paths["leads"], new)
     if master:
         write_csv(paths["master"], old + new)  # optional full history; the seen file is all a daily run needs
@@ -224,7 +225,7 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
     paths["stats"].write_text(json.dumps({
         "date": str(day), "new": len(new), "repeats_skipped": dups, "searches": len(log),
         "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if plausible_price(r)),
-        "by_site": by_site, "memory_used": bool(seen),
+        "by_site": by_site, "memory_used": bool(seen), "contact_pages": cstats["pages_read"], "contact_phones": cstats["phones_found"],
         "facebook": fb(), "other": len(new) - fb(), "balance_searches": done, "balanced": len(new) - fb() >= fb(),
         "zero_result_searches": [q for _, q, code, n, _ in log[:daily_log] if code == 200 and n == 0],  # balance pages often end empty by design
         "errored_searches": [q for _, q, code, _, _ in log if code != 200]}, ensure_ascii=False), encoding="utf-8")
