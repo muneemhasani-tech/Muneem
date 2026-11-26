@@ -114,7 +114,7 @@ NOT_A_LISTING = re.compile(
     r"pages|tags?|blog|news|search)(?:/|$)|bikroy\.com/(?:bn|en)/(?!ad/)[^/]+/[^/]*for-(?:sale|rent)|[?&]q=", re.I)
 
 
-FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*(?:iqbal|maymar)|maymar|rajarhat|new town,? kol|\d?\s?bhk\b|\bgaz\b|\bandal\b|kanker|\bmumbai\b|\bdelhi\b|\bkarachi\b", re.I)
+FOREIGN = re.compile(r"karachi|lahore|islamabad|pakistan|kolkata|calcutta|india\b|₹|\brs\.?\s?\d|gulshan[\s-]*e[\s-]*(?:iqbal|maymar|mehran)|bilawal|\b\d+\s*(?:sq\.?\s*)?yards?\b|maymar|rajarhat|new town,? kol|\d?\s?bhk\b|\bgaz\b|\bandal\b|kanker|\bmumbai\b|\bdelhi\b|\bkarachi\b", re.I)
 PROPERTY_WORD = re.compile(r"flat|apartment|plot|land|katha|kata\b|sq\.? ?ft|sqft|\bsft\b|duplex|house|building|penthouse|ফ্ল্যাট|প্লট|জমি|কাঠা|বাড়ি|ভবন|বিক্রি|বিক্রয়", re.I)
 FOREIGN_HOSTS = re.compile(r"\.pk$|\.in$|(?:^|\.)(?:zameen\.com|magicbricks\.com|99acres\.com|housing\.com|nobroker\.in|graana\.com|olx\.com\.pk)$")
 GENERIC_SLUG = re.compile(r"^(?:(?:property|properties|for|sale|flats?|apartments?|dhaka|bangladesh|buy|residential|commercial|ready|all|in)[-_]?)+$", re.I)

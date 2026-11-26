@@ -578,3 +578,9 @@ def test_owner_reported_bugs_27_nov():
     assert w.WANTED.search("গুলশানে একটি ফ্ল্যাট কিনতে চাই") and w.WANTED.search("Looking to buy a flat in Banani")
     # 4. fancy letters and emoji become plain readable text
     assert mailer.clean_title("3200 𝘀𝗾𝗳𝘁 𝗲𝗿 Flat Sell 🏡 ...") == "3200 sqft er Flat Sell"
+
+
+def test_karachi_gulshan_e_mehran_is_foreign():
+    from property_finder import websearch
+    assert websearch.FOREIGN.search("direct deal gulshan e mehran plot available for sale 600 yards corner near bilawal house")
+    assert not websearch.FOREIGN.search("Gulshan e 3400 sqft er Lake View Flat sell, land 8 katha")
