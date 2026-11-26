@@ -17,8 +17,10 @@ BN_DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
 
 
 def norm(text: str) -> str:
-    """Facebook 'bold' letters (𝟐𝟒𝟐𝟎 𝐒𝐅𝐓) and Bangla digits (২৪২০) become plain 2420 SFT."""
-    return unicodedata.normalize("NFKC", text or "").translate(BN_DIGITS)
+    """Facebook 'bold' letters (𝟐𝟒𝟐𝟎 𝐒𝐅𝐓) and Bangla digits (২৪২০) become plain 2420 SFT; "1. 85 cr" (a stray space after
+    the decimal point) becomes 1.85 cr."""
+    t = unicodedata.normalize("NFKC", text or "").translate(BN_DIGITS)
+    return re.sub(r"(?<![\d.])(\d{1,3})\.\s+(\d{1,2})(?=\s*(?:crore|core|koti|cr\b|কোটি|কটি|lakh|lac|লাখ|লক্ষ))", r"\1.\2", t, flags=re.I)
 
 
 def clean_phone(s: str) -> str:

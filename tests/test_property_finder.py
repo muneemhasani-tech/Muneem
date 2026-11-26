@@ -680,3 +680,24 @@ def test_contact_tool_respects_robots_and_the_page_cap(monkeypatch):
     rows = [{"url": f"https://agency{i}.com.bd/listing/flat-for-sale-{i}", "site": "Open web", "phone": ""} for i in range(4)]
     st = contacts.enrich(rows, cap=2)
     assert st["pages_read"] == 2 and all(r["contact_how"] for r in rows)
+
+
+def test_every_emailed_lead_names_its_source():
+    from property_finder import mailer
+    L = mailer.source_label
+    assert L({"url": "https://www.facebook.com/groups/1/posts/2/", "site": "Facebook groups"}) == "Facebook group"
+    assert L({"url": "https://www.facebook.com/somepage/posts/2/", "site": "Facebook pages"}) == "Facebook page"
+    assert L({"url": "https://www.google.com/goto?url=x", "site": "Facebook groups", "via": ""}) == "Facebook group"
+    assert L({"url": "https://www.google.com/goto?url=x", "site": "Bdstall", "via": "bdstall.com"}) == "Bdstall"
+    assert L({"url": "https://www.google.com/goto?url=x", "site": "Bikroy", "via": ""}) == "Bikroy"
+    assert L({"url": "https://www.google.com/goto?url=x", "site": "Open web", "via": "salebari.com"}) == "salebari.com (website)"
+    assert L({"url": "https://www.bdhousing.com/details/1/x", "site": "Open web: plots"}) == "bdHousing"
+    row = {"url": "https://bikroy.com/ad/flat-sale-gulshan-abc", "site": "Bikroy", "title": "Flat sale Gulshan", "area": "gulshan",
+           "type": "apartment", "phone": "", "price_bdt": "", "size_sqft": "", "snippet": ""}
+    assert "SOURCE: BIKROY" in mailer._row(row) and "Source: Bikroy" in mailer._text_line(row)
+
+
+def test_spaced_decimal_crore_is_one_number():
+    from property_finder import parse, websearch
+    assert websearch.price_of(parse.norm("1. 85 cr Size: 1865 sqft Bedrooms: 3"), "") == 18_500_000
+    assert websearch.price_of(parse.norm("Price 2. 5 crore"), "") == 25_000_000

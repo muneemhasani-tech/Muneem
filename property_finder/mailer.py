@@ -81,12 +81,36 @@ def _btn(href: str, label: str, solid: bool = False) -> str:
             f'font-size:13px;font-weight:600;text-decoration:none;margin:6px 6px 0 0">{label}</a>')
 
 
+SOURCE_NAMES = {"bikroy.com": "Bikroy", "bproperty.com": "Bproperty", "bdhousing.com": "bdHousing", "bdstall.com": "Bdstall",
+                "instagram.com": "Instagram", "youtube.com": "YouTube", "youtu.be": "YouTube"}
+
+
+def source_label(r: dict) -> str:
+    """Where the lead came from, for the 'Source:' label: the real site (Google redirect links carry it in `via`),
+    a Facebook group or page, or another website found on the open web."""
+    u = r.get("url", "")
+    host = urllib.parse.urlparse(u).netloc.lower().removeprefix("www.")
+    if host in ("google.com", ""):
+        host = (r.get("via") or "").lower()
+    site = r.get("site", "")
+    if "facebook.com" in host or site.startswith("Facebook") and not host:
+        return "Facebook page" if "page" in site.lower() and "/groups/" not in u else "Facebook group"
+    for k, v in SOURCE_NAMES.items():
+        if host == k or host.endswith("." + k):
+            return v
+    for v in ("Bikroy", "Bproperty", "bdHousing", "Bdstall"):
+        if site.startswith(v):
+            return v
+    if site.startswith("Directory: "):
+        return site.removeprefix("Directory: ")
+    return f"{host} (website)" if host else "Other website"
+
+
 def _facts(r: dict) -> str:
     bits = [weekly._money(float(r["price_bdt"])) if plausible_price(r) else "Price on call"]
     if r.get("size_sqft"):
         bits.append(f"{int(float(r['size_sqft'])):,} sqft")
     bits.append(TYPE_ONE.get(r["type"], r["type"].title()))
-    bits.append(r["site"].split(" (")[0].split(":")[0])
     return " · ".join(html.escape(b) for b in bits)
 
 
@@ -157,7 +181,9 @@ def _row(r: dict, first: bool = False, same_seller: int = 0) -> str:
                             f'letter-spacing:.5px;border-radius:4px;padding:1px 6px;margin:0 4px 4px 0">{txt}</span>')
     tags = (chip("CALL FIRST", GOLD) if first else "") + (chip(f"SAME SELLER · {same_seller} LISTINGS", "#4a5a9c") if same_seller > 1 else "") \
         + (chip("SELLER SEEN BEFORE", "#8a93b8") if r.get("known_seller") else "")
-    tag = tags + "<br>" if tags else ""
+    tags += (f'<span style="display:inline-block;background:{SOFT};color:{NAVY};border:1px solid #c9cfe0;font-size:10px;font-weight:700;'
+             f'letter-spacing:.3px;border-radius:4px;padding:0 6px;margin:0 4px 4px 0">SOURCE: {e(source_label(r).upper())}</span>')
+    tag = tags + "<br>"
     n = f'<div style="font-size:12px;color:#8a5a00;margin-top:2px">{e(note)}</div>' if note else ""
     if r.get("contact_name") and r.get("phone"):
         n += f'<div style="font-size:12px;color:{MUTE};margin-top:2px">Seller: {e(r["contact_name"][:80])}</div>'
@@ -226,7 +252,7 @@ def _text_line(r: dict, first: bool = False) -> str:  # noqa: D401
     price = weekly._money(float(r["price_bdt"])) if plausible_price(r) else "price on call"
     size = f", {int(float(r['size_sqft'])):,} sqft" if r.get("size_sqft") else ""
     return (f"{'CALL FIRST ' if first else ''}- {clean_title(r['title'], 80)}\n  {AREA_NAMES.get(r['area'], r['area'])} · "
-            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'}\n  {post_link(r)[0]}"
+            f"{TYPE_ONE.get(r['type'], r['type'])} · {price}{size} · {r.get('phone') or 'message on post'} · Source: {source_label(r)}\n  {post_link(r)[0]}"
             + (f"\n  How to reach: {r['contact_how']}" if r.get("contact_how") and not r.get("phone") else ""))
 
 
