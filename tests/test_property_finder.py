@@ -539,6 +539,7 @@ def test_sendmail_posts_each_email_and_skips_empty(tmp_path, monkeypatch):
     monkeypatch.setattr(sendmail, "post", lambda url, p, timeout=60: sent.append(p) or {"ok": True, "sent": True})
     res = sendmail.send_manifest(str(tmp_path / "manifest.json"), url="https://script.google.com/macros/s/x/exec", pause=0)
     assert [p["to"] for p in sent] == ["a@example.com"] and res[1]["skipped"]
+    monkeypatch.delenv("MRA_MAILER_URL", raising=False)
     assert not sendmail.send_manifest(str(tmp_path / "manifest.json"), url="")[0]["ok"]
 
 

@@ -45,6 +45,14 @@ def load(paths: list[str]) -> list[dict]:
     return rows
 
 
+def _size_txt(r: dict) -> str:
+    return f" · {int(float(r['size_sqft'])):,} sqft" if r.get("size_sqft") else ""
+
+
+def _phone_txt(r: dict) -> str:
+    return f" · {html.escape(r['phone'])}" if r.get("phone") else ""
+
+
 def _money(v: float) -> str:
     return f"৳{v / 1e7:.2f} Cr" if v >= 1e7 else f"৳{v / 1e5:.0f} Lakh"
 
@@ -108,8 +116,8 @@ def build(rows: list[dict], start: dt.date | None = None, end: dt.date | None = 
         f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:600;text-decoration:none">{e(r["title"][:70])}</a><br>'
         f'<span style="color:{MUTE}">{area(r["area"])} · '
         f'{_money(float(r["price_bdt"])) if plausible_price(r) else "price on call"}'
-        f'{f" · {int(float(r["size_sqft"])):,} sqft" if r["size_sqft"] else ""}'
-        f'{f" · {e(r["phone"])}" if r["phone"] else ""}</span></td></tr>'
+        f'{_size_txt(r)}'
+        f'{_phone_txt(r)}</span></td></tr>'
         for r in top_calls(rows, 5))
 
     card = lambda inner: (f'<tr><td style="padding:0 20px 14px"><div style="background:{CARD};border:1px solid {LINE};border-radius:10px;padding:16px 16px 12px">'
@@ -309,8 +317,8 @@ def email_html(rows: list[dict], img_src: str | None) -> str:
         f'<a href="{e(r["url"])}" style="color:{NAVY};font-weight:600;text-decoration:none">{e(r["title"][:70])}</a><br>'
         f'<span style="color:{MUTE}">{AREA_NAMES.get(r["area"], r["area"].title())} · '
         f'{_money(float(r["price_bdt"])) if plausible_price(r) else "price on call"}'
-        f'{f" · {int(float(r["size_sqft"])):,} sqft" if r["size_sqft"] else ""}'
-        f'{f" · {e(r["phone"])}" if r["phone"] else ""}</span></td></tr>'
+        f'{_size_txt(r)}'
+        f'{_phone_txt(r)}</span></td></tr>'
         for r in top_calls(rows, 5))
     return f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:{BG};{SANS}">
