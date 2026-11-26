@@ -137,7 +137,7 @@ def post_link(r: dict) -> tuple[str, str]:
     """Google's redirect links (google.com/goto) are tied to one search session and can open a different post later,
     so for those we link a search for this exact post instead."""
     if "google.com/goto" in r["url"]:
-        site = "facebook.com" if r["site"].startswith("Facebook") else {"Bikroy": "bikroy.com"}.get(r["site"], "")
+        site = r.get("via") or ("facebook.com" if r["site"].startswith("Facebook") else {"Bikroy": "bikroy.com"}.get(r["site"], ""))
         q = f'"{" ".join(clean_title(r["title"], 70).replace(" …", "").split()[:9])}"' + (f" site:{site}" if site else "")
         return "https://www.google.com/search?q=" + urllib.parse.quote(q), "Find post →"
     return r["url"], "See post →"

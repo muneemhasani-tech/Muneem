@@ -26,10 +26,39 @@ from .scrape import AREAS
 
 CONF = json.loads((Path(__file__).parent / "scout.json").read_text(encoding="utf-8"))
 COLS = ["date", "area", "type", "title", "price_bdt", "size_sqft", "price_per_sqft", "gross_yield_pct", "phone",
-        "site", "url", "snippet", "query", "fingerprints", "known_seller"]
+        "site", "url", "snippet", "query", "fingerprints", "known_seller", "via"]
 
 
 SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily total stays the same)
+
+
+def is_facebook(r: dict) -> bool:
+    """Facebook, or a Google redirect whose real site is hidden (a social post shown as "7 likes"): it must not count as a non-Facebook lead."""
+    via = r.get("via", "")
+    return (r["site"].startswith("Facebook") or "facebook.com" in r["url"] + via
+            or ("google.com/goto" in r["url"] and not via))
+
+
+def balance_plan(day: dt.date, sites: list[str] | None = None):
+    """Non-Facebook searches, deepest pages last: (spec, page). Used after the daily plan until the portals and the open web
+    have found as many new listings as Facebook did. Each round gives every template one area; pages 1..max_page are
+    read across all templates before the next round moves every template to the next area."""
+    conf = CONF["balance"]
+    name = {"baridhara": "Baridhara Diplomatic"}
+    from .sites import clean
+    temps = list(conf["queries"]) + [{"label": f"Directory: {d}", "q": f'site:{d} "{{area}}" {{variant}}', "tbs": ""}
+                                     for d in (sites or []) if clean(d) == d]
+    areas, o = list(AREAS), day.toordinal()
+    for rnd in range(len(areas)):
+        picked = []
+        for i, t in enumerate(temps):
+            a = areas[(o + i + rnd) % len(areas)]
+            v = CONF["variants"][(o + 2 * i + rnd) % len(CONF["variants"])]
+            q = t["q"].format(area=name.get(a, a.capitalize()), area_bn=websearch.AREA_BN[a], variant=v)
+            picked.append({"label": t["label"], "area": a, "q": q, "tbs": t.get("tbs", "")})
+        for page in range(1, conf["max_page"] + 1):
+            for spec in picked:
+                yield spec, page
 
 
 def plan(day: dt.date, extra: int | None = None, sites: list[str] | None = None) -> list[dict]:
@@ -111,7 +140,7 @@ def read_master(path: str | None) -> tuple[list[dict], set[str], set[str]]:
 
 
 def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.date | None = None, seen: str | None = None,
-        enrich_top: int = 3, fresh: bool = False, sites: str | None = None) -> dict:
+        enrich_top: int = 3, fresh: bool = False, sites: str | None = None, balance: int | None = None) -> dict:
     """fresh=True: no memory needed. Facebook searches ask Google for the last 24 hours only (that filter works there; portals are rarely indexed that fast, so they keep their own rotating keywords and pages)."""
     day = day or dt.date.today()
     old, seen_urls, seen_fps = read_master(master)
@@ -121,8 +150,12 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
         raise SystemExit("Set SERPER_API_KEY (or BRAVE_API_KEY) first.")
     new, dups, log = [], 0, []
     from . import sites as site_dir
-    for spec in plan(day, extra, site_dir.active(sites)):
-        code, hits = websearch.run_query(prov, key, spec["q"], "qdr:d" if fresh and spec["label"].startswith("Facebook") else (spec.get("tbs") or ""))
+    active = site_dir.active(sites)
+
+    def take(spec: dict, page: int = 1) -> int:
+        nonlocal dups
+        tbs = "qdr:d" if fresh and spec["label"].startswith("Facebook") else (spec.get("tbs") or "")
+        code, hits = websearch.run_query(prov, key, spec["q"], tbs, **({"page": page} if page > 1 else {}))
         kept = 0
         for h in hits if code == 200 else []:
             r = websearch.to_listing(h, {"id": spec["label"], "engine_label": "Google", "portals_ok": True}, spec["q"], spec["area"])
@@ -147,9 +180,28 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
                         "price_bdt": int(r["price"]) if r.get("price") else "", "size_sqft": int(r["size_sqft"]) if r.get("size_sqft") else "",
                         "price_per_sqft": round(r["price"] / r["size_sqft"]) if r.get("price") and r.get("size_sqft") else "",
                         "gross_yield_pct": p["gross"] or "", "phone": r.get("phone") or "", "site": spec["label"], "known_seller": "yes" if known else "",
-                        "url": r["url"], "snippet": r.get("snippet", ""), "query": spec["q"], "fingerprints": "|".join(fps)})
+                        "url": r["url"], "snippet": r.get("snippet", ""), "query": spec["q"], "fingerprints": "|".join(fps),
+                        "via": websearch.via_host(h.get("via", "")) if "google.com/goto" in r["url"] else ""})
             kept += 1
-        log.append((spec["label"], spec["q"], code, len(hits), kept))
+        log.append((spec["label"] + (f" (page {page})" if page > 1 else ""), spec["q"], code, len(hits), kept))
+        return len(hits) if code == 200 else -1
+
+    for spec in plan(day, extra, active):
+        take(spec)
+    daily_log = len(log)
+    # balance: keep searching portals, directory sites and the open web (next Google pages included) until they have
+    # found as many new listings as Facebook did, within a fixed search budget
+    fb = lambda: sum(1 for r in new if is_facebook(r))
+    budget, done, ended = balance if balance is not None else CONF["balance"]["max_searches"], 0, set()
+    for spec, page in balance_plan(day, active):
+        if done >= budget or len(new) - fb() >= fb():
+            break
+        if spec["q"] in ended:  # an earlier page of this search came back short: there is no next page
+            continue
+        n = take(spec, page)
+        done += 1
+        if n < 8:
+            ended.add(spec["q"])
     outdir = Path(out)
     outdir.mkdir(parents=True, exist_ok=True)
     paths = {"leads": outdir / f"leads-{day}.csv", "master": outdir / "master.csv", "digest": outdir / f"digest-{day}.md",
@@ -173,7 +225,8 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
         "date": str(day), "new": len(new), "repeats_skipped": dups, "searches": len(log),
         "with_phone": sum(1 for r in new if r["phone"]), "with_price": sum(1 for r in new if plausible_price(r)),
         "by_site": by_site, "memory_used": bool(seen),
-        "zero_result_searches": [q for _, q, code, n, _ in log if code == 200 and n == 0],
+        "facebook": fb(), "other": len(new) - fb(), "balance_searches": done, "balanced": len(new) - fb() >= fb(),
+        "zero_result_searches": [q for _, q, code, n, _ in log[:daily_log] if code == 200 and n == 0],  # balance pages often end empty by design
         "errored_searches": [q for _, q, code, _, _ in log if code != 200]}, ensure_ascii=False), encoding="utf-8")
     return {"new": len(new), "duplicates": dups, "searches": len(log), **{k: str(v) for k, v in paths.items()}}
 
@@ -278,8 +331,7 @@ def digest(day, new, dups, log, total) -> str:
         ar = [r for r in new if r["area"] == a]
         pp = sorted(r["price_per_sqft"] for r in ar if r["price_per_sqft"] and 2000 <= r["price_per_sqft"] <= 150000)
         w(f"| {a.capitalize()} | {len(ar)} | {sum(1 for r in ar if r['phone'])} | {f'{pp[len(pp) // 2]:,}' if pp else '-'} |\n")
-    for title, keep in (("From Facebook", lambda r: r["site"].startswith("Facebook")),
-                        ("From property portals and the web", lambda r: not r["site"].startswith("Facebook"))):
+    for title, keep in (("From Facebook", is_facebook), ("From property portals and the web", lambda r: not is_facebook(r))):
         part = [r for r in new if keep(r)]
         w(f"\n## {title}: {len(part)}\n")
         for r in part[:15]:

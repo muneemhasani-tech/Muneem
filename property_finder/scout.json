@@ -90,5 +90,47 @@
    "q": "site:bdstall.com \"{area}\" {variant}",
    "tbs": ""
   }
- ]
+ ],
+ "balance": {
+  "_about": "After the daily searches: if portals + the open web found fewer new listings than Facebook, keep searching these (Google pages 1..max_page, then the next area) until they match or max_searches is spent. Open web = listings outside Facebook and the big portals: agency and developer sites, small classifieds, owner pages.",
+  "max_searches": 30,
+  "max_page": 5,
+  "queries": [
+   {
+    "label": "bdHousing",
+    "q": "site:bdhousing.com/details \"{area}\" {variant}",
+    "tbs": ""
+   },
+   {
+    "label": "Bproperty",
+    "q": "site:bproperty.com/property \"{area}\" {variant}",
+    "tbs": ""
+   },
+   {
+    "label": "Bikroy",
+    "q": "site:bikroy.com \"{area}\" {variant}",
+    "tbs": ""
+   },
+   {
+    "label": "Bdstall",
+    "q": "site:bdstall.com \"{area}\" {variant}",
+    "tbs": ""
+   },
+   {
+    "label": "Open web",
+    "q": "\"{area}\" {variant} Dhaka (sqft OR katha) -site:facebook.com -site:bproperty.com -site:bikroy.com -site:bdhousing.com -site:bdstall.com -site:youtube.com",
+    "tbs": "qdr:m"
+   },
+   {
+    "label": "Open web: owners",
+    "q": "\"{area}\" sale owner (contact OR call) (sqft OR katha) -site:facebook.com -site:bproperty.com -site:bikroy.com -site:bdhousing.com -site:bdstall.com -site:youtube.com",
+    "tbs": "qdr:m"
+   },
+   {
+    "label": "Open web (Bangla)",
+    "q": "{area_bn} ফ্ল্যাট OR প্লট বিক্রি (কাঠা OR স্কয়ার) -site:facebook.com -site:bproperty.com -site:bikroy.com -site:bdhousing.com -site:bdstall.com -site:youtube.com",
+    "tbs": "qdr:m"
+   }
+  ]
+ }
 }

@@ -81,22 +81,30 @@ def provider_from_env() -> tuple[str, str]:
     return "", ""
 
 
-def run_query(prov: str, key: str, q: str, tbs: str = "") -> tuple[int, list[dict]]:
-    """[{title, url, snippet, date}] from the engine. tbs: Google time filter (qdr:d, qdr:w, qdr:m)."""
+def run_query(prov: str, key: str, q: str, tbs: str = "", page: int = 1) -> tuple[int, list[dict]]:
+    """[{title, url, snippet, date}] from the engine. tbs: Google time filter (qdr:d, qdr:w, qdr:m). page: Google results page (1 = first 10)."""
     if prov == "serper":
         body = {"q": q, "gl": "bd", "num": 10}
         if tbs:
             body["tbs"] = tbs
+        if page > 1:
+            body["page"] = page
         st, d = _http("https://google.serper.dev/search", json.dumps(body).encode(),  # free accounts allow 10 per query
                       {"X-API-KEY": key, "Content-Type": "application/json"})
         items = d.get("organic", [])
         return st, [{"title": i.get("title", ""), "url": i.get("link", ""), "snippet": i.get("snippet", ""),
-                     "date": i.get("date", "")} for i in items]
-    st, d = _http("https://api.search.brave.com/res/v1/web/search?" + urllib.parse.urlencode({"q": q, "count": 20, "country": "BD"}),
+                     "date": i.get("date", ""), "via": i.get("displayedLink", "")} for i in items]
+    st, d = _http("https://api.search.brave.com/res/v1/web/search?" + urllib.parse.urlencode({"q": q, "count": 20, "country": "BD", "offset": min(page - 1, 9)}),
                   None, {"X-Subscription-Token": key, "Accept": "application/json"})
     items = (d.get("web") or {}).get("results", [])  # Brave has no exact equivalent of tbs; it is ignored
     return st, [{"title": i.get("title", ""), "url": i.get("url", ""), "snippet": re.sub(r"<[^>]+>", "", i.get("description", "")),
                  "date": i.get("age", "")} for i in items]
+
+
+def via_host(via: str) -> str:
+    """The site Google shows under a result ("https://credencere.com › flat" -> credencere.com). Social posts show "7 likes" instead: ""."""
+    m = re.match(r"\s*(?:https?://)?(?:www\.)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?![a-z0-9.])", (via or "").lower())
+    return m.group(1) if m else ""
 
 
 def expand(areas: list[str]) -> list[tuple[dict, str, str]]:

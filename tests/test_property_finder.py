@@ -584,3 +584,53 @@ def test_karachi_gulshan_e_mehran_is_foreign():
     from property_finder import websearch
     assert websearch.FOREIGN.search("direct deal gulshan e mehran plot available for sale 600 yards corner near bilawal house")
     assert not websearch.FOREIGN.search("Gulshan e 3400 sqft er Lake View Flat sell, land 8 katha")
+
+
+def test_scout_balances_facebook_with_portals_and_next_pages(tmp_path, monkeypatch):
+    import datetime as dt
+    import json as _j
+    from property_finder import scout, websearch as w
+    calls = []
+
+    def fake(p, k, q, tbs="", page=1):
+        calls.append((q, page))
+        if q.startswith("site:facebook.com"):  # Facebook gives 6 new listings
+            return 200, [{"title": f"Gulshan {1000 + i} sqft flat sale", "url": f"https://www.facebook.com/groups/1/posts/{i}{len(calls)}/",
+                          "snippet": f"Ready flat for sale at Gulshan 2, {1000 + i} sft"} for i in range(3)] if "Gulshan" in q else []
+        if q.startswith("site:bdhousing.com"):  # bdHousing: 10 results a page, 2 of them new sales, different on every page
+            return 200, [{"title": f"{1200 + page * 10 + i} sqft Ready Flat for {'sale' if i < 2 else 'rent'} at Bashundhara R/A",
+                          "url": f"https://www.bdhousing.com/details/{page}{i}/flat-sale-bashundhara",
+                          "snippet": "Ready flat at Bashundhara R/A" + (" for rent, monthly" if i >= 2 else " for sale")} for i in range(10)]
+        return 200, []
+    monkeypatch.setenv("SERPER_API_KEY", "k")
+    monkeypatch.setattr(w, "run_query", fake)
+    monkeypatch.setattr(scout, "fill_from_page", lambda r: None)  # no page fetches in a test
+    r = scout.run(None, out=str(tmp_path), extra=0, day=dt.date(2026, 11, 18), enrich_top=0)
+    st = _j.loads(open(r["stats"]).read())
+    assert st["facebook"] > 0 and st["other"] >= st["facebook"] and st["balanced"] and 0 < st["balance_searches"] <= 30
+    assert scout.CONF["balance"]["max_page"] >= 3
+    # a search that came back short is not asked for its next page
+    assert not any(p > 1 and q.startswith("site:bikroy.com") for q, p in calls)
+
+
+def test_balance_plan_reads_next_pages_and_open_web():
+    import datetime as dt
+    from property_finder import scout
+    steps = list(scout.balance_plan(dt.date(2026, 11, 27), ["example-homes.com"]))
+    assert {p for _, p in steps} == set(range(1, scout.CONF["balance"]["max_page"] + 1))
+    labels = {s["label"] for s, _ in steps}
+    assert {"Open web", "Open web (Bangla)", "Directory: example-homes.com", "bdHousing"} <= labels
+    assert all("-site:facebook.com" in s["q"] for s, _ in steps if s["label"].startswith("Open web"))
+    assert not any("DOHS" in s["q"] for s, _ in steps)
+
+
+def test_redirect_links_keep_the_real_site_for_balance_and_discovery():
+    from property_finder import scout, websearch, sites
+    assert websearch.via_host("https://credencere.com › property › flat") == "credencere.com"
+    assert websearch.via_host("7 likes") == "" and websearch.via_host("") == "" and websearch.via_host("20.3k followers") == ""
+    assert websearch.via_host("https://www.estateagency.com.bd › flat") == "estateagency.com.bd"
+    goto = "https://www.google.com/goto?url=CAES"
+    assert scout.is_facebook({"site": "Open web", "url": goto, "via": ""})  # hidden social post: not counted as non-Facebook
+    assert not scout.is_facebook({"site": "Open web", "url": goto, "via": "credencere.com"})
+    assert scout.is_facebook({"site": "Open web", "url": goto, "via": "facebook.com"})
+    assert sites.clean("credencere.com") == "credencere.com"

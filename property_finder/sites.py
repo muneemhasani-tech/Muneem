@@ -63,7 +63,7 @@ def _kept(prov, key, q, area, label) -> tuple[int, list[str]]:
         r = websearch.to_listing(h, {"id": label, "engine_label": "Google", "portals_ok": True}, q, area)
         if r and r["purpose"] == "sale":
             n += 1
-            hosts.append(urllib.parse.urlparse(r["url"]).netloc)
+            hosts.append(websearch.via_host(h.get("via", "")) if "google.com/goto" in r["url"] else urllib.parse.urlparse(r["url"]).netloc)
     return n, hosts
 
 
@@ -83,7 +83,7 @@ def update(registry: str | None, leads: list[str], add: list[str], day: dt.date 
     for p in leads:  # hosts the scout already met on the open web
         try:
             for r in csv.DictReader(open(p, encoding="utf-8-sig")):
-                note(urllib.parse.urlparse(r["url"]).netloc, "seen in scout results")
+                note(r.get("via") or urllib.parse.urlparse(r["url"]).netloc, "seen in scout results")
         except OSError:
             continue
     for d in add:
