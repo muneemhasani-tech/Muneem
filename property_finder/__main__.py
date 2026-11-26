@@ -3,6 +3,7 @@
    | scout [--seen seen.tsv] [--out DIR] [--master master.csv] [--extra N]   (the daily run: targeted Google searches only)
    | sites --registry sites-old.json leads-*.csv [--add domain] --out sites.json   (weekly: find and test other listing sites)
    | contacts leads.csv --out leads-contacts.csv [--cap 25]   (seller contact per site: read where allowed, else the step to take)
+   | desk leads.csv --routes associates.json --out desk.json   (today's no-number leads for the shared Lead Desk)
    | mail --routes associates.json leads-*.csv --out DIR   (one email per associate, their areas only)
    | send --manifest DIR/manifest.json [--png onepager.png]   (send through the owner's Gmail Apps Script, MRA_MAILER_URL)
    | weekly leads-*.csv stats-*.json --out DIR   (the associates' weekly one-pager email)"""
@@ -64,6 +65,10 @@ elif cmd == "sites":
     adds = [args[i + 1] for i, a in enumerate(args) if a == "--add" and i + 1 < len(args)]
     info = sites.write(opt("--registry"), [a for a in args[1:] if a.endswith(".csv")], adds, opt("--out", "sites.json"))
     print(json.dumps(info, ensure_ascii=False))
+elif cmd == "desk":
+    from . import desk
+    opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d
+    print(json.dumps(desk.write([a for a in args[1:] if a.endswith(".csv")], opt("--routes"), opt("--out", "desk.json"))))
 elif cmd == "contacts":
     from . import contacts
     opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d

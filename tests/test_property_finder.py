@@ -701,3 +701,22 @@ def test_spaced_decimal_crore_is_one_number():
     from property_finder import parse, websearch
     assert websearch.price_of(parse.norm("1. 85 cr Size: 1865 sqft Bedrooms: 3"), "") == 18_500_000
     assert websearch.price_of(parse.norm("Price 2. 5 crore"), "") == 25_000_000
+
+
+def test_desk_queue_holds_only_leads_without_a_number(tmp_path):
+    import csv, json
+    from property_finder import desk, scout
+    rows = [{"date": "2026-11-27", "area": "gulshan", "type": "land", "title": "5 katha plot for sale in Gulshan 2", "price_bdt": "",
+             "size_sqft": "3600", "phone": "", "site": "Bikroy", "url": "https://bikroy.com/ad/5-katha-plot-gulshan-2-abc", "snippet": "5 katha plot sale Gulshan 2"},
+            {"date": "2026-11-27", "area": "bashundhara", "type": "apartment", "title": "Ready flat sale Bashundhara 1500 sqft", "price_bdt": "",
+             "size_sqft": "1500", "phone": "01711000000", "site": "bdHousing", "url": "https://www.bdhousing.com/details/1/flat", "snippet": "Ready flat"}]
+    f = tmp_path / "leads-2026-11-27.csv"
+    with open(f, "w", encoding="utf-8-sig", newline="") as h:
+        w = csv.DictWriter(h, fieldnames=scout.COLS, extrasaction="ignore"); w.writeheader(); w.writerows(rows)
+    routes = tmp_path / "a.json"
+    routes.write_text(json.dumps({"associates": [{"name": "Muneem", "email": "o@example.com", "all": True},
+                                                 {"name": "Sohan", "email": "s@example.com", "rules": [{"areas": ["gulshan"], "types": ["land"]}]}]}))
+    info = desk.write([str(f)], str(routes), str(tmp_path / "d.json"))
+    items = json.loads((tmp_path / "d.json").read_text())["items"]
+    assert info["items"] == 1 and items[0]["src"] == "Bikroy" and items[0]["who"] == ["Muneem", "Sohan"]
+    assert "Show phone number" in items[0]["how"]
