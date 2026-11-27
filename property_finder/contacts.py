@@ -20,6 +20,7 @@ from __future__ import annotations
 import csv
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.parse
 from pathlib import Path
 
@@ -35,6 +36,8 @@ HOW = {
     "bdhousing.com": "Open the listing; the seller's number is on the right",
 }
 NO_FETCH = re.compile(r"(?:^|\.)(?:bikroy\.com|bdstall\.com|bproperty\.com|facebook\.com|instagram\.com|google\.[a-z.]+|youtube\.com|youtu\.be)$")
+FETCH_TIMEOUT = 150  # bdHousing can take two minutes to start sending a listing page
+WORKERS = 4  # pages read at the same time (still a gentle load: a few requests a minute per site)
 PHONE = re.compile(r"(?:\+?88)?0?1[3-9]\d{8}")
 
 
@@ -90,22 +93,34 @@ def how_for(host: str) -> str:
     return "Open the listing and use the contact details on the page"
 
 
+def page_url(r: dict) -> str:
+    """The listing page to read: the URL itself, or for a Google redirect link the address Google showed for it."""
+    if "google.com/goto" in r["url"]:
+        u = r.get("via_url") or ""
+        return u if re.search(r"/details/\d+|/property/|/ad/|/listing", u) else ""
+    return r["url"]
+
+
+def readable(r: dict) -> bool:
+    return bool(page_url(r)) and not NO_FETCH.search(host_of(r))
+
+
 def read(r: dict) -> dict:
     """Seller contact from one listing page, or {} when not allowed or not found. Also fills a missing price/size."""
-    host = host_of(r)
-    if "google.com/goto" in r["url"] or NO_FETCH.search(host):
+    host, url = host_of(r), page_url(r)
+    if not url or NO_FETCH.search(host):
         return {}
-    ok, _why = scrape.may_fetch(r["url"])
+    ok, _why = scrape.may_fetch(url)
     if not ok:
         return {}
-    time.sleep(max(1.5, scrape.crawl_delay(r["url"])))
-    st, page = scrape.fetch(r["url"])
+    time.sleep(max(1.5, scrape.crawl_delay(url)))
+    st, page = scrape.fetch(url, FETCH_TIMEOUT)
     if st != 200 or not page:
         return {}
     adapter = next((f for k, f in ADAPTERS.items() if host == k or host.endswith("." + k)), generic)
     out = adapter(page)
     try:
-        d = parse.detail_record(page, r["url"]) or {}
+        d = parse.detail_record(page, url) or {}
     except Exception:  # noqa: BLE001  a page the parser does not know
         d = {}
     if not r.get("price_bdt") and d.get("price") and 500_000 <= d["price"] <= 5e9:
@@ -115,24 +130,32 @@ def read(r: dict) -> dict:
     return out
 
 
-def enrich(rows: list[dict], cap: int = 25, budget_s: float = 300) -> dict:
-    """Fill phone/contact_name where a page may be read (at most `cap` pages, within `budget_s` seconds); every row
-    without a phone gets `contact_how`. Rows from sites with a dedicated adapter go first."""
-    t0, pages, found = time.time(), 0, 0
+def enrich(rows: list[dict], cap: int = 25, budget_s: float = 360) -> dict:
+    """Fill phone/contact_name where a page may be read (at most `cap` pages, a few at a time, within about `budget_s`
+    seconds); every row without a phone gets `contact_how`. Rows from sites with a dedicated adapter go first."""
+    t0 = time.time()
     todo = [r for r in rows if not r.get("phone")]
-    todo.sort(key=lambda r: (host_of(r) not in ADAPTERS, bool(NO_FETCH.search(host_of(r)))))
-    for r in todo:
-        host = host_of(r)
-        if pages < cap and time.time() - t0 < budget_s and not NO_FETCH.search(host) and "google.com/goto" not in r["url"]:
-            pages += 1
-            got = read(r)
+    todo.sort(key=lambda r: (host_of(r) not in ADAPTERS, not readable(r)))
+    picks = [r for r in todo if readable(r)][:cap]
+    found = 0
+
+    def one(r):
+        if time.time() - t0 > budget_s:  # out of time: leave the rest for the associates
+            return r, {}
+        try:
+            return r, read(r)
+        except Exception:  # noqa: BLE001  one bad page never stops the run
+            return r, {}
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        for r, got in pool.map(one, picks):
             for k, v in got.items():
                 if v and not r.get(k):
                     r[k] = v
             found += bool(got.get("phone"))
+    for r in todo:
         if not r.get("phone"):
-            r["contact_how"] = how_for(host)
-    return {"pages_read": pages, "phones_found": found, "seconds": round(time.time() - t0)}
+            r["contact_how"] = how_for(host_of(r))
+    return {"pages_read": len(picks), "phones_found": found, "seconds": round(time.time() - t0)}
 
 
 def run_file(path: str, out: str, cap: int = 25) -> dict:

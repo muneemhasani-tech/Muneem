@@ -720,3 +720,17 @@ def test_desk_queue_holds_only_leads_without_a_number(tmp_path):
     items = json.loads((tmp_path / "d.json").read_text())["items"]
     assert info["items"] == 1 and items[0]["src"] == "Bikroy" and items[0]["who"] == ["Muneem", "Sohan"]
     assert "Show phone number" in items[0]["how"]
+
+
+def test_redirect_results_are_read_through_the_address_google_shows():
+    from property_finder import contacts, websearch
+    via = "https://www.bdhousing.com › details › 247897 › used-flat-sale-gulshan"
+    assert websearch.via_url(via) == "https://www.bdhousing.com/details/247897/used-flat-sale-gulshan"
+    assert websearch.via_url("https://www.bdhousing.com › details › 2479...") == "https://www.bdhousing.com/details"
+    assert websearch.via_url("7 likes") == ""
+    goto = {"url": "https://www.google.com/goto?url=x", "via": "bdhousing.com", "via_url": websearch.via_url(via), "phone": ""}
+    assert contacts.page_url(goto).endswith("/details/247897/used-flat-sale-gulshan") and contacts.readable(goto)
+    cut = {**goto, "via_url": "https://www.bdhousing.com/details"}
+    assert not contacts.readable(cut)  # a cut-short address is never guessed
+    assert not contacts.readable({"url": "https://www.google.com/goto?url=x", "via": "bikroy.com", "via_url": "https://bikroy.com/ad/x"})
+    assert contacts.FETCH_TIMEOUT >= 120

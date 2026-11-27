@@ -107,6 +107,25 @@ def via_host(via: str) -> str:
     return m.group(1) if m else ""
 
 
+WWW = re.compile(r"\s*(?:https?://)?www\.", re.I)
+
+
+def via_url(via: str) -> str:
+    """The page address Google shows as a breadcrumb under a redirect result ("https://www.bdhousing.com › details › 247897 ›
+    used-flat") rebuilt as a URL. A part Google cut short ("used-fl...") is dropped. "" when there is no site in it."""
+    host = via_host(via)
+    if not host:
+        return ""
+    parts = [p.strip() for p in re.split(r"\s*›\s*", via.strip())[1:]]
+    keep = []
+    for p in parts:
+        if not p or "..." in p or "…" in p or not re.fullmatch(r"[\w\-.~%]+", p):
+            break
+        keep.append(p)
+    www = "www." if WWW.match(via) else ""
+    return f"https://{www}{host}/" + "/".join(keep) if keep else ""
+
+
 def expand(areas: list[str]) -> list[tuple[dict, str, str]]:
     """(query spec, area, query text) for every template x area."""
     out = []

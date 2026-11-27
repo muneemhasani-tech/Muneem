@@ -26,7 +26,7 @@ from .scrape import AREAS
 
 CONF = json.loads((Path(__file__).parent / "scout.json").read_text(encoding="utf-8"))
 COLS = ["date", "area", "type", "title", "price_bdt", "size_sqft", "price_per_sqft", "gross_yield_pct", "phone",
-        "site", "url", "snippet", "query", "fingerprints", "known_seller", "via", "contact_name", "contact_how"]
+        "site", "url", "snippet", "query", "fingerprints", "known_seller", "via", "via_url", "contact_name", "contact_how"]
 
 
 SITE_SLOTS = 2  # rotating searches handed to proven directory sites (the daily total stays the same)
@@ -181,7 +181,8 @@ def run(master: str | None, out: str = "out", extra: int | None = None, day: dt.
                         "price_per_sqft": round(r["price"] / r["size_sqft"]) if r.get("price") and r.get("size_sqft") else "",
                         "gross_yield_pct": p["gross"] or "", "phone": r.get("phone") or "", "site": spec["label"], "known_seller": "yes" if known else "",
                         "url": r["url"], "snippet": r.get("snippet", ""), "query": spec["q"], "fingerprints": "|".join(fps),
-                        "via": websearch.via_host(h.get("via", "")) if "google.com/goto" in r["url"] else ""})
+                        "via": websearch.via_host(h.get("via", "")) if "google.com/goto" in r["url"] else "",
+                        "via_url": websearch.via_url(h.get("via", "")) if "google.com/goto" in r["url"] else ""})
             kept += 1
         log.append((spec["label"] + (f" (page {page})" if page > 1 else ""), spec["q"], code, len(hits), kept))
         return len(hits) if code == 200 else -1
